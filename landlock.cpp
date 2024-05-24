@@ -6,6 +6,7 @@
  */
 
 #include "hyper.h"
+#include "archipelago.cpp"
 namespace hr {
 
 EX bool in_full_game() {
@@ -230,6 +231,11 @@ EX int variant_unlock_value() {
   }
 
 EX bool landUnlocked(eLand l) {
+  init_landChecks();
+  return landChecks[l];
+}
+
+EX bool landUnlockedLegacy(eLand l) {
   if(randomPatternsMode) {
     return landUnlockedRPM(l);
     }
@@ -419,7 +425,22 @@ EX eLand pickluck(eLand l1, eLand l2) {
   } */
 
 EX eLand getNewSealand(eLand old) {
-  for(int it=0; it<100; it++) {
+
+  std::vector<eLand> unl;
+  for (eLand l:{laCaribbean, laLivefjord, laWarpSea, laKraken, laDocks, laRlyeh}) {
+    if(landUnlocked(l) && !(l == laKraken && peace::on) && !(incompatible(old, l)) && isLandIngame(l)) unl.push_back(l);
+  }
+  if(unl.empty()) {
+    if(landUnlocked(laOcean)) return laOcean;
+    else return old;
+  }
+  if(landUnlocked(laOcean) && hrand(100)<50 && !incompatible(laOcean, old)) {
+    return laOcean;
+  } else {
+    int r = hrand(unl.size());
+    return unl[r];
+  }
+  /*for(int it=0; it<100; it++) {
     eLand p = pick(laOcean, pick(laCaribbean, laLivefjord, laWarpSea, laKraken, laDocks));
     if(p == laKraken && !landUnlocked(p)) continue;
     if(p == laKraken && peace::on) continue;
@@ -428,7 +449,7 @@ EX eLand getNewSealand(eLand old) {
     if(!isLandIngame(p)) continue;
     return p;
     }
-  return old;
+  return old;*/
   }
 
 EX bool createOnSea(eLand old) {
@@ -528,7 +549,7 @@ EX eLand getNewLand(eLand old) {
     return l;
     }
   
-  if(old == laDragon && tortoise::seek() && hrand(100) < 50)
+  if(old == laDragon && tortoise::seek() && landUnlocked(laTortoise) && hrand(100) < 50)
     return laTortoise;
   
   if(isWarpedType(old) && (hrand(100) < 25) && ls::std_chaos()) return eLand(old ^ laWarpCoast ^ laWarpSea);
@@ -536,13 +557,13 @@ EX eLand getNewLand(eLand old) {
   if(createOnSea(old)) 
       return getNewSealand(old);
 
-  if(old == laGraveyard && generatingEquidistant)
+  if(old == laGraveyard && generatingEquidistant && landUnlocked(laHaunted))
     return laHaunted;
   
-  if(old == laOcean && gold() >= R60 && hrand(100) < 75 && !rlyehComplete() && !all_unlocked) 
-    return laRlyeh;
+  //if(old == laOcean && landUnlocked(laRlyeh) && hrand(100) < 75 && !rlyehComplete() && !all_unlocked) 
+  //  return laRlyeh;
     
-  if(old == laRlyeh && !rlyehComplete() && !all_unlocked)
+  if(old == laRlyeh && !rlyehComplete() && !all_unlocked && landUnlocked(laOcean))
     return laOcean;
     
   eLand tab[16384];
@@ -558,9 +579,12 @@ EX eLand getNewLand(eLand old) {
     laBull, laTerracotta, laRose, laGraveyard, laHive, laDragon, laTrollheim,
     laWet, laFrog, laEclectic, laCursed, laDice,
     laCrossroads5,
+
+    laMirrorOld, laMirror, laOcean, laLivefjord, laEmerald, laWarpCoast, laDocks,
+
+    laDual, laSnakeNest,
     })
     if(landUnlocked(l)) tab[cnt++] = l;    
-
   struct clos {
     eLand l1;
     eLand l2;
@@ -582,18 +606,20 @@ EX eLand getNewLand(eLand old) {
     {laEclectic, laStorms, 3, 3}, {laEclectic, laIce, 3, 3}, {laEclectic, laPalace, 3, 3}, {laEclectic, laDeadCaves, 3, 3},
     
     {laEFire, laDragon, 5, 5}, {laEWater, laLivefjord, 5, 5}, {laEEarth, laDeadCaves, 5, 5}, {laEAir, laWhirlwind, 5, 5},
+
+    {laPrairie, laBull, 5, 5},
     }) {
     if(old == c.l1 && landUnlocked(c.l2)) for(int i=0; i<c.f1; i++) tab[cnt++] = c.l2;
     if(old == c.l2 && landUnlocked(c.l1)) for(int i=0; i<c.f2; i++) tab[cnt++] = c.l1;
     }
   
   // these lands tend to crash while generating equidistant
-  for(eLand l: {laIvoryTower, laEndorian, laWestWall})
+  for(eLand l: {laIvoryTower, laEndorian, laWestWall, laCrossroads2})
     if(landUnlocked(l) && !generatingEquidistant)
       tab[cnt++] = l;
 
   // the intermediate lands
-  if(all_unlocked || gold() >= R30) {
+  /*if(all_unlocked || gold() >= R30) {
     tab[cnt++] = laCrossroads;
     tab[cnt++] = laMirrorOld;
     tab[cnt++] = laMirror;
@@ -604,6 +630,9 @@ EX eLand getNewLand(eLand old) {
     if(euclid) tab[cnt++] = laWarpSea;
     tab[cnt++] = laDocks;
     }
+  */
+  
+  if(euclid && landUnlocked(laWarpSea)) tab[cnt++] = laWarpSea;
 
   tab[cnt++] = laHalloween;
   tab[cnt++] = laWildWest;
@@ -611,7 +640,7 @@ EX eLand getNewLand(eLand old) {
   tab[cnt++] = laCA;
 
   // the advanced lands
-  if(all_unlocked || gold() >= R60) {
+  /*if(all_unlocked || gold() >= R60) {
     tab[cnt++] = laCrossroads;
     if(!generatingEquidistant) tab[cnt++] = laCrossroads2;
     if(all_unlocked || rlyehComplete()) tab[cnt++] = laRlyeh;
@@ -624,17 +653,35 @@ EX eLand getNewLand(eLand old) {
     if(items[itGold] >= U5 && items[itFernFlower] >= U5 && !kills[moVizier] && !all_unlocked)
       tab[cnt++] = laEmerald;
     }
+  */
 
-  if(all_unlocked || gold() >= R90) {
+  if(landUnlocked(laRlyeh)) {
+    if(rlyehComplete()) tab[cnt++] = laRlyeh;
+      else if(ls::std_chaos() && (old == laWarpCoast || old == laLivefjord || old == laOcean)) 
+        tab[cnt++] = laRlyeh;
+  }
+
+  if(landUnlocked(laTemple))
+    if(ls::std_chaos() || ls::horodisk_structure())
+      tab[cnt++] = laTemple;
+  
+
+  /*if(all_unlocked || gold() >= R90) {
     if(!ls::std_chaos()) tab[cnt++] = laPrairie;
     if(old == laPrairie) LIKELY tab[cnt++] = laBull;
     if(old == laBull && !ls::any_chaos()) LIKELY tab[cnt++] = laPrairie;
     tab[cnt++] = laDual;
     tab[cnt++] = laSnakeNest;
     }
+  */
+
+  if(landUnlocked(laPrairie) && !ls::std_chaos()) tab[cnt++] = laPrairie;
 
   if(ls::horodisk_structure()) {
-    if(gold() >= R30) {
+    for(eLand l:{laCaribbean, laKraken, laWhirlpool, laRlyeh, laTemple, laHaunted})
+      if(landUnlocked(l)) tab[cnt++] = l;
+  }
+    /*if(gold() >= R30) {
       tab[cnt++] = laCaribbean;
       tab[cnt++] = laKraken;
       tab[cnt++] = laWhirlpool;
@@ -645,7 +692,7 @@ EX eLand getNewLand(eLand old) {
       }
     if(items[itBone] >= 10)
       tab[cnt++] = laHaunted;
-    }
+  }*/
 
   if(ls::hv_structure() && landUnlocked(laMountain)) tab[cnt++] = laMountain;
   if(ls::hv_structure() && landUnlocked(laClearing)) tab[cnt++] = laClearing;
@@ -664,20 +711,20 @@ EX eLand getNewLand(eLand old) {
     tab[cnt++] = randomElementalLandWeighted();    
     }
   
-  if(landUnlocked(laHell)) {
+  if(landUnlocked(laCrossroads3)) {
     if(!generatingEquidistant && old != laPrairie) tab[cnt++] = laCrossroads3;
     }
   
-  if(items[itHell] >= U10) {
+  /*if(items[itHell] >= U10) {
     if(old == laCrossroads || old == laCrossroads2) tab[cnt++] = laOcean;
     if(old == laOcean) tab[cnt++] = laCrossroads2;
-    }
+    }*/  //TODO
 
-  if(ls::horodisk_structure() && tortoise::seek()) LIKELY tab[cnt++] = laTortoise;
+  if(ls::horodisk_structure() && tortoise::seek() && landUnlocked(laTortoise)) LIKELY tab[cnt++] = laTortoise;
   
   int attempts = 0;
   eLand n = old;
-  while(incompatible(n, old) || !isLandIngame(n)) {
+  while(incompatible(n, old) || !isLandIngame(n) || !landUnlocked(n)) {
     n = tab[hrand(cnt)];
     if(weirdhyperbolic && specialland == laCrossroads4 && isCrossroads(n))
       n = laCrossroads4;

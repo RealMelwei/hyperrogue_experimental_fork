@@ -127,6 +127,7 @@
 #include "vr.cpp"
 #include "intra.cpp"
 #include "crossbow.cpp"
+//#include "./archipelago/apinterface.cpp"
 
 #if CAP_ROGUEVIZ
 #include "rogueviz/rogueviz-all.cpp"
