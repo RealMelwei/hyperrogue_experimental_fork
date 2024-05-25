@@ -173,7 +173,7 @@ void addMessage(string s, char spamtype = 0);
 #define mhyperbolic (geom3::mgclass() == gcHyperbolic)
 
 // Dry Forest burning, heat transfer, etc. are performed on the whole universe
-#define doall (closed_or_bounded)
+#define doallhr (closed_or_bounded)
 
 #define sphere_narcm (sphere && !arcm::in())
 
@@ -846,7 +846,7 @@ extern int emeraldtable[100][7];
 // extern cell *cwpeek(cellwalker cw, int dir);
 
 #define HAUNTED_RADIUS getDistLimit()
-#define UNKNOWN 65535
+#define UNKNOWNHR 65535
 
 #define GRAIL_FOUND 0x4000
 #define GRAIL_RADIUS_MASK 0x3FFF

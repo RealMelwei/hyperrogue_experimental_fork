@@ -708,7 +708,7 @@ EX void compute_vertex_valence(arb::arbi_tiling& ac) {
   if(generic ? compute_vertex_valence_generic(ac) : compute_vertex_valence_flat(ac)) goto recompute;
   ac.have_valence = true;
 
-  ac.min_valence = UNKNOWN; ac.max_valence = 0;
+  ac.min_valence = UNKNOWNHR; ac.max_valence = 0;
   for(auto& sh: ac.shapes) 
     for(auto& val: sh.vertex_valence) {
       if(val < ac.min_valence) ac.min_valence = val;

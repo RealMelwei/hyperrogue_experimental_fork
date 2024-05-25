@@ -1450,7 +1450,7 @@ void raygen::emit_iterate(int gid1) {
 
   // next cell
   fmain +=
-    "  mediump vec4 connection = texture2D(tConnections, u);\n"
+    "  mediump vec4 connectionhr = texture2D(tConnections, u);\n"
     "  cid = connection.xy;\n";
 
   if(many_cell_types)

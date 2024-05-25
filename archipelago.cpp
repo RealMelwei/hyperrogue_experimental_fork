@@ -1,4 +1,5 @@
 #include "hyper.h"
+#include <apclient.hpp>
 int landChecks[100]={0};
 
 void init_landChecks(){

@@ -471,7 +471,7 @@ EX int curr_dist(cell *c) {
     case dfWorld:
       if((isCyclic(c->land) || among(c->land, laCanvas, laCaribbean, laStorms, laRlyeh))) {
         if(eubinary || c->master->alt) return celldistAlt(c);
-        return UNKNOWN;
+        return UNKNOWNHR;
         }
       return inmirror(c) ? (c->landparam & 255) : c->landparam;
     }
@@ -607,7 +607,7 @@ void celldrawer::do_viewdist() {
  
   switch(number_coding) {
     case ncDistance: { 
-      label = cd == UNKNOWN ? "?" : its(cd);
+      label = cd == UNKNOWNHR ? "?" : its(cd);
       dc = distcolors[cd];
       break;
       }

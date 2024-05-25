@@ -348,7 +348,7 @@ void celldrawer::setcolors() {
       int ed = edgeDepth(c);
       int sr = get_sightrange_ambush();
       
-      if(clev == UNKNOWN || ed == UNKNOWN)
+      if(clev == UNKNOWNHR || ed == UNKNOWNHR)
         fcol = 0x0000D0;
       else {
         while(ed > clev + sr) ed -= 2;

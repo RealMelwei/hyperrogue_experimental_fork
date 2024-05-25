@@ -132,7 +132,7 @@ private:
         else
         {
             using namespace std;
-            throw system_error(make_error_code(errc(0)/*errc::owner_dead*/)); // no protocol_error in my mingw
+            throw system_error(std::make_error_code(errc(0)/*errc::owner_dead*/)); // no protocol_error in my mingw
         }
     }
 public:

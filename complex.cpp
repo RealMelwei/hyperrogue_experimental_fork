@@ -2080,7 +2080,7 @@ EX namespace heat {
     int gr = gamerange();
     
     for(cell *c: offscreen_heat) {
-      if(c->cpdist > gr && !doall) {
+      if(c->cpdist > gr && !doallhr) {
         if(!cl.add(c)) continue; 
         if(isIcyLand(c)) {
           if(HEAT(c) < .01 && HEAT(c) > -.01)
@@ -2121,7 +2121,7 @@ EX namespace heat {
       double xrate = (c->land == laCocytus && shmup::on) ? 1/3. : 1;
       if(PURE) xrate *= 1.7; // todo-variation
       if(!shmup::on) xrate /= FIX94;
-      if(c->cpdist > gr && !doall) break;
+      if(c->cpdist > gr && !doallhr) break;
   
       if(isIcyLand(c)) {
         ld hmod = 0;
@@ -2193,7 +2193,7 @@ EX namespace heat {
         hmods[i] = hmod;
         }
       
-      if(HEAT(c) && !doall)
+      if(HEAT(c) && !doallhr)
         offscreen_heat.push_back(c);
       }
     
@@ -2358,7 +2358,7 @@ EX void livecaves() {
   
   for(int i=0; i<dcs; i++) {
     cell *c = allcells[i];
-    if(!doall && c->cpdist > gr+1) break;
+    if(!doallhr && c->cpdist > gr+1) break;
     
     int & hv = heatvals[i];
     
@@ -2465,7 +2465,7 @@ EX void livecaves() {
 
   for(int i=0; i<dcs; i++) {
     cell *c = allcells[i];
-    if(!doall && c->cpdist > gr+1) break;
+    if(!doallhr && c->cpdist > gr+1) break;
     int hv = heatvals[i];
 
     if(c->wall == waCavefloor || c->wall == waCavewall) {

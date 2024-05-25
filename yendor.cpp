@@ -1089,7 +1089,7 @@ EX void load_mode_data_with_zero(hstream& f) {
 
 EX modecode_t modecode(int mode) {
   modecode_t x = legacy_modecode();
-  if(x != UNKNOWN) return x;
+  if(x != UNKNOWNHR) return x;
 
   xcheat = (cheater ? 1 : 0);
   shstream ss;
@@ -1098,7 +1098,7 @@ EX modecode_t modecode(int mode) {
   
   if(code_for.count(ss.s)) return code_for[ss.s];
 
-  if(mode == 1) return UNKNOWN;
+  if(mode == 1) return UNKNOWNHR;
   
   modecode_t next = 100000;
   while(meaning.count(next)) next++;

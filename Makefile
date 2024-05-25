@@ -51,7 +51,7 @@ endif
 
 
 ifeq (${OS},linux)
-  CXXFLAGS_EARLY += -DLINUX ##-I/submodules/apclientpp
+  CXXFLAGS_EARLY += -DLINUX -I${CURDIR}/submodules/apclientpp -I${CURDIR}/submodules/json/include -I${CURDIR}/submodules/valijson/include -I${CURDIR}/submodules/websocketpp -I${CURDIR}/submodules/wswrap/include
   EXE_EXTENSION :=
   LDFLAGS_GL := -lGL
   LDFLAGS_GLEW := -lGLEW

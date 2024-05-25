@@ -132,7 +132,7 @@ struct _OwnerThread
         fprintf(stderr, "FATAL: Recursive locking of non-recursive mutex\
  detected. Throwing system exception\n");
         fflush(stderr);
-        throw system_error(make_error_code(errc::resource_deadlock_would_occur));
+        throw system_error(std::make_error_code(errc::resource_deadlock_would_occur));
     }
     DWORD checkOwnerBeforeLock() const
     {

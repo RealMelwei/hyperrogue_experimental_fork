@@ -1408,7 +1408,7 @@ EX monster *getPlayer() {
   }
 
 void virtualize(monster *m) {
-  if(doall) forCellCM(c2, m->base) if(!gmatrix.count(c2)) {
+  if(doallhr) forCellCM(c2, m->base) if(!gmatrix.count(c2)) {
     m->isVirtual = true;
     m->pat = shiftless(m->at);
     return;
@@ -1506,7 +1506,7 @@ void moveMimic(monster *m) {
     awakenMimics(m, c2);
     }
 
-  if(!doall && c2->cpdist >= 6)
+  if(!doallhr && c2->cpdist >= 6)
     m->dead = true;
   }
 
@@ -1776,7 +1776,7 @@ void moveBullet(monster *m, int delta) {
   m->rebasePat(nat, c2);
   
   // destroy stray bullets
-  if(!doall) for(int i=0; i<m->base->type; i++) 
+  if(!doallhr) for(int i=0; i<m->base->type; i++) 
     if(!m->base->move(i) || !gmatrix.count(m->base->move(i)))
       m->dead = true;
 
@@ -2621,7 +2621,7 @@ EX void turn(int delta) {
   invismove = (curtime >= visibleAt) && markOrb(itOrbInvis);
 
   // detect active monsters
-  if(doall)
+  if(doallhr)
     for(cell *c: currentmap->allcells()) activateMonstersAt(c);
   else
     for(map<cell*, shiftmatrix>::iterator it = gmatrix.begin(); it != gmatrix.end(); it++) 

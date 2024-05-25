@@ -1,0 +1,15 @@
+[submodule "submodules/apclientpp"]
+	path = submodules/apclientpp
+	url = https://github.com/black-sliver/apclientpp.git
+[submodule "submodules/json"]
+	path = submodules/json
+	url = https://github.com/nlohmann/json.git
+[submodule "submodules/valijson"]
+	path = submodules/valijson
+	url = https://github.com/tristanpenman/valijson.git
+[submodule "submodules/wswrap"]
+	path = submodules/wswrap
+	url = https://github.com/black-sliver/wswrap
+[submodule "submodules/websocketpp"]
+	path = submodules/websocketpp
+	url = https://github.com/zaphoyd/websocketpp.git

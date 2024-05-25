@@ -213,11 +213,11 @@ public:
     {
         using namespace std;
         if (get_id() == id(GetCurrentThreadId()))
-            throw system_error(make_error_code(errc::resource_deadlock_would_occur));
+            throw system_error(std::make_error_code(errc::resource_deadlock_would_occur));
         if (mHandle == kInvalidHandle)
-            throw system_error(make_error_code(errc::no_such_process));
+            throw system_error(std::make_error_code(errc::no_such_process));
         if (!joinable())
-            throw system_error(make_error_code(errc::invalid_argument));
+            throw system_error(std::make_error_code(errc::invalid_argument));
         WaitForSingleObject(mHandle, kInfinite);
         CloseHandle(mHandle);
         mHandle = kInvalidHandle;
@@ -266,7 +266,7 @@ moving another thread to it.\n");
         if (!joinable())
         {
             using namespace std;
-            throw system_error(make_error_code(errc::invalid_argument));
+            throw system_error(std::make_error_code(errc::invalid_argument));
         }
         if (mHandle != kInvalidHandle)
         {

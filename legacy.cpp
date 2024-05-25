@@ -203,10 +203,10 @@ int modecodetable[42][6] = {
 // unused codes: 6 (cheat/tampered), 25, 254, 255
 
 EX modecode_t legacy_modecode() {
-  if(int(geometry) > 3 || int(variation) > 1) return UNKNOWN;
-  if(casual) return UNKNOWN;
-  if(bow::weapon) return UNKNOWN;
-  if(use_custom_land_list) return UNKNOWN;
+  if(int(geometry) > 3 || int(variation) > 1) return UNKNOWNHR;
+  if(casual) return UNKNOWNHR;
+  if(bow::weapon) return UNKNOWNHR;
+  if(use_custom_land_list) return UNKNOWNHR;
 
   bool is_default_land_structure =
     (princess::challenge || tactic::on) ? ls::single() :
@@ -214,7 +214,7 @@ EX modecode_t legacy_modecode() {
     yendor::on ? (land_structure == yendor::get_land_structure()) :
     ls::nice_walls();
 
-  if(!is_default_land_structure && !ls::std_chaos()) return UNKNOWN;
+  if(!is_default_land_structure && !ls::std_chaos()) return UNKNOWNHR;
 
   // compute the old code
   int xcode = 0;

@@ -691,8 +691,8 @@ EX void buildAnotherEquidistant(cell *c) {
   }
 
 EX int coastval(cell *c, eLand base) {
-  if(!c) return UNKNOWN;
-  if(c->land == laNone) return UNKNOWN;
+  if(!c) return UNKNOWNHR;
+  if(c->land == laNone) return UNKNOWNHR;
   if(base == laGraveyard) {
     if(c->land == laHaunted || c->land == laHauntedWall)
       return 0;
@@ -700,7 +700,7 @@ EX int coastval(cell *c, eLand base) {
     }
   else if(base == laMirrored) {
     if(!inmirror(c)) return 0;
-    if(!c->landparam) return UNKNOWN;
+    if(!c->landparam) return UNKNOWNHR;
     return c->landparam & 255;
     }
   else if(base == laWestWall) {
@@ -714,7 +714,7 @@ EX int coastval(cell *c, eLand base) {
       return 0;
       }
     }
-  if(!c->landparam) return UNKNOWN;
+  if(!c->landparam) return UNKNOWNHR;
   return c->landparam;
   }
 
@@ -760,7 +760,7 @@ EX void buildEquidistant(cell *c) {
     }
   if(b == laHauntedBorder) b = laGraveyard;
   if(inmirror(b)) b = laMirrored;
-  int mcv = UNKNOWN;
+  int mcv = UNKNOWNHR;
 
   // find the lowest coastval
   for(int i=0; i<c->type; i++) {
@@ -801,7 +801,7 @@ EX void buildEquidistant(cell *c) {
         qcv++, sid = i;
       
     // if(generatingEquidistant) printf("qcv=%d mcv=%d\n", qcv, mcv);
-    if(qcv >= 2) c->landparam = mcv+1; // (mcv == UNKNOWN ? UNKNOWN : mcv+1);
+    if(qcv >= 2) c->landparam = mcv+1; // (mcv == UNKNOWNHR ? UNKNOWNHR : mcv+1);
     else {
       // if(qcv != 1) { printf("qcv = %d\n", qcv);  exit(1); }
       cell *c2 = c->move(sid);
