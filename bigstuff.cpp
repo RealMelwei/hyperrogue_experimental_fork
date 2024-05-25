@@ -1569,7 +1569,7 @@ EX bool horo_ok() {
   #if MAXMDIM >= 4
   if(reg3::in_hrmap_h3() && !PURE) return false;
   #endif
-  return mhyperbolic && !bt::in() && !arcm::in() && !kite::in() && !experimental && !mhybrid && !arb::in() && !quotient;
+  return mhyperbolic && !bt::in() && !arcm::in() && !kite::in() && !experimentalhr && !mhybrid && !arb::in() && !quotient;
   }
 
 /** \brief should we either generate the horocycles in the current geometry, or have them exist via eubinary? */
@@ -1686,7 +1686,7 @@ EX bool good_for_wall(cell *c) {
 
 EX bool walls_not_implemented() {
   // if(WDIM == 3 && !PURE) return true;
-  if(sphere || quotient || nonisotropic || aperiodic || experimental) return true;
+  if(sphere || quotient || nonisotropic || aperiodic || experimentalhr) return true;
   return WDIM == 3 && (cgflags & qIDEAL);
   }
 

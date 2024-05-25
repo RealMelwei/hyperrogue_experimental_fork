@@ -1066,7 +1066,7 @@ EX void saveStats(bool emergency IS(false)) {
   if(randomPatternsMode && !save_cheats) return;
   if(daily::on) return;
   if(peace::on && !save_cheats) return;
-  if(experimental) return;
+  if(experimentalhr) return;
 
   if(!gold() && !racing::on) return;
   

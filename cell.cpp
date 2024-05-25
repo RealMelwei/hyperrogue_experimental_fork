@@ -746,7 +746,7 @@ EX int compdist(int dx[]) {
   }
 
 EX int celldist(cell *c) {
-  if(experimental) return 0;
+  if(experimentalhr) return 0;
   if(mhybrid)
     return hybrid::celldistance(c, currentmap->gamestart());
   if(nil && !quotient) return DISTANCE_UNKNOWN;
@@ -778,7 +778,7 @@ static constexpr int ALTDIST_ERROR = 90000;
 #endif
 
 EX int celldistAlt(cell *c) {
-  if(experimental) return 0;
+  if(experimentalhr) return 0;
   if(mhybrid) {
     if(in_s2xe()) return hybrid::get_where(c).second;
     auto w = hybrid::get_where(c); 
@@ -1255,7 +1255,7 @@ EX cdata *arcmCdata(cell *c) {
 EX int getCdata(cell *c, int j) {
   if(fake::in()) return FPIU(getCdata(c, j));
   if(embedded_plane) return IPF(getCdata(c, j));
-  if(experimental) return 0;
+  if(experimentalhr) return 0;
   if(mhybrid) { c = hybrid::get_where(c).first; return PIU(getBits(c)); }
   else if(INVERSE) {
     cell *c1 = gp::get_mapped(c);
@@ -1282,7 +1282,7 @@ EX int getCdata(cell *c, int j) {
 EX int getBits(cell *c) {
   if(fake::in()) return FPIU(getBits(c));
   if(embedded_plane) return IPF(getBits(c));
-  if(experimental) return 0;
+  if(experimentalhr) return 0;
   if(mhybrid) { c = hybrid::get_where(c).first; return PIU(getBits(c)); }
   else if(INVERSE) {
     cell *c1 = gp::get_mapped(c);
@@ -1452,7 +1452,7 @@ EX int celldistance(cell *c1, cell *c2) {
     return euc::cyldist(euc2_coordinates(c1), euc2_coordinates(c2));
     }
 
-  if(arcm::in() || quotient || sn::in() || (aperiodic && euclid) || experimental || sl2 || nil || arb::in()) 
+  if(arcm::in() || quotient || sn::in() || (aperiodic && euclid) || experimentalhr || sl2 || nil || arb::in()) 
     return clueless_celldistance(c1, c2);
    
    if(S3 >= OINF) return inforder::celldistance(c1, c2);

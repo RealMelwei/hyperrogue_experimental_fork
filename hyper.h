@@ -136,7 +136,7 @@ void addMessage(string s, char spamtype = 0);
 #define cryst (cgflags & qCRYSTAL)
 
 /** convenience flag for geometries with major aspects missing */
-#define experimental (cgflags & qEXPERIMENTAL)
+#define experimentalhr (cgflags & qEXPERIMENTAL)
 
 // these geometries do not feature alternate structures for horocycles
 #define eubinary (euclid || bt::in() || cryst || nil)

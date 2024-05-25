@@ -4146,7 +4146,7 @@ EX bool other_stereo_mode() {
 void make_clipping_planes() {
 #if MAXMDIM >= 4
   clip_checked = false;
-  if(!frustum_culling || PIU(sphere) || experimental || other_stereo_mode() || gproduct || embedded_plane) return;
+  if(!frustum_culling || PIU(sphere) || experimentalhr || other_stereo_mode() || gproduct || embedded_plane) return;
 
   if(WDIM == 3 && pmodel == mdPerspective && !nonisotropic && !in_s2xe())
     threshold = sin_auto(cgi.corner_bonus), xyz_threshold = 0, clip_checked = true;
