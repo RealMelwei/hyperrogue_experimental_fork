@@ -1127,7 +1127,7 @@ EX namespace dialog {
 
     if(extra_options) extra_options();
     
-    keyhandler = [this] (int sym, int uni) { return handleKeyColor(sym, uni, self); };
+    keyhandler = [this] (int sym, int uni) { return handleKeyColor(sym, uni, selfhr); };
     }
   
   EX void openColorDialog(unsigned int& col, unsigned int *pal IS(palette)) {
@@ -1263,7 +1263,7 @@ EX namespace dialog {
     }
 
   void number_dialog::apply_slider() {
-    auto &ne = self;
+    auto &ne = selfhr;
     if(ne.intval) *ne.intval = ldtoint(*ne.editwhat);
     if(ne.reaction) ne.reaction();
     if(ne.intval) *ne.editwhat = *ne.intval;
@@ -1280,7 +1280,7 @@ EX namespace dialog {
     }
   
   void number_dialog::apply_edit() {
-    auto& ne = self;
+    auto& ne = selfhr;
     try {
       exp_parser ep;
       ep.s = ne.s;    
@@ -1393,7 +1393,7 @@ EX namespace dialog {
     gamescreen();
     init(title);
     addInfo(s);
-    auto& ne = self;
+    auto& ne = selfhr;
     if(ne.intval && ne.sc.direct == &identity_f)
       addIntSlider(int(ne.vmin), int(*ne.editwhat), int(ne.vmax), 500);
     else

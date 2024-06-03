@@ -139,7 +139,7 @@ struct _OwnerThread
         DWORD self = GetCurrentThreadId();
         if (mOwnerThread.load(std::memory_order_relaxed) == self)
             on_deadlock();
-        return self;
+        return selfhr;
     }
     void setOwnerAfterLock(DWORD id)
     {

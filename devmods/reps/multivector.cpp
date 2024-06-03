@@ -6,32 +6,32 @@ TD struct mvector {
   const typename D::Number& operator [] (int i) const { return values[i]; }
   mvector operator + (const mvector& M) const {
     mvector result;
-    for(int i=0; i<D::Dim; i++) result[i] = self[i] + M[i];
+    for(int i=0; i<D::Dim; i++) result[i] = selfhr[i] + M[i];
     return result;
     }
   mvector operator - (const mvector& M) const {
     mvector result;
-    for(int i=0; i<D::Dim; i++) result[i] = self[i] - M[i];
+    for(int i=0; i<D::Dim; i++) result[i] = selfhr[i] - M[i];
     return result;
     }
   mvector operator * (const typename D::Number& x) const {
     mvector result;
-    for(int i=0; i<D::Dim; i++) result[i] = self[i] * x;
+    for(int i=0; i<D::Dim; i++) result[i] = selfhr[i] * x;
     return result;
     }
   mvector operator / (const typename D::Number& x) const {
     mvector result;
-    for(int i=0; i<D::Dim; i++) result[i] = self[i] / x;
+    for(int i=0; i<D::Dim; i++) result[i] = selfhr[i] / x;
     return result;
     }
   mvector operator * (int x) const {
     mvector result;
-    for(int i=0; i<D::Dim; i++) result[i] = self[i] * x;
+    for(int i=0; i<D::Dim; i++) result[i] = selfhr[i] * x;
     return result;
     }
   mvector operator / (int x) const {
     mvector result;
-    for(int i=0; i<D::Dim; i++) result[i] = self[i] / x;
+    for(int i=0; i<D::Dim; i++) result[i] = selfhr[i] / x;
     return result;
     }
   };
@@ -45,7 +45,7 @@ TD struct matrix {
     for(int i=0; i<D::Dim; i++)
     for(int k=0; k<D::Dim; k++) {
       result[i][k] = typename D::Number(0);
-      for(int j=0; j<D::Dim; j++) result[i][k] += self[i][j] * M[j][k];
+      for(int j=0; j<D::Dim; j++) result[i][k] += selfhr[i][j] * M[j][k];
       }
     return result;
     }
@@ -53,28 +53,28 @@ TD struct matrix {
     mvector<D> result;
     for(int i=0; i<D::Dim; i++) {
       result[i] = typename D::Number(0);
-      for(int j=0; j<D::Dim; j++) result[i] += self[i][j] * V[j];
+      for(int j=0; j<D::Dim; j++) result[i] += selfhr[i][j] * V[j];
       }
     return result;
     }
   matrix operator * (const typename D::Number& x) const {
     matrix result;
-    for(int i=0; i<D::Dim; i++) for(int j=0; j<D::Dim; j++) result[i][j] = self[i][j] * x;
+    for(int i=0; i<D::Dim; i++) for(int j=0; j<D::Dim; j++) result[i][j] = selfhr[i][j] * x;
     return result;
     }
   matrix operator / (const typename D::Number& x) const {
     matrix result;
-    for(int i=0; i<D::Dim; i++) for(int j=0; j<D::Dim; j++) result[i][j] = self[i][j] / x;
+    for(int i=0; i<D::Dim; i++) for(int j=0; j<D::Dim; j++) result[i][j] = selfhr[i][j] / x;
     return result;
     }
   matrix operator * (int x) const {
     matrix result;
-    for(int i=0; i<D::Dim; i++) for(int j=0; j<D::Dim; j++) result[i][j] = self[i][j] * x;
+    for(int i=0; i<D::Dim; i++) for(int j=0; j<D::Dim; j++) result[i][j] = selfhr[i][j] * x;
     return result;
     }
   matrix operator / (int x) const {
     matrix result;
-    for(int i=0; i<D::Dim; i++) for(int j=0; j<D::Dim; j++) result[i][j] = self[i][j] / x;
+    for(int i=0; i<D::Dim; i++) for(int j=0; j<D::Dim; j++) result[i][j] = selfhr[i][j] / x;
     return result;
     }
   };

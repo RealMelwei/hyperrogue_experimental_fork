@@ -578,7 +578,7 @@ EX hyperpoint randomPointIn(int t) {
 
 /** /brief get the coordinates of the vertex of cell c indexed with cid
  *  the two vertices c and c->move(cid) share are indexed cid and gmod(cid+1, c->type)
- *  cf=3 is the vertex itself; larger values are closer to the center
+ *  cf=3 is the vertex itselfhr; larger values are closer to the center
  */  
 
 EX hyperpoint get_corner_position(cell *c, int cid, ld cf IS(3)) {

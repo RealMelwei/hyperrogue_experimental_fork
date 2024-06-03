@@ -53,6 +53,7 @@ endif
 ifeq (${OS},linux)
   CXXFLAGS_EARLY += -DLINUX -I${CURDIR}/submodules/apclientpp -I${CURDIR}/submodules/json/include -I${CURDIR}/submodules/valijson/include -I${CURDIR}/submodules/websocketpp -I${CURDIR}/submodules/wswrap/include
   EXE_EXTENSION :=
+  LDFLAGS_SSL := -lcrypto -lssl
   LDFLAGS_GL := -lGL
   LDFLAGS_GLEW := -lGLEW
   LDFLAGS_PNG := -lpng
@@ -121,7 +122,7 @@ endif
 
 
 hyper_OBJS = hyper$(OBJ_EXTENSION)
-hyper_LDFLAGS = $(LDFLAGS_GL) $(LDFLAGS_SDL)
+hyper_LDFLAGS = $(LDFLAGS_GL) $(LDFLAGS_SDL) $(LDFLAGS_SSL)
 
 ifeq (${HYPERROGUE_USE_GLEW},1)
   CXXFLAGS_EARLY += -DCAP_GLEW=1

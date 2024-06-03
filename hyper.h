@@ -452,7 +452,7 @@ extern videopar vid;
 #define LDIM (MDIM-1)
 #define cclass g.kind
 
-#define self (*this)
+#define selfhr (*this)
 
 #define BUGCOLORS 3
 

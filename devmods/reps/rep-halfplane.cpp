@@ -4,19 +4,19 @@ namespace reps {
 
 template<class F> struct sl2 : public array<F, 4> {
 
-  sl2(F a, F b, F c, F d) { self[0] = a; self[1] = b; self[2] = c; self[3] = d; }
+  sl2(F a, F b, F c, F d) { selfhr[0] = a; selfhr[1] = b; selfhr[2] = c; selfhr[3] = d; }
   
   sl2 operator * (const sl2& sec) const {
     return sl2(
-      self[0] * sec[0] + self[1] * sec[2], 
-      self[0] * sec[1] + self[1] * sec[3], 
-      self[2] * sec[0] + self[3] * sec[2], 
-      self[2] * sec[1] + self[3] * sec[3]
+      selfhr[0] * sec[0] + selfhr[1] * sec[2], 
+      selfhr[0] * sec[1] + selfhr[1] * sec[3], 
+      selfhr[2] * sec[0] + selfhr[3] * sec[2], 
+      selfhr[2] * sec[1] + selfhr[3] * sec[3]
       );
     }
 
   std::string print() {
-    return hr::lalign(0, "[", self[0], ",", self[1], ";", self[2], ",", self[3], "]");
+    return hr::lalign(0, "[", selfhr[0], ",", selfhr[1], ";", selfhr[2], ",", selfhr[3], "]");
     }
 
   };

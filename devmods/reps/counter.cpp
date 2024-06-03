@@ -33,12 +33,12 @@ struct countfloat {
   bool operator <=(countfloat a) const { return x <= a.x; }
   bool operator >=(countfloat a) const { return x >= a.x; }
 
-  countfloat& operator +=(countfloat a) { C("plus"); cbc[1]++; x += a.x; return self; }
-  countfloat& operator -=(countfloat a) { C("plus"); cbc[1]++; x -= a.x; return self; }
-  countfloat& operator *=(countfloat a) { C("mul"); cbc[2]++; x *= a.x; return self; }
-  countfloat& operator /=(countfloat a) { C("mul"); cbc[2]++; x /= a.x; return self; }
-  countfloat& operator *=(int a) { if(a != 1 && a != -1) C("mul"+hr::its(a)); x *= a; return self; }
-  countfloat& operator /=(int a) { if(a != 1 && a != -1) C("div"+hr::its(a)); x /= a; return self; }
+  countfloat& operator +=(countfloat a) { C("plus"); cbc[1]++; x += a.x; return selfhr; }
+  countfloat& operator -=(countfloat a) { C("plus"); cbc[1]++; x -= a.x; return selfhr; }
+  countfloat& operator *=(countfloat a) { C("mul"); cbc[2]++; x *= a.x; return selfhr; }
+  countfloat& operator /=(countfloat a) { C("mul"); cbc[2]++; x /= a.x; return selfhr; }
+  countfloat& operator *=(int a) { if(a != 1 && a != -1) C("mul"+hr::its(a)); x *= a; return selfhr; }
+  countfloat& operator /=(int a) { if(a != 1 && a != -1) C("div"+hr::its(a)); x /= a; return selfhr; }
 
   friend countfloat sin(countfloat a) { cbc[4]++; C("sin"); return countfloat(sin(a.x)); }
   friend countfloat cos(countfloat a) { cbc[4]++; C("cos"); return countfloat(cos(a.x)); }

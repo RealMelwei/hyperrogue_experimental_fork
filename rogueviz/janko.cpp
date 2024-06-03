@@ -18,7 +18,7 @@ struct jmatrix : array<array<int, 7>, 7> {
     for(int a=0; a<7; a++)
     for(int b=0; b<7; b++)
     for(int c=0; c<7; c++)
-      res[a][c] += self[a][b] * other[b][c];
+      res[a][c] += selfhr[a][b] * other[b][c];
 
     for(int a=0; a<7; a++)
     for(int b=0; b<7; b++)

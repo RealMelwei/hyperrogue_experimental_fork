@@ -14,14 +14,14 @@ EX namespace euc {
   struct coord : array<int, 3> {
     explicit coord() = default;
     constexpr explicit coord(int x, int y, int z) : array<int,3> {{x,y,z}} {}
-    coord& operator += (coord b) { for(int i: {0,1,2}) self[i] += b[i]; return self; }
-    coord& operator -= (coord b) { for(int i: {0,1,2}) self[i] -= b[i]; return self; }
-    coord operator + (coord b) const { coord a = self; return a += b; }
-    coord operator - (coord b) const { coord a = self; return a -= b; }
-    coord operator -() const { return coord(-self[0], -self[1], -self[2]); }
-    coord& operator +() { return self; }
-    const coord& operator +() const { return self; }
-    coord operator *(int x) const { return coord(x*self[0], x*self[1], x*self[2]); }
+    coord& operator += (coord b) { for(int i: {0,1,2}) selfhr[i] += b[i]; return selfhr; }
+    coord& operator -= (coord b) { for(int i: {0,1,2}) selfhr[i] -= b[i]; return selfhr; }
+    coord operator + (coord b) const { coord a = selfhr; return a += b; }
+    coord operator - (coord b) const { coord a = selfhr; return a -= b; }
+    coord operator -() const { return coord(-selfhr[0], -selfhr[1], -selfhr[2]); }
+    coord& operator +() { return selfhr; }
+    const coord& operator +() const { return selfhr; }
+    coord operator *(int x) const { return coord(x*selfhr[0], x*selfhr[1], x*selfhr[2]); }
     friend coord operator *(int x, const coord& y) { return coord(x*y[0], x*y[1], x*y[2]); }
     };
   

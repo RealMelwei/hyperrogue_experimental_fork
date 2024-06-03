@@ -585,7 +585,7 @@ struct bignum {
   bignum(ld d);
   
   bool operator < (const bignum&) const;
-  bool operator > (const bignum& b) const { return b < self; }
+  bool operator > (const bignum& b) const { return b < selfhr; }
 
   ld leading() const {
     switch(isize(digits)) {
@@ -674,7 +674,7 @@ bool bignum::operator < (const bignum& b) const {
   }
 
 bignum bignum::randomized_div(int x) const {
-  bignum res = self;
+  bignum res = selfhr;
   long long carry = 0;
   int K = isize(res.digits);
   for(int i=K-1; i>=0; i--) {

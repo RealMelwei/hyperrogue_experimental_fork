@@ -175,11 +175,11 @@ template<class T> struct enum_setting : list_setting {
 /** transmatrix with equality, so we can construct val_setting<matrix_eq> */
 struct matrix_eq : transmatrix {
   bool operator == (const transmatrix& t) const {
-    for(int i=0; i<MAXMDIM; i++) for(int j=0; j<MAXMDIM; j++)  if(self[i][j] != t[i][j]) return false;
+    for(int i=0; i<MAXMDIM; i++) for(int j=0; j<MAXMDIM; j++)  if(selfhr[i][j] != t[i][j]) return false;
     return true;
     }
   bool operator != (const transmatrix& t) const {
-    return ! (self == t);
+    return ! (selfhr == t);
     }
   };
 

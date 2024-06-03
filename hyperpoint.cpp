@@ -66,23 +66,23 @@ struct hyperpoint : array<ld, MAXMDIM> {
   #endif
 
   inline hyperpoint& operator *= (ld d) {
-    for(int i=0; i<MXDIM; i++) self[i] *= d;
-    return self;
+    for(int i=0; i<MXDIM; i++) selfhr[i] *= d;
+    return selfhr;
     }
   
   inline hyperpoint& operator /= (ld d) { 
-    for(int i=0; i<MXDIM; i++) self[i] /= d;
-    return self;
+    for(int i=0; i<MXDIM; i++) selfhr[i] /= d;
+    return selfhr;
     }
   
   inline hyperpoint& operator += (const hyperpoint h2) { 
-    for(int i=0; i<MXDIM; i++) self[i] += h2[i];
-    return self;
+    for(int i=0; i<MXDIM; i++) selfhr[i] += h2[i];
+    return selfhr;
     }
 
   inline hyperpoint& operator -= (const hyperpoint h2) { 
-    for(int i=0; i<MXDIM; i++) self[i] -= h2[i];
-    return self;
+    for(int i=0; i<MXDIM; i++) selfhr[i] -= h2[i];
+    return selfhr;
     }
 
   inline friend hyperpoint operator * (ld d, hyperpoint h) { return h *= d; }  
@@ -212,7 +212,7 @@ struct trans23 {
   trans23(const transmatrix& T) { v2 = T; v3 = T; }
   trans23(const transmatrix& T2, const transmatrix& T3) { v2 = T2; v3 = T3; }
   bool operator == (const trans23& b) const;
-  bool operator != (const trans23& b) const { return !(self == b); }
+  bool operator != (const trans23& b) const { return !(selfhr == b); }
   trans23 operator * (trans23 T) {
     trans23 t;
     auto& dim = cginf.g.homogeneous_dimension;

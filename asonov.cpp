@@ -35,9 +35,9 @@ EX transmatrix straighten;
 struct coord: public array<int,3> {
   coord() {}
   coord(int x, int y, int z) : array<int,3>(make_array(zgmod(x, period_xy), zgmod(y, period_xy), zgmod(z, period_z))) {}
-  coord shift(int x, int y, int z=0) { return coord(self[0]+x, self[1]+y, self[2]+z); }
-  coord up() { return coord(self[0]*2-self[1], self[1]-self[0], self[2]+1); }
-  coord down() { return coord(self[0]+self[1], self[0]+self[1]*2, self[2]-1); }  
+  coord shift(int x, int y, int z=0) { return coord(selfhr[0]+x, selfhr[1]+y, selfhr[2]+z); }
+  coord up() { return coord(selfhr[0]*2-selfhr[1], selfhr[1]-selfhr[0], selfhr[2]+1); }
+  coord down() { return coord(selfhr[0]+selfhr[1], selfhr[0]+selfhr[1]*2, selfhr[2]-1); }  
   coord addmove(int d);
   coord operator - (coord b);
   };
@@ -144,7 +144,7 @@ transmatrix coord_to_matrix(coord c, coord zero) {
   }
 
 coord coord::operator - (coord b) {
-  auto c = self;
+  auto c = selfhr;
   while(b[2]) {
     int z = szgmod(b[2], period_z);
     if(z > 0) b = b.down(), c = c.down();

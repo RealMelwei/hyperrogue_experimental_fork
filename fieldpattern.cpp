@@ -48,19 +48,19 @@ EX bool isprime(int n) {
 struct matrix : array<array<int, MAXMDIM>, MAXMDIM> {
   bool operator == (const matrix& B) const {
     for(int i=0; i<MWDIM; i++) for(int j=0; j<MWDIM; j++)
-      if(self[i][j] != B[i][j]) return false;
+      if(selfhr[i][j] != B[i][j]) return false;
     return true;
     }
   
   bool operator != (const matrix& B) const {
     for(int i=0; i<MWDIM; i++) for(int j=0; j<MWDIM; j++)
-      if(self[i][j] != B[i][j]) return true;
+      if(selfhr[i][j] != B[i][j]) return true;
     return false;
     }
   
   bool operator < (const matrix& B) const {
     for(int i=0; i<MWDIM; i++) for(int j=0; j<MWDIM; j++)
-      if(self[i][j] != B[i][j]) return self[i][j] < B[i][j];
+      if(selfhr[i][j] != B[i][j]) return selfhr[i][j] < B[i][j];
     return false;
     }
   

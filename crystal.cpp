@@ -15,9 +15,9 @@ static constexpr int MAXDIM = 7;
 static constexpr int MAX_EDGE_CRYSTAL = 2 * MAXDIM;
 
 struct coord : public array<int, MAXDIM> {
-  coord operator + (coord b) { for(int i=0; i<MAXDIM; i++) b[i] += self[i]; return b; }  
-  coord operator - (coord b) { for(int i=0; i<MAXDIM; i++) b[i] = self[i] - b[i]; return b; }  
-  coord operator * (int x) { coord res; for(int i=0; i<MAXDIM; i++) res[i] = x * self[i]; return res; } 
+  coord operator + (coord b) { for(int i=0; i<MAXDIM; i++) b[i] += selfhr[i]; return b; }  
+  coord operator - (coord b) { for(int i=0; i<MAXDIM; i++) b[i] = selfhr[i] - b[i]; return b; }  
+  coord operator * (int x) { coord res; for(int i=0; i<MAXDIM; i++) res[i] = x * selfhr[i]; return res; } 
   };
 
 static constexpr coord c0 = {};
