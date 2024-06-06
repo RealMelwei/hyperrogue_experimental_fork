@@ -830,6 +830,7 @@ EX void advance_tides() {
   }
 
 EX void monstersTurn() {
+  ap::update_Checks();
   reset_spill();
   checkSwitch();
   mirror::breakAll();

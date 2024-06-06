@@ -232,7 +232,7 @@ EX int variant_unlock_value() {
 
 EX bool landUnlocked(eLand l) {
   init_landChecks();
-  return landChecks[l];
+  return (landChecksReceived[l]!=ap::progressCheck::locked);
 }
 
 EX bool landUnlockedLegacy(eLand l) {

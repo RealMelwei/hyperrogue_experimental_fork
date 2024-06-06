@@ -967,4 +967,5 @@ static inline void set_flag(flagtype& f, flagtype which, bool b) {
 #define IS(z)
 #define EX
 
+#include "archipelago.hpp"
 #endif
