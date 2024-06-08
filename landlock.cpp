@@ -231,8 +231,17 @@ EX int variant_unlock_value() {
   }
 
 EX bool landUnlocked(eLand l) {
-  init_landChecks();
-  return (landChecksReceived[l]!=ap::progressCheck::locked);
+  //ap::init_landChecks();
+  if (l == laCrossroads2)
+    return (ap::number_of_progressed_lands(ap::progressCheck::unlocked) >= 20);
+  if (l == laCrossroads3)
+    return (ap::number_of_progressed_lands(ap::progressCheck::unlocked) >= 40 && ap::number_of_progressed_lands(ap::progressCheck::orbunlocked) >= 9);
+  if (l == laCrossroads4)
+    return (ap::number_of_progressed_lands(ap::progressCheck::unlocked) >= 40 && ap::number_of_progressed_lands(ap::progressCheck::orbunlocked) >= 20);
+  if (l == laCrossroads5)
+    return (ap::number_of_progressed_lands(ap::progressCheck::unlocked) >= 40 && ap::number_of_progressed_lands(ap::progressCheck::orbunlocked) >= 30);
+
+  return (landChecksReceived[linf[l].treasure] > ap::progressCheck::locked);
 }
 
 EX bool landUnlockedLegacy(eLand l) {
@@ -386,8 +395,9 @@ EX bool incompatible(eLand nw, eLand old) {
   }
 
 EX bool rlyehComplete() {
-  if(ls::any_chaos()) return items[itStatue] >= 1;
-  return items[itStatue] >= 10 || items[itGrimoire] >= 10;
+  if (ls::any_chaos())
+    return items[itStatue] >= 1;
+  return landChecksReceived[itStatue] >= ap::progressCheck::orbunlocked || landChecksReceived[itGrimoire] >= ap::progressCheck::orbunlocked;
   }
 
 bool lchance(eLand l) { 
@@ -427,7 +437,7 @@ EX eLand pickluck(eLand l1, eLand l2) {
 EX eLand getNewSealand(eLand old) {
 
   std::vector<eLand> unl;
-  for (eLand l:{laCaribbean, laLivefjord, laWarpSea, laKraken, laDocks, laRlyeh}) {
+  for (eLand l:{laCaribbean, laLivefjord, laWarpSea, laKraken, laDocks}) {
     if(landUnlocked(l) && !(l == laKraken && peace::on) && !(incompatible(old, l)) && isLandIngame(l)) unl.push_back(l);
   }
   if(unl.empty()) {
@@ -569,6 +579,8 @@ EX eLand getNewLand(eLand old) {
   eLand tab[16384];
   int cnt = 0;
   
+  if(old == laOcean && landUnlocked(laRlyeh)) 
+    tab[cnt++]=laRlyeh;
   // return (hrand(2)) ? laMotion : laJungle;
   
   for(eLand l: {
@@ -619,6 +631,12 @@ EX eLand getNewLand(eLand old) {
       tab[cnt++] = l;
 
   // the intermediate lands
+  // Replacing the old "Throw in 1 additional crossroads when gold()>=30" with "Throw in an additional crossroads when 20 lands are unlocked"
+  // Furthermore make up for the reduced Rlyeh Spawnrate (Not flat 75% when unlocked but incomplete) by adding it "crossroads often"
+  if (ap::number_of_progressed_lands(ap::progressCheck::unlocked) >= 20)
+    if(landUnlocked(laCrossroads)) tab[cnt++] = laCrossroads;
+    if(old == laOcean && landUnlocked(laRlyeh) && !rlyehComplete()) tab[cnt++] = laRlyeh;
+
   /*if(all_unlocked || gold() >= R30) {
     tab[cnt++] = laCrossroads;
     tab[cnt++] = laMirrorOld;
@@ -634,12 +652,20 @@ EX eLand getNewLand(eLand old) {
   
   if(euclid && landUnlocked(laWarpSea)) tab[cnt++] = laWarpSea;
 
-  tab[cnt++] = laHalloween;
-  tab[cnt++] = laWildWest;
-  tab[cnt++] = laAsteroids;
-  tab[cnt++] = laCA;
+  if(landUnlocked(laHalloween)) tab[cnt++] = laHalloween;
+  if(landUnlocked(laWildWest)) tab[cnt++] = laWildWest;
+  if(landUnlocked(laAsteroids)) tab[cnt++] = laAsteroids;
+  if(landUnlocked(laCA)) tab[cnt++] = laCA;
 
   // the advanced lands
+  if(landUnlocked(laCrossroads2)){
+    if(landUnlocked(laCrossroads)) tab[cnt++] = laCrossroads;
+    if(old == laOcean && landUnlocked(laRlyeh)&& !rlyehComplete()) tab[cnt++] = laRlyeh;
+    if(landUnlocked(laOcean) && (old == laCrossroads || old == laCrossroads2)) tab[cnt++] = laOcean;
+    if(old == laOcean && landUnlocked(laCrossroads)) tab[cnt++] = laCrossroads;
+    if(old == laOcean && landUnlocked(laRlyeh)&& !rlyehComplete()) tab[cnt++] = laRlyeh;
+  }
+  
   /*if(all_unlocked || gold() >= R60) {
     tab[cnt++] = laCrossroads;
     if(!generatingEquidistant) tab[cnt++] = laCrossroads2;

@@ -1654,6 +1654,9 @@ EX void start_game() {
   game_active = true;
   gamegen_failure = false;
   ignored_memory_warning = false;
+
+  ap::init_rando();
+
   check_cgi();
   cgi.require_basics();
   #if CAP_ARCM

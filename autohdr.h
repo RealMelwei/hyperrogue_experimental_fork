@@ -9820,7 +9820,7 @@ namespace hr {
   void advance_tides();
 #line 832 "environment.cpp"
   void monstersTurn();
-#line 914 "environment.cpp"
+#line 915 "environment.cpp"
   bool looped(vector<cell*>& whirlline);
 
   // implemented in: euclid.cpp
@@ -12382,60 +12382,60 @@ namespace hr {
   int variant_unlock_value();
 #line 233 "landlock.cpp"
   bool landUnlocked(eLand l);
-#line 238 "landlock.cpp"
+#line 247 "landlock.cpp"
   bool landUnlockedLegacy(eLand l);
-#line 279 "landlock.cpp"
+#line 288 "landlock.cpp"
   bool required_for_hyperstones(eItem ttype);
-#line 289 "landlock.cpp"
+#line 298 "landlock.cpp"
   void countHyperstoneQuest(int& i1, int& i2);
-#line 303 "landlock.cpp"
+#line 312 "landlock.cpp"
   bool hyperstonesUnlocked();
-#line 311 "landlock.cpp"
+#line 320 "landlock.cpp"
   int isRandland(eLand l);
-#line 318 "landlock.cpp"
+#line 327 "landlock.cpp"
   int voronoi_sea_category(eLand l);
-#line 325 "landlock.cpp"
+#line 334 "landlock.cpp"
   bool voronoi_sea_incompatible(eLand l1, eLand l2);
-#line 332 "landlock.cpp"
+#line 341 "landlock.cpp"
   bool incompatible1(eLand l1, eLand l2);
-#line 362 "landlock.cpp"
+#line 371 "landlock.cpp"
   eLand randomElementalLand();
-#line 368 "landlock.cpp"
+#line 377 "landlock.cpp"
   int elementalKills();
-#line 373 "landlock.cpp"
+#line 382 "landlock.cpp"
   eLand randomElementalLandWeighted();
-#line 384 "landlock.cpp"
+#line 393 "landlock.cpp"
   bool incompatible(eLand nw, eLand old);
-#line 388 "landlock.cpp"
+#line 397 "landlock.cpp"
   bool rlyehComplete();
-#line 399 "landlock.cpp"
+#line 409 "landlock.cpp"
   eLand pickLandRPM(eLand old);
-#line 407 "landlock.cpp"
+#line 417 "landlock.cpp"
   eLand pickluck(eLand l1, eLand l2);
-#line 427 "landlock.cpp"
+#line 437 "landlock.cpp"
   eLand getNewSealand(eLand old);
-#line 455 "landlock.cpp"
-  bool createOnSea(eLand old);
-#line 463 "landlock.cpp"
-  extern hookset<eLand(eLand)> hooks_nextland;
 #line 465 "landlock.cpp"
+  bool createOnSea(eLand old);
+#line 473 "landlock.cpp"
+  extern hookset<eLand(eLand)> hooks_nextland;
+#line 475 "landlock.cpp"
   extern bool all_unlocked;
-#line 467 "landlock.cpp"
+#line 477 "landlock.cpp"
   extern vector<eLand> cheatdest_list;
-#line 469 "landlock.cpp"
+#line 479 "landlock.cpp"
   eLand getNewLand(eLand old);
-#line 737 "landlock.cpp"
+#line 763 "landlock.cpp"
   eLand getNewLand2(vector<eLand> olds);
-#line 751 "landlock.cpp"
+#line 777 "landlock.cpp"
   extern vector<eLand> land_over;
-#line 773 "landlock.cpp"
+#line 799 "landlock.cpp"
   extern vector<eLand> landlist;
-#line 776 "landlock.cpp"
+#line 802 "landlock.cpp"
   template<class T> void generateLandList(T t) {
   landlist.clear();
   for(auto l: land_over) if(t(l)) landlist.push_back(l);    
   }
-#line 783 "landlock.cpp"
+#line 809 "landlock.cpp"
   namespace lv {
   static constexpr flagtype appears_in_geom_exp = 1;
   static constexpr flagtype display_error_message = 2;
@@ -12451,37 +12451,37 @@ namespace hr {
   flagtype flags;
   string msg;
   };
-#line 800 "landlock.cpp"
+#line 826 "landlock.cpp"
   eLand getLandForList(cell *c);
-#line 813 "landlock.cpp"
+#line 839 "landlock.cpp"
   extern bool use_custom_land_list;
-#line 814 "landlock.cpp"
+#line 840 "landlock.cpp"
   extern array<bool, landtypes> custom_land_list;
-#line 815 "landlock.cpp"
+#line 841 "landlock.cpp"
   extern array<int, landtypes> custom_land_treasure;
-#line 816 "landlock.cpp"
+#line 842 "landlock.cpp"
   extern array<int, landtypes> custom_land_difficulty;
-#line 817 "landlock.cpp"
+#line 843 "landlock.cpp"
   extern array<int, landtypes> custom_land_wandering;
-#line 819 "landlock.cpp"
+#line 845 "landlock.cpp"
   bool isLandIngame(eLand l);
-#line 828 "landlock.cpp"
+#line 854 "landlock.cpp"
   bool landUnlockedIngame(eLand l);
-#line 905 "landlock.cpp"
+#line 931 "landlock.cpp"
   extern int old_daily_id;
-#line 909 "landlock.cpp"
+#line 935 "landlock.cpp"
   extern const int frog_when;
-#line 911 "landlock.cpp"
+#line 937 "landlock.cpp"
   extern const int cursed_when;
-#line 913 "landlock.cpp"
+#line 939 "landlock.cpp"
   extern const int walls_when;
-#line 915 "landlock.cpp"
+#line 941 "landlock.cpp"
   void mark_tamper();
-#line 917 "landlock.cpp"
+#line 943 "landlock.cpp"
   void customize_land_in_list(eLand l);
-#line 963 "landlock.cpp"
+#line 989 "landlock.cpp"
   void customize_land_list();
-#line 1042 "landlock.cpp"
+#line 1068 "landlock.cpp"
   land_validity_t& land_validity(eLand l);
 
   // implemented in: language-data.cpp
@@ -15695,39 +15695,39 @@ namespace hr {
   void switch_game_mode(char switchWhat);
 #line 1648 "system.cpp"
   void start_game();
-#line 1694 "system.cpp"
+#line 1697 "system.cpp"
   void restart_game(char switchWhat IS(rg::nothing));
-#line 1710 "system.cpp"
+#line 1713 "system.cpp"
   void stop_game_and_switch_mode(char switchWhat IS(rg::nothing));
-#line 1715 "system.cpp"
+#line 1718 "system.cpp"
   extern purehookset hooks_clearmemory;
-#line 1717 "system.cpp"
+#line 1720 "system.cpp"
   void clearMemory();
-#line 1721 "system.cpp"
-  extern bool fixseed;
-#line 1722 "system.cpp"
-  extern int startseed;
 #line 1724 "system.cpp"
+  extern bool fixseed;
+#line 1725 "system.cpp"
+  extern int startseed;
+#line 1727 "system.cpp"
   extern eLand firstland0;
-#line 1726 "system.cpp"
+#line 1729 "system.cpp"
   extern purehookset hooks_initialize;
-#line 1728 "system.cpp"
+#line 1731 "system.cpp"
   extern bool savefile_selection;
-#line 1730 "system.cpp"
+#line 1733 "system.cpp"
   void select_savefile();
-#line 1750 "system.cpp"
+#line 1753 "system.cpp"
   void progress_warning();
-#line 1755 "system.cpp"
+#line 1758 "system.cpp"
   void restore_all_golems();
-#line 1764 "system.cpp"
+#line 1767 "system.cpp"
   void initAll();
-#line 1794 "system.cpp"
+#line 1797 "system.cpp"
   extern purehookset hooks_final_cleanup;
-#line 1796 "system.cpp"
+#line 1799 "system.cpp"
   void finishAll();
-#line 1818 "system.cpp"
+#line 1821 "system.cpp"
   void save_mode_to_file(const string& fname);
-#line 1835 "system.cpp"
+#line 1838 "system.cpp"
   void load_mode_from_file(const string& fname);
 
   // implemented in: tour.cpp
