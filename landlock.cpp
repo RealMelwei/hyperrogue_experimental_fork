@@ -843,12 +843,13 @@ EX array<int, landtypes> custom_land_difficulty;
 EX array<int, landtypes> custom_land_wandering;
 
 EX bool isLandIngame(eLand l) {
-  if(isElemental(l)) l = laElementalWall;
+  return !(landChecksReceived[linf[l].treasure]==ap::progressCheck::notingame);
+  /*if(isElemental(l)) l = laElementalWall;
   if(use_custom_land_list) return custom_land_list[l];
   if(dual::state == 2 && !dual::check_side(l)) return false;
   if((eubinary || sol) && isCyclic(l) && l != specialland) return false;
   if(l == laCamelot && hyperbolic && WDIM == 3) return false;
-  return land_validity(l).flags & lv::appears_in_full;
+  return land_validity(l).flags & lv::appears_in_full;*/
   }
 
 EX bool landUnlockedIngame(eLand l) {
