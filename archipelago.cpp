@@ -3,6 +3,7 @@
 
 using namespace ap;
 using namespace hr;
+using namespace nlohmann;
 
 progressCheck landChecksReceived[eItem::ittypes]={progressCheck::notingame}; 
 
@@ -17,22 +18,15 @@ void ap::init_rando(){
 }
 
 void ap::init_landChecks(){
-  for(int i=0; i<eLand::landtypes; i++) { // Lands in game
+  /*for(int i=0; i<eLand::landtypes; i++) { // Lands in game
     eLand l = eLand(i);
     eItem treasure = linf[l].treasure;
     if(isLandIngame(l)){
       landChecksReceived[treasure] = progressCheck::locked;
       landProgressChecksSent[treasure] = progressCheck::unlocked;
     }
-  }
-  /*for(int i=0;i<20;i++){ //Lands Unlocked from Start
-    landChecksReceived[i] = progressCheck::unlocked;
-    landUnlockCheckSent[i] = true;
   }*/
-  for(eLand l : {laCaribbean, laLivefjord, laWarpSea, laKraken, laRlyeh, laBrownian, laOcean, laIce, laCrossroads}){
-    landChecksReceived[linf[l].treasure] = progressCheck::unlocked;
-    landUnlockCheckSent[linf[l].treasure] = true;
-  }
+  read_ap_items();
   return;
 }
 
@@ -67,6 +61,28 @@ void ap::update_checks(){
   return;
 }
 
+char ap::read_ap_items() {
+  std::ifstream i("apstate.json");
+  if (i.is_open()) {
+    std::ostringstream fullserver;
+    json settings;
+    i >> settings;
+    i.close();
+    
+    for(int i=0; i<eItem::ittypes; i++){
+      eItem item = eItem(i);
+      if(iinf[item].itemclass==IC_TREASURE){ //Technically not neccessary, but reduces json accesses
+        json::iterator itementry = settings.find(iinf[item].name);
+        if(itementry!=settings.end()){
+          landChecksReceived[item]=(progressCheck) itementry.value();
+        } else {
+          landChecksReceived[item]=progressCheck::notingame;
+        }
+      }
+    }
+    return 1;
+  } else return 0;
+}
 
 
 

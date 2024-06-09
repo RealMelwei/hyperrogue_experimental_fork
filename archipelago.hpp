@@ -19,6 +19,7 @@ int number_of_progressed_lands(progressCheck prog);
 void receive_check(int id);
 void check_collected(eItem treasure, progressCheck progress);
 void update_checks();
+char read_ap_items();
 }
 
 #endif
