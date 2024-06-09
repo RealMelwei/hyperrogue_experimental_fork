@@ -381,11 +381,11 @@ EX int elementalKills() {
 
 EX eLand randomElementalLandWeighted() {
   if(all_unlocked) return pick(laEAir, laEWater, laEEarth, laEFire);
-  int i = hrand(elementalKills());
-  i -= kills[moAirElemental]; if(i<0) return laEAir;
-  i -= kills[moWaterElemental]; if(i<0) return laEWater;
-  i -= kills[moEarthElemental]; if(i<0) return laEEarth;
-  i -= kills[moFireElemental]; if(i<0) return laEFire;
+  int i = hrand(elementalKills()+4);
+  i -= (kills[moAirElemental]+1); if(i<0) return laEAir;
+  i -= (kills[moWaterElemental]+1); if(i<0) return laEWater;
+  i -= (kills[moEarthElemental]+1); if(i<0) return laEEarth;
+  i -= (kills[moFireElemental]+1); if(i<0) return laEFire;
   printf("elemental bug\n");
   return laElementalWall;
   }
