@@ -20,6 +20,7 @@ void receive_check(int id);
 void check_collected(eItem treasure, progressCheck progress);
 void update_checks();
 char read_ap_items();
+bool isTreasure(eItem item);
 }
 
 #endif

@@ -34,7 +34,7 @@ int ap::number_of_progressed_lands(progressCheck prog){ //prog needs to be at le
   int n=0;
   for(int i=0; i<eItem::ittypes; i++){
     eItem item = eItem(i);
-    if(iinf[item].itemclass==IC_TREASURE && landChecksReceived[item]>=prog) n++;
+    if(isTreasure(item) && landChecksReceived[item]>=prog) n++;
   }
   return n;
 }
@@ -61,6 +61,10 @@ void ap::update_checks(){
   return;
 }
 
+bool ap::isTreasure(eItem item){
+  return (iinf[item].itemclass==IC_TREASURE || item==itHolyGrail);
+}
+
 char ap::read_ap_items() {
   std::ifstream i("apstate.json");
   if (i.is_open()) {
@@ -71,7 +75,7 @@ char ap::read_ap_items() {
     
     for(int i=0; i<eItem::ittypes; i++){
       eItem item = eItem(i);
-      if(iinf[item].itemclass==IC_TREASURE){ //Technically not neccessary, but reduces json accesses
+      if(isTreasure(item)){ //Technically not neccessary, but reduces json accesses
         json::iterator itementry = settings.find(iinf[item].name);
         if(itementry!=settings.end()){
           landChecksReceived[item]=(progressCheck) itementry.value();

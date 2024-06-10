@@ -1891,7 +1891,7 @@ EX void build_horocycles(cell *c, cell *from) {
     !(hyperbolic && WDIM == 3 && !reg3::in_hrmap_rule_or_subrule()) &&
     #endif
     (quickfind(laCamelot) || peace::on || (hrand(I2000) < (c->land == laCrossroads4 || ls::no_walls() ? 800 : 200) && horo_ok() &&
-    items[itEmerald] >= U5))) 
+    landUnlocked(laCamelot)))) 
     start_camelot(c);
 
   if(c->land == laRlyeh && can_start_horo(c) && (quickfind(laTemple) || (hrand(I2000) < 100 && landUnlockedIngame(laTemple))))
