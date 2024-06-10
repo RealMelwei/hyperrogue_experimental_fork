@@ -209,6 +209,8 @@ EX void initgame() {
     easy_specialland = 3;
     }
   
+  if(!safety) firstland = ap::get_first_land();
+
   clear_euland(firstland);
 
   cwt.at = currentmap->gamestart(); cwt.spin = 0; cwt.mirrored = false;

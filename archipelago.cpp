@@ -1,6 +1,6 @@
 #include "archipelago.hpp"
 #include <apclient.hpp>
-
+#include <string>
 using namespace ap;
 using namespace hr;
 using namespace nlohmann;
@@ -88,6 +88,22 @@ char ap::read_ap_items() {
   } else return 0;
 }
 
+eLand ap::get_first_land(){
+  std::ifstream i("apsettings.json");
+  if (i.is_open()) {
+    std::ostringstream fullserver;
+    json settings;
+    i >> settings;
+    std::string firstlandstr = settings["firstland"];
+    for(int k=0; k<eLand::landtypes; k++) {
+      eLand l = eLand(k);
+      if(linf[l].name==firstlandstr){
+        return l;
+      }
+    }
+  }
+  return laCrossroads;
+}
 
 
 
