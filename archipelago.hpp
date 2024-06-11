@@ -22,22 +22,22 @@ progressCheck landProgressChecksSent[eItem::ittypes]={progressCheck::notingame};
 bool landUnlockCheckSent[eItem::ittypes]={false};
 
 // Utility functions
-int number_of_progressed_lands(progressCheck prog);
+int getNumberOfProgressedLands(progressCheck prog);
 bool isTreasure(eItem item);
-int virtualtreasure(progressCheck prog);
+int getVirtualTreasureCount(progressCheck prog);
 
 // Initialization
 namespace init {
-void init_rando();
-void init_landChecks();
-char read_ap_items();
-eLand get_first_land();
+void initRando();
+void initLandChecks();
+char readApState();
+eLand getFirstLand();
 }
 
 // Runtime check management
-void receive_check(int id);
-void check_collected(eItem treasure, progressCheck progress);
-void update_checks();
+void receiveCheck(int id);
+void collectCheck(eItem treasure, progressCheck progress);
+void updateChecks();
 
 }
 

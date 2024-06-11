@@ -232,13 +232,13 @@ EX int variant_unlock_value() {
 
 EX bool landUnlocked(eLand l) {
   if (l == laCrossroads2)
-    return (ap::number_of_progressed_lands(ap::progressCheck::unlocked) >= 20);
+    return (ap::getNumberOfProgressedLands(ap::progressCheck::unlocked) >= 20);
   if (l == laCrossroads3)
-    return (ap::number_of_progressed_lands(ap::progressCheck::unlocked) >= 40 && ap::number_of_progressed_lands(ap::progressCheck::orbunlocked) >= 9);
+    return (ap::getNumberOfProgressedLands(ap::progressCheck::unlocked) >= 40 && ap::getNumberOfProgressedLands(ap::progressCheck::orbunlocked) >= 9);
   if (l == laCrossroads4)
-    return (ap::number_of_progressed_lands(ap::progressCheck::unlocked) >= 40 && ap::number_of_progressed_lands(ap::progressCheck::orbunlocked) >= 20);
+    return (ap::getNumberOfProgressedLands(ap::progressCheck::unlocked) >= 40 && ap::getNumberOfProgressedLands(ap::progressCheck::orbunlocked) >= 20);
   if (l == laCrossroads5)
-    return (ap::number_of_progressed_lands(ap::progressCheck::unlocked) >= 40 && ap::number_of_progressed_lands(ap::progressCheck::orbunlocked) >= 30);
+    return (ap::getNumberOfProgressedLands(ap::progressCheck::unlocked) >= 40 && ap::getNumberOfProgressedLands(ap::progressCheck::orbunlocked) >= 30);
 
   return (ap::landChecksReceived[linf[l].treasure] > ap::progressCheck::locked);
 }
@@ -618,7 +618,7 @@ EX eLand getNewLand(eLand old) {
   // the intermediate lands
   // Replacing the old "Throw in 1 additional crossroads when gold()>=30" with "Throw in an additional crossroads when 20 lands are unlocked"
   // Furthermore make up for the reduced Rlyeh Spawnrate (Not flat 75% when unlocked but incomplete) by adding it "crossroads often"
-  if (ap::number_of_progressed_lands(ap::progressCheck::unlocked) >= 20)
+  if (ap::getNumberOfProgressedLands(ap::progressCheck::unlocked) >= 20)
     if(landUnlocked(laCrossroads)) tab[cnt++] = laCrossroads;
     if(old == laOcean && landUnlocked(laRlyeh) && !rlyehComplete()) tab[cnt++] = laRlyeh;
   

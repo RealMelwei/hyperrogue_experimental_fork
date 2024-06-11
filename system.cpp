@@ -209,7 +209,7 @@ EX void initgame() {
     easy_specialland = 3;
     }
   
-  if(!safety) firstland = ap::init::get_first_land();
+  if(!safety) firstland = ap::init::getFirstLand();
 
   clear_euland(firstland);
 
@@ -1657,7 +1657,7 @@ EX void start_game() {
   gamegen_failure = false;
   ignored_memory_warning = false;
 
-  ap::init::init_rando();
+  ap::init::initRando();
 
   check_cgi();
   cgi.require_basics();
