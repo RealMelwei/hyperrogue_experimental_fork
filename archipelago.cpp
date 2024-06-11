@@ -1,3 +1,5 @@
+#ifndef ARCHIPELAGO_CPP
+#define ARCHIPELAGO_CPP
 #include "archipelago.hpp"
 #include <apclient.hpp>
 #include <string>
@@ -105,5 +107,23 @@ eLand ap::get_first_land(){
   return laCrossroads;
 }
 
+int ap::virtualtreasure(progressCheck prog){
+  if(inv::on){
+    switch (prog){
+     case progressCheck::orbunlocked: return 25;
+     case progressCheck::orbunlockedglobal: return 50;
+     case progressCheck::completed: return 100;
+     default: return 0;
+    }
+  } else {
+    switch (prog){
+     case progressCheck::orbunlocked: return 10;
+     case progressCheck::orbunlockedglobal: return 25;
+     case progressCheck::completed: return 50;
+     default: return 0;
+    }
+  }
+}
 
 
+#endif

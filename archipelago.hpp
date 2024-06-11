@@ -22,6 +22,7 @@ void update_checks();
 char read_ap_items();
 bool isTreasure(eItem item);
 eLand get_first_land();
+int virtualtreasure(progressCheck prog);
 }
 
 #endif
