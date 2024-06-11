@@ -415,10 +415,10 @@ EX eLand pickLandRPM(eLand old) {
   }
 
 EX eLand pickluck(eLand l1, eLand l2) {
-  int t1 = items[treasureType(l1)];
-  int t2 = items[treasureType(l2)];
-  if(t1 < t2) return l1;
-  if(t2 < t1) return l2;
+  ap::progressCheck p1 = landChecksReceived[linf[l1].treasure];
+  ap::progressCheck p2 = landChecksReceived[linf[l1].treasure];
+  if(p1 < p2) return l1;
+  if(p2 < p1) return l2;
   if(isCrossroads(l1)) return l1;
   return l2;
   }
