@@ -7,28 +7,14 @@ using namespace ap;
 using namespace hr;
 using namespace nlohmann;
 
-progressCheck landChecksReceived[eItem::ittypes]={progressCheck::notingame}; 
-
-//Progress like "10 treasures in land X" can already be achieved without having sent "unlocked land X"
-progressCheck landProgressChecksSent[eItem::ittypes]={progressCheck::notingame}; 
-bool landUnlockCheckSent[eItem::ittypes]={false};
-
-void ap::init_rando(){
+void ap::init::init_rando(){
   std::cout << "Init!" << std::endl;
-  init_landChecks();
+  init::init_landChecks();
   return;
 }
 
-void ap::init_landChecks(){
-  /*for(int i=0; i<eLand::landtypes; i++) { // Lands in game
-    eLand l = eLand(i);
-    eItem treasure = linf[l].treasure;
-    if(isLandIngame(l)){
-      landChecksReceived[treasure] = progressCheck::locked;
-      landProgressChecksSent[treasure] = progressCheck::unlocked;
-    }
-  }*/
-  read_ap_items();
+void ap::init::init_landChecks(){
+  init::read_ap_items();
   return;
 }
 
@@ -36,7 +22,7 @@ int ap::number_of_progressed_lands(progressCheck prog){ //prog needs to be at le
   int n=0;
   for(int i=0; i<eItem::ittypes; i++){
     eItem item = eItem(i);
-    if(isTreasure(item) && landChecksReceived[item]>=prog) n++;
+    if(isTreasure(item) && ap::landChecksReceived[item]>=prog) n++;
   }
   return n;
 }
@@ -55,8 +41,8 @@ void ap::update_checks(){
   for(int i=0; i<eLand::landtypes; i++) {
     eLand l = eLand(i);
     eItem treasure = linf[l].treasure;
-    if(landProgressChecksSent[treasure] != progressCheck::notingame && !landUnlockCheckSent[treasure] && landUnlockedLegacy(l)){
-      landUnlockCheckSent[treasure] = true;
+    if(ap::landProgressChecksSent[treasure] != progressCheck::notingame && !ap::landUnlockCheckSent[treasure] && landUnlockedLegacy(l)){
+      ap::landUnlockCheckSent[treasure] = true;
       check_collected(treasure, progressCheck::unlocked);
     }
   }
@@ -67,7 +53,7 @@ bool ap::isTreasure(eItem item){
   return (iinf[item].itemclass==IC_TREASURE || item==itHolyGrail);
 }
 
-char ap::read_ap_items() {
+char ap::init::read_ap_items() {
   std::ifstream i("apstate.json");
   if (i.is_open()) {
     std::ostringstream fullserver;
@@ -80,9 +66,9 @@ char ap::read_ap_items() {
       if(isTreasure(item)){ //Technically not neccessary, but reduces json accesses
         json::iterator itementry = settings.find(iinf[item].name);
         if(itementry!=settings.end()){
-          landChecksReceived[item]=(progressCheck) itementry.value();
+          ap::landChecksReceived[item]=(progressCheck) itementry.value();
         } else {
-          landChecksReceived[item]=progressCheck::notingame;
+          ap::landChecksReceived[item]=progressCheck::notingame;
         }
       }
     }
@@ -90,7 +76,7 @@ char ap::read_ap_items() {
   } else return 0;
 }
 
-eLand ap::get_first_land(){
+eLand ap::init::get_first_land(){
   std::ifstream i("apsettings.json");
   if (i.is_open()) {
     std::ostringstream fullserver;
