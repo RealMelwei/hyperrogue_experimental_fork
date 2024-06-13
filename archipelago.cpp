@@ -2,7 +2,11 @@
 #define ARCHIPELAGO_CPP
 #include "archipelago.hpp"
 #include <apclient.hpp>
+#include <apuuid.hpp>
 #include <string>
+#include "apinterface.cpp"
+#include "nametables.cpp"
+
 using namespace ap;
 using namespace hr;
 using namespace nlohmann;
@@ -42,13 +46,24 @@ int ap::getVirtualTreasureCount(progressCheck prog){
   }
 }
 
+eItem ap::getItemByName(std::string name){
+  for(int i=0; i<eItem::ittypes; i++){
+    eItem item = eItem(i);
+    if(iinf[item].name == name) return item;
+  }
+  return eItem::itNone;
+}
+
 /*
 RANDOMIZER INITIALIZATION
 */
 
 void ap::init::initRando(){
-  std::cout << "Init!" << std::endl;
-  init::initLandChecks();
+  if (!client || client->get_state() < APClient::State::SOCKET_CONNECTED) {
+    init::initLandChecks();
+    init::init_itembyid();
+    connect_ap(APClient::DEFAULT_URI, "melwei");
+  }
   return;
 }
 
@@ -70,9 +85,9 @@ char ap::init::readApState() {
       if(isTreasure(item)){ //Technically not neccessary, but reduces json accesses
         json::iterator itementry = state.find(iinf[item].name);
         if(itementry!=state.end()){
-          ap::landChecksReceived[item]=(progressCheck) itementry.value();
+          landChecksReceived[item]=(progressCheck) itementry.value();
         } else {
-          ap::landChecksReceived[item]=progressCheck::notingame;
+          landChecksReceived[item]=progressCheck::notingame;
         }
       }
     }
@@ -81,7 +96,7 @@ char ap::init::readApState() {
 }
 
 eLand ap::init::getFirstLand(){
-  std::ifstream i("apsettings.json");
+  std::ifstream i("apworldsettings.json");
   if (i.is_open()) {
     std::ostringstream fullserver;
     json settings;
@@ -101,8 +116,29 @@ eLand ap::init::getFirstLand(){
 RANDOMIZER RUNTIME
 */
 
-void ap::receiveCheck(int id){
-  return;
+void ap::receiveCheck(APClient::NetworkItem netitem){
+  eItem item = itembyid[netitem.item - HYPERROGUE_BASE_ID];
+  switch (landChecksReceived[item])
+  {
+  case progressCheck::locked: 
+    landChecksReceived[item]=progressCheck::unlocked;
+    break;
+  case progressCheck::unlocked: 
+    landChecksReceived[item]=progressCheck::orbunlocked;
+    break;
+  case progressCheck::orbunlocked: 
+    landChecksReceived[item]=progressCheck::orbunlockedglobal;
+    break;
+  case progressCheck::orbunlockedglobal:
+    landChecksReceived[item]=progressCheck::completed;
+    break;
+  case progressCheck::notingame:
+    std::cout << "Received check for " << iinf[item].name << ", which is not in the game." << std::endl;
+    return;
+  default:
+    return;
+  }
+  WriteApState();
 }
 
 void ap::collectCheck(eItem treasure, progressCheck progress){
@@ -123,5 +159,16 @@ void ap::updateChecks(){
   return;
 }
 
+void ap::WriteApState(){
+  std::ofstream statefile;
+  statefile.open ("apstate.json");
+  statefile << "{" << std::endl;
+  for(int i=0; i<eItem::ittypes; i++){
+    eItem item = eItem(i);
+    if(isTreasure(item)) statefile << iinf[item].name << ": " << (int) landChecksReceived[item] << "," << std::endl;
+  }
+  statefile << "}";
+  statefile.close();
+}
 
 #endif

@@ -720,6 +720,9 @@ EX bool mouseaiming(bool shmupon) {
 EX purehookset hooks_control;
 
 EX void mainloopiter() {
+  if(client) {
+    client->poll();
+  }
   GLWRAP;
   DEBB(DF_GRAPH, ("main loop\n"));
 

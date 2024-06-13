@@ -1,0 +1,73 @@
+#include "archipelago.hpp"
+
+void ap::init::init_itembyid(){
+  ap::itembyid[0X00]=ap::getItemByName("Ice Diamond");
+  ap::itembyid[0X01]=ap::getItemByName("Gold");
+  ap::itembyid[0X02]=ap::getItemByName("Spice");
+  ap::itembyid[0X03]=ap::getItemByName("Ruby");
+  ap::itembyid[0X04]=ap::getItemByName("Elixir of Life");
+  ap::itembyid[0X05]=ap::getItemByName("Shard");
+  ap::itembyid[0X06]=ap::getItemByName("Necromancers Totem");
+  ap::itembyid[0X07]=ap::getItemByName("Demon Daisy");
+  ap::itembyid[0X08]=ap::getItemByName("Statue of Cthulhu");
+  ap::itembyid[0X09]=ap::getItemByName("Phoenix Feather");
+  ap::itembyid[0X0A]=ap::getItemByName("Ice Sapphire");
+  ap::itembyid[0X0B]=ap::getItemByName("Fern Flower");
+  ap::itembyid[0X0C]=ap::getItemByName("Wine");
+  ap::itembyid[0X0D]=ap::getItemByName("Silver");
+  ap::itembyid[0X0E]=ap::getItemByName("Royal Jelly");
+  ap::itembyid[0X0F]=ap::getItemByName("Emerald");
+  ap::itembyid[0X10]=ap::getItemByName("Powerstone");
+  ap::itembyid[0X11]=ap::getItemByName("Holy Grail");
+  ap::itembyid[0X12]=ap::getItemByName("Grimoire");
+  ap::itembyid[0X13]=ap::getItemByName("Pirate Treasure");
+  ap::itembyid[0X14]=ap::getItemByName("Red Gem");
+  ap::itembyid[0X15]=ap::getItemByName("Bomberbird Egg");
+  ap::itembyid[0X16]=ap::getItemByName("Amber");
+  ap::itembyid[0X17]=ap::getItemByName("Pearl");
+  ap::itembyid[0X18]=ap::getItemByName("Hypersian Rug");
+  ap::itembyid[0X19]=ap::getItemByName("Garnet");
+  ap::itembyid[0X1A]=ap::getItemByName("Ivory Figurine");
+  ap::itembyid[0X1B]=ap::getItemByName("Onyx");
+  ap::itembyid[0X1C]=ap::getItemByName("Elemental Gem");
+  ap::itembyid[0X1D]=ap::getItemByName("Fulgurite");
+  ap::itembyid[0X1E]=ap::getItemByName("Mutant Sapling");
+  ap::itembyid[0X1F]=ap::getItemByName("Mutant Fruit");
+  ap::itembyid[0X20]=ap::getItemByName("Black Lotus");
+  ap::itembyid[0X21]=ap::getItemByName("White Dove Feather");
+  ap::itembyid[0X22]=ap::getItemByName("Thornless Rose");
+  ap::itembyid[0X23]=ap::getItemByName("Coral");
+  ap::itembyid[0X24]=ap::getItemByName("Baby Tortoise");
+  ap::itembyid[0X25]=ap::getItemByName("Apple");
+  ap::itembyid[0X26]=ap::getItemByName("Dragon Scale");
+  ap::itembyid[0X27]=ap::getItemByName("Sunken Treasure");
+  ap::itembyid[0X28]=ap::getItemByName("Ancient Jewelry");
+  ap::itembyid[0X29]=ap::getItemByName("Golden Egg");
+  ap::itembyid[0X2A]=ap::getItemByName("Slime Mold");
+  ap::itembyid[0X2B]=ap::getItemByName("Amethyst");
+  ap::itembyid[0X2C]=ap::getItemByName("Dodecahedron");
+  ap::itembyid[0X2D]=ap::getItemByName("Green Grass");
+  ap::itembyid[0X2E]=ap::getItemByName("Spinel");
+  ap::itembyid[0X2F]=ap::getItemByName("Lava Lily");
+  ap::itembyid[0X30]=ap::getItemByName("Turquoise");
+  ap::itembyid[0X31]=ap::getItemByName("Forgotten Relic");
+  ap::itembyid[0X32]=ap::getItemByName("Ancient Weapon");
+  ap::itembyid[0X33]=ap::getItemByName("Chrysoberyl");
+  ap::itembyid[0X34]=ap::getItemByName("Tasty Jelly");
+  ap::itembyid[0X35]=ap::getItemByName("Tiger's Eye");
+  ap::itembyid[0X36]=ap::getItemByName("Meteorite");
+  ap::itembyid[0X37]=ap::getItemByName("Torbernite");
+  ap::itembyid[0X38]=ap::getItemByName("Water Lily");
+  ap::itembyid[0X39]=ap::getItemByName("Gold Ball");
+  ap::itembyid[0X3A]=ap::getItemByName("Lazurite Figurine");
+  ap::itembyid[0X3B]=ap::getItemByName("Capon Stone");
+  ap::itembyid[0X3C]=ap::getItemByName("Crystal Die");
+
+//nonstandard
+  ap::itembyid[0X50]=ap::getItemByName("Bounty");
+  ap::itembyid[0X51]=ap::getItemByName("Treat");
+  ap::itembyid[0X52]=ap::getItemByName("Glowing Crystal");
+  ap::itembyid[0X53]=ap::getItemByName("Snake Oil");
+  ap::itembyid[0X54]=ap::getItemByName("Sea Glass");
+  ap::itembyid[0X55]=ap::getItemByName("Fuel");
+}
