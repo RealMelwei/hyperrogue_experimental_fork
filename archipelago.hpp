@@ -15,16 +15,10 @@ enum class progressCheck {
   completed=4
 };
 
-
-
-class HyperrogueDataPackageStore : public APDataPackageStore {
-  //~APDataPackageStore() {};
-  bool load(const std::string& game, const std::string& checksum, json& data);
-  bool save(const std::string& game, const json& data);
-};
+int alreadyHandledChecks = -1;
 
 #define HYPERROGUE_BASE_ID 0XCBA000
-eItem itembyid[0X60]={eItem::itNone};
+eItem itemByID[0X60]={eItem::itNone};
 
 // Check array setup
 progressCheck landChecksReceived[eItem::ittypes]={progressCheck::notingame};
@@ -37,14 +31,15 @@ int getNumberOfProgressedLands(progressCheck prog);
 bool isTreasure(eItem item);
 int getVirtualTreasureCount(progressCheck prog);
 eItem getItemByName(std::string name);
+int getLocationID(eItem treas, progressCheck prog);
 
 // Initialization
 namespace init {
-void initRando();
-void initLandChecks();
-char readApState();
-eLand getFirstLand();
-void init_itembyid();
+  bool jsonInitialized = false;
+  void initRando();
+  void readApState();
+  eLand getFirstLand();
+  void initItemByID();
 }
 
 // Runtime check management

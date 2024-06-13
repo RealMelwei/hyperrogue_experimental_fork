@@ -1,70 +1,348 @@
 {
-"Ice Diamond": 1,
-"Gold": 1,
-"Spice": 1,
-"Ruby": 1,
-"Elixir of Life": 1,
-"Shard": 0,
-"Necromancer's Totem": 0,
-"Demon Daisy": 0,
-"Statue of Cthulhu": 0,
-"Phoenix Feather": 1,
-"Ice Sapphire": 0,
-"Hyperstone": 1,
-"Fern Flower": 0,
-"Wine": 0,
-"Silver": 0,
-"Royal Jelly": 0,
-"Emerald": 0,
-"Powerstone": 0,
-"Holy Grail": 0,
-"Grimoire": 0,
-"Pirate Treasure": 0,
-"Red Gem": 0,
-"Bomberbird Egg": 0,
-"Amber": 0,
-"Pearl": 0,
-"Hypersian Rug": 0,
-"Garnet": 0,
-"Ivory Figurine": 0,
-"Onyx": 0,
-"Elemental Gem": 0,
-"Bounty": -1,
-"Fulgurite": 0,
-"Mutant Sapling": 0,
-"Mutant Fruit": 0,
-"Black Lotus": 0,
-"White Dove Feather": 0,
-"Thornless Rose": 0,
-"Coral": 0,
-"Baby Tortoise": 0,
-"Apple": 0,
-"Dragon Scale": 0,
-"Sunken Treasure": 0,
-"Ancient Jewelry": 0,
-"Golden Egg": 0,
-"Treat": -1,
-"Slime Mold": 0,
-"Amethyst": 0,
-"Dodecahedron": 0,
-"Green Grass": 0,
-"Spinel": 0,
-"Lava Lily": 0,
-"Turquoise": 1,
-"Forgotten Relic": 0,
-"Ancient Weapon": 0,
-"Glowing Crystal": -1,
-"Snake Oil": -1,
-"Sea Glass": -1,
-"Chrysoberyl": 0,
-"Tasty Jelly": 0,
-"Tiger's Eye": 0,
-"Meteorite": 0,
-"Torbernite": 0,
-"Fuel": -1,
-"Water Lily": 0,
-"Gold Ball": 0,
-"Lazurite Figurine": 0,
-"Capon Stone": 0,
-"Crystal Die": 0
+"Ice Diamond": {
+  "Received":0,
+  "Unlock Sent":0,
+  "Progress Sent":1
+},
+"Gold": {
+  "Received":0,
+  "Unlock Sent":0,
+  "Progress Sent":1
+},
+"Spice": {
+  "Received":0,
+  "Unlock Sent":0,
+  "Progress Sent":1
+},
+"Ruby": {
+  "Received":0,
+  "Unlock Sent":0,
+  "Progress Sent":1
+},
+"Elixir of Life": {
+  "Received":0,
+  "Unlock Sent":0,
+  "Progress Sent":1
+},
+"Shard": {
+  "Received":0,
+  "Unlock Sent":0,
+  "Progress Sent":1
+},
+"Necromancer's Totem": {
+  "Received":0,
+  "Unlock Sent":0,
+  "Progress Sent":1
+},
+"Demon Daisy": {
+  "Received":0,
+  "Unlock Sent":0,
+  "Progress Sent":1
+},
+"Statue of Cthulhu": {
+  "Received":0,
+  "Unlock Sent":0,
+  "Progress Sent":1
+},
+"Phoenix Feather": {
+  "Received":0,
+  "Unlock Sent":0,
+  "Progress Sent":1
+},
+"Ice Sapphire": {
+  "Received":0,
+  "Unlock Sent":0,
+  "Progress Sent":1
+},
+"Hyperstone": {
+  "Received":1,
+  "Unlock Sent":0,
+  "Progress Sent":1
+},
+"Fern Flower": {
+  "Received":0,
+  "Unlock Sent":0,
+  "Progress Sent":1
+},
+"Wine": {
+  "Received":0,
+  "Unlock Sent":0,
+  "Progress Sent":1
+},
+"Silver": {
+  "Received":0,
+  "Unlock Sent":0,
+  "Progress Sent":1
+},
+"Royal Jelly": {
+  "Received":0,
+  "Unlock Sent":0,
+  "Progress Sent":1
+},
+"Emerald": {
+  "Received":0,
+  "Unlock Sent":0,
+  "Progress Sent":1
+},
+"Powerstone": {
+  "Received":0,
+  "Unlock Sent":0,
+  "Progress Sent":1
+},
+"Holy Grail": {
+  "Received":0,
+  "Unlock Sent":0,
+  "Progress Sent":1
+},
+"Grimoire": {
+  "Received":0,
+  "Unlock Sent":0,
+  "Progress Sent":1
+},
+"Pirate Treasure": {
+  "Received":0,
+  "Unlock Sent":0,
+  "Progress Sent":1
+},
+"Red Gem": {
+  "Received":0,
+  "Unlock Sent":0,
+  "Progress Sent":1
+},
+"Bomberbird Egg": {
+  "Received":0,
+  "Unlock Sent":0,
+  "Progress Sent":1
+},
+"Amber": {
+  "Received":0,
+  "Unlock Sent":0,
+  "Progress Sent":1
+},
+"Pearl": {
+  "Received":0,
+  "Unlock Sent":0,
+  "Progress Sent":1
+},
+"Hypersian Rug": {
+  "Received":0,
+  "Unlock Sent":0,
+  "Progress Sent":1
+},
+"Garnet": {
+  "Received":0,
+  "Unlock Sent":0,
+  "Progress Sent":1
+},
+"Ivory Figurine": {
+  "Received":0,
+  "Unlock Sent":0,
+  "Progress Sent":1
+},
+"Onyx": {
+  "Received":0,
+  "Unlock Sent":0,
+  "Progress Sent":1
+},
+"Elemental Gem": {
+  "Received":0,
+  "Unlock Sent":0,
+  "Progress Sent":1
+},
+"Bounty": {
+  "Received":-1,
+  "Unlock Sent":0,
+  "Progress Sent":1
+},
+"Fulgurite": {
+  "Received":0,
+  "Unlock Sent":0,
+  "Progress Sent":1
+},
+"Mutant Sapling": {
+  "Received":0,
+  "Unlock Sent":0,
+  "Progress Sent":1
+},
+"Mutant Fruit": {
+  "Received":0,
+  "Unlock Sent":0,
+  "Progress Sent":1
+},
+"Black Lotus": {
+  "Received":0,
+  "Unlock Sent":0,
+  "Progress Sent":1
+},
+"White Dove Feather": {
+  "Received":0,
+  "Unlock Sent":0,
+  "Progress Sent":1
+},
+"Thornless Rose": {
+  "Received":0,
+  "Unlock Sent":0,
+  "Progress Sent":1
+},
+"Coral": {
+  "Received":0,
+  "Unlock Sent":0,
+  "Progress Sent":1
+},
+"Baby Tortoise": {
+  "Received":0,
+  "Unlock Sent":0,
+  "Progress Sent":1
+},
+"Apple": {
+  "Received":0,
+  "Unlock Sent":0,
+  "Progress Sent":1
+},
+"Dragon Scale": {
+  "Received":0,
+  "Unlock Sent":0,
+  "Progress Sent":1
+},
+"Sunken Treasure": {
+  "Received":0,
+  "Unlock Sent":0,
+  "Progress Sent":1
+},
+"Ancient Jewelry": {
+  "Received":0,
+  "Unlock Sent":0,
+  "Progress Sent":1
+},
+"Golden Egg": {
+  "Received":0,
+  "Unlock Sent":0,
+  "Progress Sent":1
+},
+"Treat": {
+  "Received":-1,
+  "Unlock Sent":0,
+  "Progress Sent":1
+},
+"Slime Mold": {
+  "Received":0,
+  "Unlock Sent":0,
+  "Progress Sent":1
+},
+"Amethyst": {
+  "Received":0,
+  "Unlock Sent":0,
+  "Progress Sent":1
+},
+"Dodecahedron": {
+  "Received":0,
+  "Unlock Sent":0,
+  "Progress Sent":1
+},
+"Green Grass": {
+  "Received":0,
+  "Unlock Sent":0,
+  "Progress Sent":1
+},
+"Spinel": {
+  "Received":0,
+  "Unlock Sent":0,
+  "Progress Sent":1
+},
+"Lava Lily": {
+  "Received":0,
+  "Unlock Sent":0,
+  "Progress Sent":1
+},
+"Turquoise": {
+  "Received":0,
+  "Unlock Sent":0,
+  "Progress Sent":1
+},
+"Forgotten Relic": {
+  "Received":0,
+  "Unlock Sent":0,
+  "Progress Sent":1
+},
+"Ancient Weapon": {
+  "Received":0,
+  "Unlock Sent":0,
+  "Progress Sent":1
+},
+"Glowing Crystal": {
+  "Received":-1,
+  "Unlock Sent":0,
+  "Progress Sent":1
+},
+"Snake Oil": {
+  "Received":-1,
+  "Unlock Sent":0,
+  "Progress Sent":1
+},
+"Sea Glass": {
+  "Received":-1,
+  "Unlock Sent":0,
+  "Progress Sent":1
+},
+"Chrysoberyl": {
+  "Received":0,
+  "Unlock Sent":0,
+  "Progress Sent":1
+},
+"Monopole": {
+  "Received":-1,
+  "Unlock Sent":0,
+  "Progress Sent":1
+},
+"Tasty Jelly": {
+  "Received":0,
+  "Unlock Sent":0,
+  "Progress Sent":1
+},
+"Tiger's Eye": {
+  "Received":0,
+  "Unlock Sent":0,
+  "Progress Sent":1
+},
+"Meteorite": {
+  "Received":0,
+  "Unlock Sent":0,
+  "Progress Sent":1
+},
+"Torbernite": {
+  "Received":0,
+  "Unlock Sent":0,
+  "Progress Sent":1
+},
+"Fuel": {
+  "Received":-1,
+  "Unlock Sent":0,
+  "Progress Sent":1
+},
+"Water Lily": {
+  "Received":0,
+  "Unlock Sent":0,
+  "Progress Sent":1
+},
+"Gold Ball": {
+  "Received":0,
+  "Unlock Sent":0,
+  "Progress Sent":1
+},
+"Lazurite Figurine": {
+  "Received":0,
+  "Unlock Sent":0,
+  "Progress Sent":1
+},
+"Capon Stone": {
+  "Received":0,
+  "Unlock Sent":0,
+  "Progress Sent":1
+},
+"Crystal Die": {
+  "Received":0,
+  "Unlock Sent":0,
+  "Progress Sent":1
+},
+"Already handled checks":-1
 }

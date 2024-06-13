@@ -67,7 +67,7 @@ void disconnect_ap()
 void connect_slot(const std::string& password)
 {
     if (client) {
-        client->ConnectSlot(slot, password, 1, {}, VERSION_TUPLE);
+        client->ConnectSlot(slot, password, 0b111, {}, VERSION_TUPLE);
         ap_connect_sent = true;
     } else {
         printf("Connection lost!\n");
@@ -143,6 +143,12 @@ void connect_ap(std::string uri="", std::string newSlot="")
             printf("  #%d: %s (%" PRId64 ") from %s - %s\n",
                    item.index, itemname.c_str(), item.item,
                    sender.c_str(), location.c_str());
+        }
+        // Once starting inventory has been received, (re-)start the Hyperrogue game.
+        if(!ap::init::jsonInitialized){
+            ap::init::jsonInitialized = true;
+            hr::stop_game();
+            hr::start_game();
         }
     });
     client->set_data_package_changed_handler([](const json& data) {

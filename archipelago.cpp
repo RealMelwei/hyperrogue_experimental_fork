@@ -60,45 +60,43 @@ RANDOMIZER INITIALIZATION
 
 void ap::init::initRando(){
   if (!client || client->get_state() < APClient::State::SOCKET_CONNECTED) {
-    init::initLandChecks();
-    init::init_itembyid();
+    init::readApState();
+    init::initItemByID();
     connect_ap(APClient::DEFAULT_URI, "melwei");
   }
   return;
 }
 
-void ap::init::initLandChecks(){
-  init::readApState();
-  return;
-}
-
-char ap::init::readApState() {
+void ap::init::readApState() {
   std::ifstream i("apstate.json");
   if (i.is_open()) {
-    std::ostringstream fullserver;
     json state;
     i >> state;
     i.close();
-    
     for(int i=0; i<eItem::ittypes; i++){
       eItem item = eItem(i);
       if(isTreasure(item)){ //Technically not neccessary, but reduces json accesses
         json::iterator itementry = state.find(iinf[item].name);
         if(itementry!=state.end()){
-          landChecksReceived[item]=(progressCheck) itementry.value();
+//          landChecksReceived[item]=(progressCheck) itementry.value();
+          std::string landname = itementry.key();
+          landChecksReceived[item]=(progressCheck) state[landname]["Received"];
+          //if((progressCheck) itementry.value()!=progressCheck::notingame) landProgressChecksSent[item] = progressCheck::unlocked;
+          //landUnlockCheckSent[item]=(bool) state[landname]["Unlock Sent"];
+          landProgressChecksSent[item]=(progressCheck) state[landname]["Progress Sent"];
         } else {
           landChecksReceived[item]=progressCheck::notingame;
         }
       }
     }
-    return 1;
-  } else return 0;
+    alreadyHandledChecks = state["Already handled checks"];
+  }
+  return;
 }
 
 eLand ap::init::getFirstLand(){
   std::ifstream i("apworldsettings.json");
   if (i.is_open()) {
-    std::ostringstream fullserver;
     json settings;
     i >> settings;
     std::string firstlandstr = settings["firstland"];
@@ -117,43 +115,65 @@ RANDOMIZER RUNTIME
 */
 
 void ap::receiveCheck(APClient::NetworkItem netitem){
-  eItem item = itembyid[netitem.item - HYPERROGUE_BASE_ID];
-  switch (landChecksReceived[item])
-  {
-  case progressCheck::locked: 
-    landChecksReceived[item]=progressCheck::unlocked;
-    break;
-  case progressCheck::unlocked: 
-    landChecksReceived[item]=progressCheck::orbunlocked;
-    break;
-  case progressCheck::orbunlocked: 
-    landChecksReceived[item]=progressCheck::orbunlockedglobal;
-    break;
-  case progressCheck::orbunlockedglobal:
-    landChecksReceived[item]=progressCheck::completed;
-    break;
-  case progressCheck::notingame:
-    std::cout << "Received check for " << iinf[item].name << ", which is not in the game." << std::endl;
-    return;
-  default:
-    return;
+  if(netitem.index>alreadyHandledChecks+1) {
+    client->Sync();
+  } else if(netitem.index==alreadyHandledChecks+1) {
+    eItem item = itemByID[netitem.item - HYPERROGUE_BASE_ID];
+    switch (landChecksReceived[item])
+    {
+    case progressCheck::locked: 
+      landChecksReceived[item]=progressCheck::unlocked;
+      break;
+    case progressCheck::unlocked: 
+      landChecksReceived[item]=progressCheck::orbunlocked;
+      break;
+    case progressCheck::orbunlocked: 
+      landChecksReceived[item]=progressCheck::orbunlockedglobal;
+      break;
+    case progressCheck::orbunlockedglobal:
+      landChecksReceived[item]=progressCheck::completed;
+      break;
+    case progressCheck::notingame:
+      std::cout << "Received check for " << iinf[item].name << ", which is not in the game." << std::endl;
+      break;
+    default:
+      break;
+    }
+    alreadyHandledChecks++;
+    WriteApState();
   }
-  WriteApState();
+  return;
 }
 
 void ap::collectCheck(eItem treasure, progressCheck progress){
   if(treasure != itHyperstone)
+    client -> LocationChecks({getLocationID(treasure, progress)});
     addMessage(XLAT("Check unlocked!"));
+    WriteApState();
   return;
 }
 
 void ap::updateChecks(){
-  for(int i=0; i<eLand::landtypes; i++) {
-    eLand l = eLand(i);
-    eItem treasure = linf[l].treasure;
-    if(ap::landProgressChecksSent[treasure] != progressCheck::notingame && !ap::landUnlockCheckSent[treasure] && landUnlockedLegacy(l)){
-      ap::landUnlockCheckSent[treasure] = true;
-      collectCheck(treasure, progressCheck::unlocked);
+  if(init::jsonInitialized){
+    for(int i=0; i<eLand::landtypes; i++) {
+      eLand l = eLand(i);
+      eItem treasure = linf[l].treasure;
+      if(ap::landProgressChecksSent[treasure] != progressCheck::notingame && !ap::landUnlockCheckSent[treasure] && landUnlockedLegacy(l)){
+        ap::landUnlockCheckSent[treasure] = true;
+        collectCheck(treasure, progressCheck::unlocked);
+      }
+      if(landProgressChecksSent[treasure]==progressCheck::unlocked && items[treasure]>=getVirtualTreasureCount(progressCheck::orbunlocked)){
+        ap::landProgressChecksSent[treasure] = progressCheck::orbunlocked;
+        collectCheck(treasure, progressCheck::orbunlocked);
+      }
+      if(landProgressChecksSent[treasure]==progressCheck::orbunlocked && items[treasure]>=getVirtualTreasureCount(progressCheck::orbunlockedglobal)){
+        ap::landProgressChecksSent[treasure] = progressCheck::orbunlockedglobal;
+        collectCheck(treasure, progressCheck::orbunlockedglobal);
+      }
+      if(landProgressChecksSent[treasure]==progressCheck::orbunlockedglobal && items[treasure]>=getVirtualTreasureCount(progressCheck::completed)){
+        ap::landProgressChecksSent[treasure] = progressCheck::completed;
+        collectCheck(treasure, progressCheck::completed);
+      }
     }
   }
   return;
@@ -165,9 +185,15 @@ void ap::WriteApState(){
   statefile << "{" << std::endl;
   for(int i=0; i<eItem::ittypes; i++){
     eItem item = eItem(i);
-    if(isTreasure(item)) statefile << iinf[item].name << ": " << (int) landChecksReceived[item] << "," << std::endl;
+    if(isTreasure(item)) {
+      statefile << "\"" << iinf[item].name << "\": {" << std::endl;
+      statefile << "  \"Received\":" <<(int) landChecksReceived[item] << "," << std::endl;
+      statefile << "  \"Unlock Sent\":" << landUnlockCheckSent[item] << "," << std::endl;
+      statefile << "  \"Progress Sent\":" << (int) landProgressChecksSent[item] << std::endl;
+      statefile << "}," << std::endl;
+    }
   }
-  statefile << "}";
+  statefile << "\"Already handled checks\":" << alreadyHandledChecks <<"\n}";
   statefile.close();
 }
 
