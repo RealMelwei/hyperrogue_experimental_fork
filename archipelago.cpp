@@ -60,14 +60,14 @@ RANDOMIZER INITIALIZATION
 
 void ap::init::initRando(){
   if (!client || client->get_state() < APClient::State::SOCKET_CONNECTED) {
-    init::readApState();
+    saves::readApState();
     init::initItemByID();
     connect_ap(APClient::DEFAULT_URI, "melwei");
   }
   return;
 }
 
-void ap::init::readApState() {
+void ap::saves::readApState() {
   std::ifstream i("apstate.json");
   if (i.is_open()) {
     json state;
@@ -78,18 +78,16 @@ void ap::init::readApState() {
       if(isTreasure(item)){ //Technically not neccessary, but reduces json accesses
         json::iterator itementry = state.find(iinf[item].name);
         if(itementry!=state.end()){
-//          landChecksReceived[item]=(progressCheck) itementry.value();
           std::string landname = itementry.key();
           landChecksReceived[item]=(progressCheck) state[landname]["Received"];
-          //if((progressCheck) itementry.value()!=progressCheck::notingame) landProgressChecksSent[item] = progressCheck::unlocked;
-          //landUnlockCheckSent[item]=(bool) state[landname]["Unlock Sent"];
+          landUnlockCheckSent[item]=(bool) (int) state[landname]["Unlock Sent"];
           landProgressChecksSent[item]=(progressCheck) state[landname]["Progress Sent"];
         } else {
           landChecksReceived[item]=progressCheck::notingame;
         }
       }
     }
-    alreadyHandledChecks = state["Already handled checks"];
+    checks::alreadyHandledChecks = state["Already handled checks"];
   }
   return;
 }
@@ -111,13 +109,27 @@ eLand ap::init::getFirstLand(){
 }
 
 /*
-RANDOMIZER RUNTIME
+RANDOMIZER CHECK MANAGEMENT
 */
 
-void ap::receiveCheck(APClient::NetworkItem netitem){
-  if(netitem.index>alreadyHandledChecks+1) {
+void ap::checks::resetInventory(){
+  for(int i=0; i<eItem::ittypes; i++){
+    eItem item = eItem(i);
+    if(isTreasure(item)){
+      landChecksReceived[item] = ((item==itHyperstone) ? progressCheck::unlocked : progressCheck::locked);
+    }
+  }
+  return;
+}
+
+void ap::checks::receiveCheck(APClient::NetworkItem netitem){
+  if(netitem.index==0){
+    checks::resetInventory();
+    checks::alreadyHandledChecks=-1;
+  }
+  if(netitem.index>checks::alreadyHandledChecks+1) {
     client->Sync();
-  } else if(netitem.index==alreadyHandledChecks+1) {
+  } else if(netitem.index==checks::alreadyHandledChecks+1) {
     eItem item = itemByID[netitem.item - HYPERROGUE_BASE_ID];
     switch (landChecksReceived[item])
     {
@@ -139,47 +151,46 @@ void ap::receiveCheck(APClient::NetworkItem netitem){
     default:
       break;
     }
-    alreadyHandledChecks++;
-    WriteApState();
+    checks::alreadyHandledChecks++;
+    saves::writeApState();
   }
   return;
 }
 
-void ap::collectCheck(eItem treasure, progressCheck progress){
+void ap::checks::collectCheck(eItem treasure, progressCheck progress){
   if(treasure != itHyperstone)
     client -> LocationChecks({getLocationID(treasure, progress)});
-    addMessage(XLAT("Check unlocked!"));
-    WriteApState();
+    saves::writeApState();
   return;
 }
 
-void ap::updateChecks(){
+void ap::checks::updateChecks(){
   if(init::jsonInitialized){
     for(int i=0; i<eLand::landtypes; i++) {
       eLand l = eLand(i);
       eItem treasure = linf[l].treasure;
       if(ap::landProgressChecksSent[treasure] != progressCheck::notingame && !ap::landUnlockCheckSent[treasure] && landUnlockedLegacy(l)){
         ap::landUnlockCheckSent[treasure] = true;
-        collectCheck(treasure, progressCheck::unlocked);
+        checks::collectCheck(treasure, progressCheck::unlocked);
       }
-      if(landProgressChecksSent[treasure]==progressCheck::unlocked && items[treasure]>=getVirtualTreasureCount(progressCheck::orbunlocked)){
+      if(landProgressChecksSent[treasure]==progressCheck::unlocked && items[treasure]>=(l==laCamelot ? 3 : getVirtualTreasureCount(progressCheck::orbunlocked))){
         ap::landProgressChecksSent[treasure] = progressCheck::orbunlocked;
-        collectCheck(treasure, progressCheck::orbunlocked);
+        checks::collectCheck(treasure, progressCheck::orbunlocked);
       }
-      if(landProgressChecksSent[treasure]==progressCheck::orbunlocked && items[treasure]>=getVirtualTreasureCount(progressCheck::orbunlockedglobal)){
+      if(landProgressChecksSent[treasure]==progressCheck::orbunlocked && items[treasure]>=(l==laCamelot ? 5 : getVirtualTreasureCount(progressCheck::orbunlockedglobal))){
         ap::landProgressChecksSent[treasure] = progressCheck::orbunlockedglobal;
-        collectCheck(treasure, progressCheck::orbunlockedglobal);
+        checks::collectCheck(treasure, progressCheck::orbunlockedglobal);
       }
-      if(landProgressChecksSent[treasure]==progressCheck::orbunlockedglobal && items[treasure]>=getVirtualTreasureCount(progressCheck::completed)){
+      if(landProgressChecksSent[treasure]==progressCheck::orbunlockedglobal && items[treasure]>=(l==laCamelot ? 8 : getVirtualTreasureCount(progressCheck::completed))){
         ap::landProgressChecksSent[treasure] = progressCheck::completed;
-        collectCheck(treasure, progressCheck::completed);
+        checks::collectCheck(treasure, progressCheck::completed);
       }
     }
   }
   return;
 }
 
-void ap::WriteApState(){
+void ap::saves::writeApState(){
   std::ofstream statefile;
   statefile.open ("apstate.json");
   statefile << "{" << std::endl;
@@ -193,8 +204,9 @@ void ap::WriteApState(){
       statefile << "}," << std::endl;
     }
   }
-  statefile << "\"Already handled checks\":" << alreadyHandledChecks <<"\n}";
+  statefile << "\"Already handled checks\":" << checks::alreadyHandledChecks <<"\n}";
   statefile.close();
 }
+
 
 #endif

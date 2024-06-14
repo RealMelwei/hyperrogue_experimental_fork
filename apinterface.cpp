@@ -20,10 +20,6 @@
 #include <math.h>
 #include <limits>
 
-#if defined(WIN32) && !defined(PRId64 )
-#define PRId64 "I64d"
-#endif
-
 #define VERSION_TUPLE {0,4,1}
 
 
@@ -44,16 +40,9 @@ unsigned connect_error_count = 0;
 bool awaiting_password = false;
 std::string slot = "Player";
 
-#ifdef __EMSCRIPTEN__
-#define VIRTUAL_HOME_DIR "/settings"
-#define OLD_DATAPACKAGE_CACHE "/settings/datapackage.json"
-#define UUID_FILE "/settings/uuid"
-#define CERT_STORE "" // not required in a browser context
-#else
 #define OLD_DATAPACKAGE_CACHE "datapackage.json"
 #define UUID_FILE "uuid" // TODO: place in %appdata%
 #define CERT_STORE "cacert.pem"
-#endif
 
 #if __cplusplus < 201500L
 decltype(APClient::DEFAULT_URI) constexpr APClient::DEFAULT_URI;  // c++14 needs a proper declaration
@@ -136,7 +125,7 @@ void connect_ap(std::string uri="", std::string newSlot="")
             return;
         }
         for (const auto& item: items) {
-            ap::receiveCheck(item);
+            ap::checks::receiveCheck(item);
             std::string itemname = client->get_item_name(item.item, client->get_player_game(client->get_player_number()));
             std::string sender = client->get_player_alias(item.player);
             std::string location = client->get_location_name(item.location, client->get_player_game(item.player));
@@ -144,6 +133,7 @@ void connect_ap(std::string uri="", std::string newSlot="")
                    item.index, itemname.c_str(), item.item,
                    sender.c_str(), location.c_str());
         }
+        
         // Once starting inventory has been received, (re-)start the Hyperrogue game.
         if(!ap::init::jsonInitialized){
             ap::init::jsonInitialized = true;
@@ -159,47 +149,6 @@ void connect_ap(std::string uri="", std::string newSlot="")
     });
     client->set_print_json_handler([](const std::list<APClient::TextNode>& msg) {
         printf("%s\n", client->render_json(msg, APClient::RenderFormat::ANSI).c_str());
+        hr::addMessage(client->render_json(msg));
     });
 }
-
-
-/*
-void on_command(const std::string& command)
-{
-    if (awaiting_password) {
-        password_entered(command);
-    } else if (command == "/help") {
-        printf("Available commands:\n"
-               "  /connect [addr[:port]] [slot] - connect to AP server\n"
-               "  /disconnect - disconnect from AP server\n");
-    } else if (command == "/connect") {
-        connect_ap();
-    } else if (command.find("/connect ") == 0) {
-        std::string args = command.substr(9);
-        auto p = args.find(' ');
-        if (p != std::string::npos) {
-            connect_ap(args.substr(0, p), args.substr(p+1));
-        } else {
-            connect_ap(args);
-        }
-    } else if (command == "/disconnect") {
-        disconnect_ap();
-    } else if (command.find("/") == 0) {
-        printf("Unknown command: %s\n", command.c_str());
-    } else if (!client || client->get_state() < APClient::State::SOCKET_CONNECTED) {
-        printf("AP not connected. Can't send chat message.\n");
-        if (command.length() >= 2 && command[1] == '/') {
-            printf("Did you mean \"%s\"?\n", command.c_str()+1);
-        } else if (command.substr(0, 7) == "connect") {
-            auto p = command[7] ? 7 : command.npos;
-            while (p != command.npos && command[p] == ' ') p++;
-            printf("Did you mean \"/connect%s%s\"?\n",
-                    p!=command.npos ? " " : "", p!=command.npos ? command.substr(p).c_str() : "");
-        }
-    } else {
-        client->Say(command);
-    }
-}
-*/
-
-

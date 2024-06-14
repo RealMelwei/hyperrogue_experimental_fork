@@ -15,8 +15,6 @@ enum class progressCheck {
   completed=4
 };
 
-int alreadyHandledChecks = -1;
-
 #define HYPERROGUE_BASE_ID 0XCBA000
 eItem itemByID[0X60]={eItem::itNone};
 
@@ -37,16 +35,22 @@ int getLocationID(eItem treas, progressCheck prog);
 namespace init {
   bool jsonInitialized = false;
   void initRando();
-  void readApState();
   eLand getFirstLand();
   void initItemByID();
 }
 
-// Runtime check management
-void receiveCheck(APClient::NetworkItem item);
-void collectCheck(eItem treasure, progressCheck progress);
-void updateChecks();
-void WriteApState();
+// Check management
+namespace checks{
+  int alreadyHandledChecks = -1;
+  void resetInventory();
+  void receiveCheck(APClient::NetworkItem item);
+  void collectCheck(eItem treasure, progressCheck progress);
+  void updateChecks();
 }
 
+namespace saves{
+  void writeApState();
+  void readApState();
+}
+}
 #endif
