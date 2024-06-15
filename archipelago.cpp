@@ -169,6 +169,7 @@ void ap::checks::updateChecks(){
     for(int i=0; i<eLand::landtypes; i++) {
       eLand l = eLand(i);
       eItem treasure = linf[l].treasure;
+
       if(ap::landProgressChecksSent[treasure] != progressCheck::notingame && !ap::landUnlockCheckSent[treasure] && landUnlockedLegacy(l)){
         ap::landUnlockCheckSent[treasure] = true;
         checks::collectCheck(treasure, progressCheck::unlocked);

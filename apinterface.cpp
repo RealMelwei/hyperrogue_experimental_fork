@@ -102,6 +102,13 @@ void connect_ap(std::string uri="", std::string newSlot="")
     });
     client->set_slot_connected_handler([](const json&){
         printf("Slot connected\n");
+        client->poll();
+        // Once starting inventory has been received, (re-)start the Hyperrogue game.
+        if(!ap::init::jsonInitialized){
+            ap::init::jsonInitialized = true;
+            hr::stop_game();
+            hr::start_game();
+        }
     });
     client->set_slot_disconnected_handler([](){
         printf("Slot disconnected\n");
@@ -132,13 +139,6 @@ void connect_ap(std::string uri="", std::string newSlot="")
             printf("  #%d: %s (%" PRId64 ") from %s - %s\n",
                    item.index, itemname.c_str(), item.item,
                    sender.c_str(), location.c_str());
-        }
-        
-        // Once starting inventory has been received, (re-)start the Hyperrogue game.
-        if(!ap::init::jsonInitialized){
-            ap::init::jsonInitialized = true;
-            hr::stop_game();
-            hr::start_game();
         }
     });
     client->set_data_package_changed_handler([](const json& data) {
