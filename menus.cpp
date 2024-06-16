@@ -49,6 +49,8 @@ EX void showOverview() {
   }
   
   bool not_in_game = false;
+
+  auto displayed_landlist = landlist;
   
   if(dialog::infix != "") {
     auto land_matches = [] (eLand l) {
@@ -63,14 +65,14 @@ EX void showOverview() {
     vector<eLand> filtered;
     for(eLand l: landlist) if(land_matches(l)) filtered.push_back(l);
     if(filtered.size())
-      landlist = filtered;
+      displayed_landlist = filtered;
     else {
       for(int i=0; i<landtypes; i++) if(land_matches(eLand(i))) filtered.push_back(eLand(i));
-      if(filtered.size()) landlist = filtered, not_in_game = true;
+      if(filtered.size()) displayed_landlist = filtered, not_in_game = true;
       }
     }
-  
-  int nl = isize(landlist), nlm;
+
+  int nl = isize(displayed_landlist), nlm;
   
   int lstart = 0;
   
@@ -92,7 +94,7 @@ EX void showOverview() {
     }
   
   for(int i=0; i<nl; i++) {
-    eLand l = landlist[lstart + i];
+    eLand l = displayed_landlist[lstart + i];
     int xr = vid.xres / 64;
     int i0 = 56 + vid.fsize + i * vf;
     color_t col;
@@ -276,13 +278,17 @@ EX void enable_cheat() {
   
 // -- game modes -- 
 
-EX void switchHardcore() {
+EX void switchHardcore_quiet() {
   if(hardcore && !canmove) { 
-    restart_game();
+    if(delayed_start) stop_game(); else restart_game();
     hardcore = false;
     }
   else if(hardcore && canmove) { hardcore = false; }
   else { hardcore = true; canmove = true; hardcoreAt = turncount; }
+  }
+
+EX void switchHardcore() {
+  switchHardcore_quiet();
   if(hardcore)
       addMessage(XLAT("One wrong move and it is game over!"));
   else
@@ -373,6 +379,9 @@ EX void showCreative() {
     dialog::add_action_push(texture::showMenu);
     }
 #endif
+
+  dialog::addItem(XLAT("line patterns"), 'l');
+  dialog::add_action_push(linepatterns::showMenu);
 
 //  dialog::addBoolItem(XLAT("expansion"), viewdists, 'x');
   
@@ -478,11 +487,15 @@ EX string custom_welcome;
 
 string customfile = "custom.hrm";
 
+string name_to_edit;
+
 EX void show_custom() {
   cmode = sm::SIDE | sm::MAYDARK;
   gamescreen();
   dialog::init(XLAT("custom mode"));
 
+  list_saved_custom_modes();
+  dialog::addBreak(100);
   if(custom_welcome != "") {
     dialog::addInfo("custom welcome message:");
     dialog::addInfo(custom_welcome);
@@ -495,7 +508,15 @@ EX void show_custom() {
     dialog::edit_string(custom_welcome, "custom welcome message", "");
     });
   dialog::addBreak(100);
-  dialog::addItem("save custom mode", 's');
+  auto m = at_or_null(modename, current_modecode);
+  dialog::addSelItem("name custom mode", m ? *m : "", 'N');
+  dialog::add_action([] {
+    name_to_edit = modename[current_modecode];
+    dialog::edit_string(name_to_edit, "name custom mode", "");
+    dialog::get_di().reaction_final = [] { update_modename(name_to_edit); };
+    });
+
+  dialog::addItem("save custom mode", 'S');
   dialog::add_action([] {
     dialog::openFileDialog(customfile, XLAT("file to save:"), ".hrm", [] () {
       try {
@@ -509,7 +530,7 @@ EX void show_custom() {
         }
       });
     });
-  dialog::addItem("load custom mode", 'l');
+  dialog::addItem("load custom mode", 'L');
   dialog::add_action([] {
     dialog::openFileDialog(customfile, XLAT("file to load:"), ".hrm", [] () {
       try {
@@ -807,8 +828,7 @@ EX void showChangeMode() {
   dialog::addItem(XLAT("highlights & achievements"), 'h');
   dialog::add_action_push(mode_higlights);
   dialog::addItem(XLAT("custom mode manager"), 'm');
-  dialog::add_action_push(show_custom);
-  
+  dialog::add_action(prepare_custom);
   dialog::addBack();
   dialog::display();  
   }
@@ -1009,7 +1029,7 @@ EX void showStartMenu() {
       stop_game();
       enable_canvas();
       cheater = true;
-      patterns::canvasback = 0xFFFFFF;
+      ccolor::set_plain(0xFFFFFF);
       mapeditor::drawplayer = false;
       start_game();
       clearMessages();
@@ -1251,6 +1271,10 @@ int read_menu_args() {
     }
   else if(argis("-d:mode")) {
     PHASEFROM(2); launch_dialog(showChangeMode);
+    }
+  else if(argis("-d:custom")) {
+    PHASEFROM(3);
+    prepare_custom();
     }
   else if(argis("-d:history")) {
     PHASEFROM(2); launch_dialog(history::history_menu);

@@ -648,7 +648,7 @@ struct info {
       if(newdist == OUT_OF_PRISON && princess::challenge) {
         addMessage(XLAT("Congratulations! Your score is %1.", its(i->value)));
         achievement_gain_once("PRINCESS2", rg::princess);
-        if(!cheater) achievement_score(36, i->value);
+        if(!cheater) achievement_score(LB_PRINCESS, i->value);
         LATE( showMissionScreen(); )
         }
       }
@@ -1688,6 +1688,7 @@ EX namespace hive {
 
   EX eMonster randomHyperbug() {
     int h = hivehard();
+    if(h && markOrb(itOrbLuck)) h /= 4;
     if(hrand(200) < h)
       return moBug2;
     return eMonster(moBug0 + hrand(BUGCOLORS));

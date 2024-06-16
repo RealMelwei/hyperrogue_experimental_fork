@@ -559,7 +559,7 @@ ld ellFaux(ld cos_phi, ld sin_phi, ld k) {
 
 ld sqrt_clamp(ld x) { if(x<0) return 0; return sqrt(x); }
 
-hyperpoint to_square(hyperpoint H) {
+EX hyperpoint to_square(hyperpoint H) {
 
   ld d = hypot_d(2, H);
   ld x = d / (H[2] + 1);
@@ -1467,7 +1467,10 @@ EX void apply_other_model(shiftpoint H_orig, hyperpoint& ret, eModel md) {
     
     case mdSpiral: {
       cld z;
-      if(hyperbolic || sphere) makeband(H_orig, ret, band_conformal);
+      if(hyperbolic || sphere) {
+        makeband(H_orig, ret, band_conformal);
+        models::scr_to_ori(ret);
+        }
       else ret = H;
       z = cld(ret[0], ret[1]) * models::spiral_multiplier;
       
@@ -1492,6 +1495,7 @@ EX void apply_other_model(shiftpoint H_orig, hyperpoint& ret, eModel md) {
         if(pconf.skiprope) 
           ret = mobius(ret, pconf.skiprope, 1);
         }
+      models::ori_to_scr(ret);
       break;
       }
     
@@ -2522,13 +2526,14 @@ void circle_around_center(ld radius, color_t linecol, color_t fillcol, PPR prio)
   #if CAP_QUEUE
   ld rad = 10;
   if(euclid) rad = 1000;
-  for(int i=0; i<=360; i++) curvepoint(xspinpush0(i * degree, rad));
+  for(int i=0; i<=36000; i+=10) curvepoint(xspinpush0(i * degree / 100., rad));
   auto& c = queuecurve(shiftless(Id), linecol, fillcol, prio);
   if(pmodel == mdDisk && hyperbolic && pconf.alpha <= -1)
     c.flags |= POLY_FORCE_INVERTED;
   if(pmodel == mdJoukowsky)
     c.flags |= POLY_FORCE_INVERTED;
   c.flags |= POLY_ALWAYS_IN;
+  c.flags |= POLY_FORCEWIDE;
   #endif
   }
 
@@ -3019,6 +3024,7 @@ EX void draw_boundary(int w) {
           hyperpoint ret = point2(real(z), imag(z));
           ret = mobius(ret, pconf.skiprope, 1);
           ret *= current_display->radius;
+          models::ori_to_scr(ret);
           curvepoint(ret);
           }
         queuecurve(shiftless(Id), ringcolor, 0, p).flags |= POLY_ALWAYS_IN;

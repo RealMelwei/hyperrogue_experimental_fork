@@ -944,6 +944,13 @@ EX geometry_data compute_geometry_data() {
   return gd;
   }
 
+EX void add_size_action() {
+  if(WDIM == 2 || reg3::exact_rules()) dialog::add_action([] {
+    if(!viewdists) { enable_viewdists(); pushScreen(viewdist_configure_dialog); }
+    else if(viewdists) viewdists = false;
+    });
+  }
+
 EX void showEuclideanMenu() {
   // for(int i=2; i<lt; i++) landvisited[i] = true;
 
@@ -1113,7 +1120,7 @@ EX void showEuclideanMenu() {
     }
   
   dialog::addBoolItem(XLAT("pattern"), specialland == laCanvas, 'p');
-  if(specialland == laCanvas) dialog::lastItem().value = patterns::whichCanvas;
+  if(specialland == laCanvas) dialog::lastItem().value = ccolor::which->name;
   dialog::add_action_push(patterns::showPrePattern);
   validity_info();
   if(WDIM == 3) {
@@ -1151,11 +1158,7 @@ EX void showEuclideanMenu() {
     }
 
   dialog::addSelItem(XLAT("size of the world"), gd.size_str, '3');
-  
-  if(WDIM == 2 || reg3::exact_rules()) dialog::add_action([] {
-    if(!viewdists) { enable_viewdists(); pushScreen(viewdist_configure_dialog); }
-    else if(viewdists) viewdists = false;
-    });
+  add_size_action();
 
   if(closed_manifold) {
     dialog::addSelItem(XLAT("Euler characteristics"), its(gd.euler), 0);

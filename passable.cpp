@@ -169,6 +169,7 @@ EX bool passable(cell *w, cell *from, flagtype flags) {
     if(airdist(w) < 3) return false;
     if(againstWind(w,from)) return false;
     if(isGravityLand(w)) return false;
+    if(w->wall == waChasm && w->land == laDual) return false;
     }
 
   if(from && strictlyAgainstGravity(w, from, vrevdir, flags)
@@ -424,6 +425,8 @@ EX void moveBoat(const movei& mi) {
   changes.ccell(mi.s);
   eWall x = mi.t->wall; mi.t->wall = mi.s->wall; mi.s->wall = x;
   mi.t->mondir = mi.rev_dir_or(NODIR);
+  changes.map_value(rosemap, mi.t);
+  rosemap.erase(mi.t);
   moveItem(mi.s, mi.t, false);
   animateMovement(mi, LAYER_BOAT);
   }

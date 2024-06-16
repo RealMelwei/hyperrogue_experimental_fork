@@ -26,6 +26,10 @@ EX int getgametime() {
   return (int) (savetime + (timerstopped ? 0 : (time(NULL) - timerstart)));
   }
 
+EX ld getgametime_precise() {
+  return savetime + (timerstopped ? 0 : (ticks - tickstart) / 1000.);
+  }
+
 EX string getgametime_s(int timespent IS(getgametime())) {
   return hr::format("%d:%02d", timespent/60, timespent % 60);
   }
@@ -50,7 +54,7 @@ string timeline() {
   else {
     s = XLAT("%1 turns (%2)", its(turncount), getgametime_s());
     if(display_yasc_codes)
-      s+= XLAT(" YASC code: ") + formatted_yasc_code();
+      s += XLAT(" YASC code: ") + formatted_yasc_code();
     }
   return s;
   }
@@ -332,7 +336,7 @@ EX void showGameMenu() {
 #if CAP_TOUR
     tour::on ? (canmove ? XLAT("guided tour") : XLAT("GAME OVER")) :
 #endif
-    (cheater && !autocheat)? XLAT("It is a shame to cheat!") : 
+    (cheater && !autocheat) ? XLAT("It is a shame to cheat!") :
     racing::on ? "racing mode" :
     (canmove && princess::challenge) ? XLAT("%1 Challenge", moPrincess) :
     canmove ? XLAT("Quest status") : 
@@ -445,7 +449,7 @@ EX void showGameMenu() {
   if(cheater && !autocheat) {
     dialog::addInfo(XLAT("you have cheated %1 times", its(cheater)), 0xFF2020);
     }
-  else if(!racing::on) {
+  if(!racing::on) {
     dialog::addInfo(timeline(), dialog::dialogcolor);
     }
   

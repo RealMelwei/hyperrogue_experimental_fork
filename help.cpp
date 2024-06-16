@@ -236,7 +236,7 @@ EX void buildCredits() {
   help += XLAT(
     "special thanks to the following people for their bug reports, feature requests, porting, and other help:\n\n%1\n\n",
     "Konstantin Stupnik, ortoslon, chrysn, Adam Borowski, Damyan Ivanov, Ryan Farnsley, mcobit, Darren Grey, tricosahedron, Maciej Chojecki, Marek Čtrnáct, "
-    "wonderfullizardofoz, Piotr Migdał, tehora, Michael Heerdegen, Sprite Guard, zelda0x181e, Vipul, snowyowl0, Patashu, phenomist, Alan Malloy, Tom Fryers, Sinquetica, _monad, CtrlAltDestroy, jruderman, "
+    "wonderfullizardofoz, Piotr Migdał, Tehora Rogue, Michael Heerdegen, Sprite Guard, zelda0x181e, Vipul, snowyowl0, Patashu, phenomist, Alan Malloy, Tom Fryers, Sinquetica, _monad, CtrlAltDestroy, jruderman, "
     "Kojiguchi Kazuki, baconcow, Alan, SurelyYouJest, hotdogPi, DivisionByZero, xXxWeedGokuxXx, jpystynen, Dmitry Marakasov, Alexandre Moine, Arthur O'Dwyer, "
     "Triple_Agent_AAA, bluetailedgnat, Allalinor, Shitford, KittyTac, Christopher King, KosGD, TravelDemon, Bubbles, rdococ, frozenlake, MagmaMcFry, "
     "Snakebird Priestess, roaringdragon2, Stopping Dog, bengineer8, Sir Light IJIJ, ShadeBlade, Saplou, shnourok, Ralith, madasa, 6% remaining, Chimera245, Remik Pi, alien foxcat thing, "
@@ -527,6 +527,33 @@ EX string generateHelpForItem(eItem it) {
         }
       }
     }
+
+  int oc = orbcharges(it); if(oc) {
+
+    if(items[itOrbIntensity]) {
+      int oc2 = intensify(oc);
+      help += XLAT("\n\nOrb charges gained on pickup: %1 (increased to %2 by %the3)", its(oc), its(oc2), itOrbIntensity);
+      }
+    else
+      help += XLAT("\n\nOrb charges gained on pickup: %1", its(oc));
+    }
+
+  int ac = 0;
+  if(among(it, itOrbFrog, itOrbPhasing, itOrbDash)) ac = 5;
+  if(among(it, itOrbSummon)) ac = 20;
+  if(among(it, itOrbPsi)) ac = 30;
+  if(among(it, itOrbStunning)) ac = 10;
+  if(among(it, itOrbMorph)) ac = 3;
+  if(among(it, itOrbIllusion)) ac = 5;
+  if(among(it, itOrbDragon)) ac = 5;
+  if(among(it, itOrbAir)) ac = 1;
+
+  if(ac) {
+    if(items[itOrbEnergy])
+      help += XLAT("\n\nActivation cost: %1 charges (reduced to %2 by %the3)\n", its(ac), its((1+ac)/2), itOrbEnergy);
+    else
+      help += XLAT("\n\nActivation cost: %1 charges\n", its(ac));
+    }
   
   if(it == itOrb37 && (S7 != 7 || !BITRUNCATED))
     help += "\n\n" + other_geometry() + forbidden_unmarked();
@@ -553,6 +580,20 @@ EX string generateHelpForItem(eItem it) {
   return help;
   }
 
+void mine_dialog() {
+  cmode = sm::SIDE;
+  gamescreen();
+  dialog::init("Minefield graphics");
+  add_edit(numerical_minefield);
+  add_edit(mine_zero_display);
+  add_edit(mine_opacity);
+  add_edit(mine_hollow);
+  add_edit(mine_markers);
+  dialog::addItem(XLAT("minefield colors"), 'c');
+  dialog::add_action_push([] { edit_color_table(minecolors); });
+  dialog::display();
+  }
+
 void addMinefieldExplanation(string& s) {
 
   s += XLAT(
@@ -568,7 +609,7 @@ void addMinefieldExplanation(string& s) {
   s += XLAT("Known mines may be marked by touching while in drag mode. Your allies won't step on marked mines.");
 #endif
 
-  help_extensions.push_back(help_extension{'n', XLAT("toggle numerical display"), [] () { numerical_minefield = !numerical_minefield; }});
+  help_extensions.push_back(help_extension{'c', XLAT("configure"), [] () { pushScreen(mine_dialog); } });
   }
 
 EX string generateHelpForWall(eWall w) {
@@ -883,7 +924,6 @@ EX void describeMouseover() {
       if(shmup::on)
         out += " (" + its(c->landparam)+")";
       else {
-        calcTidalPhase();
         bool b = c->landparam >= tide[turncount % tidalsize];
         int t = 1;
         for(; t < 1000 && b == (c->landparam >= tide[(turncount+t) % tidalsize]); t++) ;

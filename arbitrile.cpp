@@ -220,8 +220,7 @@ void ensure_geometry(eGeometryClass c) {
 
   if(specialland != laCanvas) {   
     canvas_default_wall = waInvisibleFloor;
-    patterns::whichCanvas = 'g';
-    patterns::canvasback = 0xFFFFFF;
+    ccolor::set_plain(0xFFFFFF);
     enable_canvas();
     }
   start_game();
@@ -1283,7 +1282,7 @@ void connection_debugger() {
 
     curvepoint(sh[0]);
     
-    color_t col = colortables['A'][id];
+    color_t col = ccolor::shape.ctab[id];
     col = darkena(col, 0, 0xFF);
     
     if(&p == &last) {
@@ -1638,16 +1637,21 @@ struct hrmap_arbi : hrmap {
 
 EX hrmap *new_map() { return new hrmap_arbi; }
 
-EX void run(string fname) {
+EX void run_raw(string fname) {
   stop_game();
+  set_geometry(gArbitrary);
+  load(fname);
+  ginf[gArbitrary].tiling_name = current.name;
+  tes = fname;
+  convert::base_geometry = gArbitrary;
+  }
+
+EX void run(string fname) {
   eGeometry g = geometry;
   arbi_tiling t = current;
   auto v = variation;
-  set_geometry(gArbitrary);
   try {
-     load(fname);
-     ginf[gArbitrary].tiling_name = current.name;
-     tes = fname;
+     run_raw(fname);
      }
    catch(hr_polygon_error& poly) {
      set_geometry(g);
@@ -1734,7 +1738,7 @@ EX void set_sliders() {
 /** convert a tessellation (e.g. Archimedean, regular, etc.) to the arb::current internal representation */
 EX namespace convert {
 
-EX eGeometry base_geometry;
+EX eGeometry base_geometry = gArbitrary;
 EX eVariation base_variation;
 
 struct id_record {
@@ -1868,17 +1872,34 @@ EX void convert_max() {
 
 EX void convert_minimize(int N, vector<int>& old_shvids, map<int, int>& old_to_new) {
   vector<pair<int, int>> address;
-  vector<int> next;
+  vector<int> address_start;
+
   for(int i=0; i<N; i++) {
     int q = identification[old_shvids[i]].modval;
     int c = isize(address);
+    address_start.push_back(c);
     for(int j=0; j<q; j++) {
       address.emplace_back(i, j);
-      next.emplace_back(j == q-1 ? c : c+j+1);
       }
     }
 
   int K = isize(address);  
+  vector<int> next(K), step(K);
+
+  for(int k=0; k<K; k++) {
+    auto i = address[k].first;
+    auto j = address[k].second;
+
+    auto& id = identification[old_shvids[i]];
+    next[k] = address_start[i] + (j+1) % id.modval;
+
+    cell *s = id.sample;
+    cellwalker cw(s, j);
+    cw += wstep;
+    auto idx = get_identification(cw.at);
+    step[k] = address_start[old_to_new.at(idx.target)] + gmod(cw.spin - idx.shift, idx.modval);
+    }
+
   vector<array<ld, 3> > dists(K);
   for(int i=0; i<K; i++) {
     auto pi = address[i];
@@ -1911,11 +1932,18 @@ EX void convert_minimize(int N, vector<int>& old_shvids, map<int, int>& old_to_n
   
   int chg = 1;
   while(chg) {
-    for(auto& eq: equal) println(hlog, eq);
+    if(debugflags & DF_GEOM) {
+      println(hlog, "current table of equals:");
+      int eqid = 0;
+      for(auto& eq: equal) {
+        println(hlog, eq, " for ", eqid, ": ", address[eqid], " next= ", next[eqid], " step= ", step[eqid]);
+        eqid++;
+        }
+      }
     chg = 0;
     for(int i=0; i<K; i++)
     for(int j=0; j<K; j++)
-      if(equal[i][j] && !equal[next[i]][next[j]]) {
+      if(equal[i][j] && (!equal[next[i]][next[j]] || !equal[step[i]][step[j]])) {
         equal[i][j] = false;
         chg++;
         }
@@ -1964,7 +1992,8 @@ EX void convert() {
 
   auto& ac = arb::current;
   ac.order++; 
-  ac.comment = ac.filename = "converted from: " + full_geometry_name();
+  ac.filename = full_geometry_name();
+  ac.comment = "converted from: " + ac.filename;
   ac.cscale = cgi.scalefactor;
   ac.boundary_ratio = 1;
   ac.floor_scale = cgi.hexvdist / cgi.scalefactor;
@@ -1974,6 +2003,7 @@ EX void convert() {
 
   ginf[gArbitrary].g = cginf.g;
   ginf[gArbitrary].flags = cgflags & qCLOSED;
+  ginf[gArbitrary].tiling_name = full_geometry_name();
   
   for(int i=0; i<N; i++) {
     auto id = identification[old_shvids[i]];
@@ -1984,6 +2014,10 @@ EX void convert() {
     sh.vertices.clear();
     sh.connections.clear();
     sh.cycle_length = id.modval;
+    if(arcm::in())
+      sh.orig_id = arcm::get_graphical_id(s);
+    else
+      sh.orig_id = shvid(s);
     sh.repeat_value = t / id.modval;
     sh.flags = hr::pseudohept(s) ? arcm::sfPH : 0;
     #if CAP_ARCM
@@ -2058,7 +2092,7 @@ int readArgs() {
   else if(argis("-tes") || argis("-arbi")) {
     PHASEFROM(2);
     shift(); 
-    run(args());
+    run_raw(args());
     }
   else if(argis("-tes-opt")) {
      arg::run_arguments(current.options);

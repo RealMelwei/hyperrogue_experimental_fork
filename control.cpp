@@ -212,16 +212,30 @@ EX void mousemovement() {
 EX SDL_Joystick* sticks[8];
 EX int numsticks;
 
-EX void initJoysticks() {
+EX bool joysticks_initialized;
 
-  if (SDL_InitSubSystem(SDL_INIT_JOYSTICK) == -1)
-  {
-    printf("Failed to initialize joysticks.\n");
-    numsticks = 0;
-    return;
+#if HDR
+enum eJoystickInit { jiNoJoystick, jiFast, jiWait };
+#endif
+EX eJoystickInit joy_init = jiFast;
+
+#if CAP_THREAD
+EX std::thread *joythread;
+std::atomic<bool> joystick_done(false);
+#endif
+
+EX void initJoysticks_async() {
+  if(joy_init == jiNoJoystick) return;
+  #if CAP_THREAD
+  if(joy_init == jiWait) { initJoysticks(); return; }
+  joythread = new std::thread([] { initJoysticks(); joystick_done = true; });
+  #else
+  initJoysticks();
+  #endif
   }
 
-  DEBB(DF_INIT, ("init joysticks"));
+EX void countJoysticks() {
+  DEBB(DF_INIT, ("opening joysticks"));
   numsticks = SDL_NumJoysticks();
   if(numsticks > 8) numsticks = 8;
   for(int i=0; i<numsticks; i++) {
@@ -233,6 +247,22 @@ EX void initJoysticks() {
       SDL_JoystickNumHats(sticks[i])
       ); */
     }
+  }
+
+EX void initJoysticks() {
+
+  DEBBI(DF_INIT, ("init joystick"));
+
+  DEBB(DF_INIT, ("init joystick subsystem"));
+  if (SDL_InitSubSystem(SDL_INIT_JOYSTICK) == -1)
+  {
+    printf("Failed to initialize joysticks.\n");
+    numsticks = 0;
+    return;
+  }
+
+  countJoysticks();
+  joysticks_initialized = true;
   }
 
 EX void closeJoysticks() {
@@ -376,6 +406,7 @@ EX void full_ystrafe_camera(ld t) {
 EX ld third_person_rotation = 0;
 
 EX void full_rotate_camera(int dir, ld val) {
+  if(!val) return;
   if(rug::rug_control() && lshiftclick) {
     val *= camera_rot_speed;
     hyperpoint h;
@@ -524,7 +555,7 @@ EX void handleKeyNormal(int sym, int uni) {
 
   if(!(uni >= 'A' && uni <= 'Z') && DEFAULTCONTROL && !game_keys_scroll) {
     for(int i=0; i<8; i++)
-      if(among(sym, keys_vi[i], keys_wasd[i], (uni >= '0' && uni <= '9') ? -1 : keys_numpad[i]))
+      if(among(sym, keys_vi[i], keys_wasd[i], (uni >= '0' && uni <= '9' && !ISMAC) ? -1 : keys_numpad[i]))
         movepckeydir(i);
     }
 
@@ -1002,6 +1033,7 @@ EX void mainloopiter() {
   fix_mouseh();
   #if CAP_SDLJOY
   if(joydir.d != -1) checkjoy();
+  if(joystick_done && joythread) { joythread->join(); delete joythread; joystick_done = false; }
   #endif
   }
 
@@ -1017,8 +1049,7 @@ EX void handle_event(SDL_Event& ev) {
 /*    if(ev.type == SDL_JOYDEVICEADDED || ev.type == SDL_JOYDEVICEREMOVED) {
       joyx = joyy = 0;
       panjoyx = panjoyy = 0;
-      closeJoysticks();
-      initJoysticks();
+      countJoysticks();
       } */
 
     #if CAP_SDL2
@@ -1103,6 +1134,17 @@ EX void handle_event(SDL_Event& ev) {
       sym = ev.key.keysym.sym;
       #if CAP_SDL2
       uni = ev.key.keysym.sym;
+      if(uni == '=' && (ev.key.keysym.mod & (KMOD_LSHIFT | KMOD_RSHIFT))) uni = '+';
+      if(uni == '1' && (ev.key.keysym.mod & (KMOD_LSHIFT | KMOD_RSHIFT))) uni = '!';
+      if(uni == '2' && (ev.key.keysym.mod & (KMOD_LSHIFT | KMOD_RSHIFT))) uni = '@';
+      if(uni == '3' && (ev.key.keysym.mod & (KMOD_LSHIFT | KMOD_RSHIFT))) uni = '#';
+      if(uni == '4' && (ev.key.keysym.mod & (KMOD_LSHIFT | KMOD_RSHIFT))) uni = '$';
+      if(uni == '5' && (ev.key.keysym.mod & (KMOD_LSHIFT | KMOD_RSHIFT))) uni = '%';
+      if(uni == '6' && (ev.key.keysym.mod & (KMOD_LSHIFT | KMOD_RSHIFT))) uni = '^';
+      if(uni == '7' && (ev.key.keysym.mod & (KMOD_LSHIFT | KMOD_RSHIFT))) uni = '&';
+      if(uni == '8' && (ev.key.keysym.mod & (KMOD_LSHIFT | KMOD_RSHIFT))) uni = '*';
+      if(uni == '9' && (ev.key.keysym.mod & (KMOD_LSHIFT | KMOD_RSHIFT))) uni = '(';
+      if(uni == '0' && (ev.key.keysym.mod & (KMOD_LSHIFT | KMOD_RSHIFT))) uni = ')';
       if(uni >= 'a' && uni <= 'z') {
         if(ev.key.keysym.mod & (KMOD_LSHIFT | KMOD_RSHIFT)) uni -= 32;
         else if(ev.key.keysym.mod & (KMOD_LCTRL | KMOD_RCTRL)) uni -= 96;        

@@ -559,8 +559,9 @@ EX bool isbar4(cell *c) {
   }  
 
 EX bool barrier_cross(eLand l, eLand r) {
+  if(land_structure == lsVineWalls) return false;
   if(l == laCrossroads3 || r == laCrossroads3) return hrand(100) < 66;
-  if(land_structure == lsCrossWalls) return hrand(100) < 90;
+  if(land_structure == lsCrossWalls && !among(laCrossroads2, l, r)) return hrand(100) < 90;
   if(isElemental(l) && isElemental(r)) return hrand(100) < 75;
   return false;
   }
@@ -616,7 +617,7 @@ EX void extendBarrier(cell *c) {
     if(buildBarrier6(cw, 2)) return;    
     }
     
-  if(land_structure == lsCursedWalls && c->barleft != laMirror && c->barright != laMirror && hrand(100) < 80) {
+  if(land_structure == lsCursedWalls && c->barleft != laMirror && c->barright != laMirror && hrand(100) < 80 && !among(laCrossroads2, c->barleft, c->barright)) {
     cellwalker cw(c, c->bardir);
     cw = cw + wstep + 3 + wstep - 1;
     if(buildBarrier6(cw, c->barright, c->barleft)) return;
@@ -1156,6 +1157,7 @@ EX bool buildBarrier3D(cell *c, eLand l2, int forced_dir) {
 #endif
 
 EX bool buildBarrierNowall(cell *c, eLand l2, int forced_dir IS(NODIR)) {
+  if(among(l2, laCrossroads2, laCrossroads5)) return false;
   return general_barrier_build(NOWALLSEP, c, l2, forced_dir);
   }
 

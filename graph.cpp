@@ -209,6 +209,7 @@ void drawSpeed(const shiftmatrix& V, ld scale=1) {
   }
 
 void drawSafety(const shiftmatrix& V, int ct) {
+  if(inHighQual) return;
 #if CAP_QUEUE
   ld ds = ptick(50);
   color_t col = darkena(iinf[itOrbSafety].color, 0, 0xFF);
@@ -878,6 +879,7 @@ EX bool mark_compass(cell *c, shiftpoint& P1) {
 //  queuestr(V, 1, its(compassDist(c)), 0x10101 * int(128 - 100 * sin(ticks / 150.)), 1);
     queue_goal_text(P1, 1, its(-compassDist(c)), 0x10101 * int(128 - 100 * sintick(150)));
     addauraspecial(P1, 0xFF0000, 0);
+    addradar(P, 'X', iinf[itCompass].color, 0xFF, true);
     }
   return true;
   }
@@ -4028,13 +4030,16 @@ EX int colorhash(color_t i) {
   return (i * 0x471211 + i*i*0x124159 + i*i*i*0x982165) & 0xFFFFFF;
   }
 
+EX int mine_opacity = 255;
+
 EX bool isWall3(cell *c, color_t& wcol) {
   if(c->wall == waRose) { wcol = gradient(0, wcol, -5 - 5 * (7-rosephase), sintick(50 * (8 - rosephase)), 1); }
   if(isWall(c)) return true;
   if(c->wall == waChasm && c->land == laMemory && (anyshiftclick || !(cgflags & qFRACTAL))) { wcol = 0x606000; return true; }
   if(c->wall == waInvisibleFloor) return false;
   // if(chasmgraph(c)) return true;
-  if(among(c->wall, waMirror, waCloud, waMineUnknown, waMineMine)) return true;
+  if(among(c->wall, waMirror, waCloud)) return true;
+  if(among(c->wall, waMineUnknown, waMineMine) && mine_opacity == 255) return true;
   return false;
   }
 
@@ -4077,6 +4082,8 @@ EX color_t transcolor(cell *c, cell *c2, color_t wcol) {
     }
   if(among(c->wall, waRubble, waDeadfloor2) && !snakelevel(c2)) return darkena3(winf[c->wall].color, 0, 0x40);
   if(c->wall == waMagma && c2->wall != waMagma) return darkena3(magma_color(lavatide(c, -1)/4), 0, 0x80);
+  if(among(c->wall, waMineUnknown, waMineMine) && !among(c2->wall, waMineMine, waMineUnknown) && mine_opacity > 0 && mine_opacity < 255) 
+    return 0xFFFFFF00 | mine_opacity;
   return 0;
   }
 
@@ -4794,13 +4801,13 @@ EX void drawMarkers() {
       using namespace yendor;
       if(yii < isize(yi) && !yi[yii].found) {
         cell *keycell = NULL;
-        int i;
-        for(i=0; i<YDIST; i++) 
+        int last_i = 0;
+        for(int i=0; i<YDIST; i++)
           if(yi[yii].path[i]->cpdist <= get_sightrange_ambush()) {
-            keycell = yi[yii].path[i];
+            keycell = yi[yii].path[i]; last_i = i;
             }
         if(keycell) {
-          for(; i<YDIST; i++) {
+          for(int i = last_i+1; i<YDIST; i++) {
             cell *c = yi[yii].path[i];
             if(inscreenrange(c))
               keycell = c;
@@ -4813,12 +4820,12 @@ EX void drawMarkers() {
             int cd2 = celldistance(cwt.at, yi[yii].path[i2]);
             if(cd2 != DISTANCE_UNKNOWN) {
               cd = cd2 + (YDIST-1-i2);
-              println(hlog, "i2 = ", i2, " cd = ", celldistance(cwt.at, keycell));
               }
             }
           queue_goal_text(H, 1, its(cd), 0x10101 * int(128 - 100 * sintick(150)));
           #endif
           addauraspecial(H, iinf[itOrbYendor].color, 0);
+          addradar(ggmatrix(keycell), 'X', iinf[itKey].color, kind_outline(itKey), true);
           }
         }
       }
@@ -5667,6 +5674,8 @@ EX bool just_refreshing;
 EX int menu_darkening = 2;
 EX bool centered_menus = false;
 
+EX string menu_format = "";
+
 EX void gamescreen() {
 
   if(cmode & sm::NOSCR) {
@@ -5792,13 +5801,15 @@ EX void normalscreen() {
   cmode = sm::NORMAL | sm::DOTOUR | sm::CENTER;
   if(viewdists && show_distance_lists) cmode |= sm::SIDE | sm::MAYDARK;
   gamescreen(); drawStats();
-  if(nomenukey || ISMOBILE)
+  if(menu_format != "")
+    displayButton(vid.xres-8, vid.yres-vid.fsize, eval_programmable_string(menu_format), 'v', 16);
+  else if(nomenukey || ISMOBILE)
     ;
 #if CAP_TOUR
   else if(tour::on) 
     displayButton(vid.xres-8, vid.yres-vid.fsize, XLAT("(ESC) tour menu"), SDLK_ESCAPE, 16);
-  else
 #endif
+  else
     displayButton(vid.xres-8, vid.yres-vid.fsize, XLAT("(v) menu"), 'v', 16);
   keyhandler = handleKeyNormal;
 
@@ -5923,8 +5934,11 @@ EX void drawscreen() {
   color_t col = linf[cwt.at->land].color;
   if(cwt.at->land == laRedRock) col = 0xC00000;
   if(titlecolor) col = titlecolor;
-  if(nohelp != 1)
-    displayfr(vid.xres/2, vid.fsize,   2, vid.fsize, mouseovers, col, 8);
+  if(nohelp != 1) {
+    int size = vid.fsize;
+    while(size > 3 && textwidth(size, mouseovers) > vid.xres) size--;
+    displayfr(vid.xres/2, vid.fsize,   2, size, mouseovers, col, 8);
+    }
 #endif
 
   drawmessages();

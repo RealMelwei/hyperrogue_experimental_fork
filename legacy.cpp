@@ -208,11 +208,7 @@ EX modecode_t legacy_modecode() {
   if(bow::weapon) return UNKNOWNHR;
   if(use_custom_land_list) return UNKNOWNHR;
 
-  bool is_default_land_structure =
-    (princess::challenge || tactic::on) ? ls::single() :
-    racing::on ? (land_structure == lsSingle) :
-    yendor::on ? (land_structure == yendor::get_land_structure()) :
-    ls::nice_walls();
+  bool is_default_land_structure = land_structure == get_default_land_structure();
 
   if(!is_default_land_structure && !ls::std_chaos()) return UNKNOWNHR;
 
@@ -247,6 +243,41 @@ EX modecode_t legacy_modecode() {
   if(numplayers() == 7) mct += (1<<14);
   
   return mct;
+  }
+
+EX void legacy_modecode_read(modecode_t mc) {
+  if(mc >= FIRST_MODECODE) throw hr_exception("not a legacy modecode");
+
+  inv::on = (mc & (1<<11));
+  peace::on = (mc & (1<<12));
+  tour::on = (mc & (1<<13));
+  bool seven = (mc & (1<<14));
+  mc &= (1<<11)-1;
+
+  for(int xcode=0; xcode<42;xcode++) for(int pl=0; pl<6; pl++) if(modecodetable[xcode][pl] == mc) {
+    if(seven) pl = 7; else pl++;
+    multi::players = pl;
+    land_structure = xcode >= 21 ? lsChaos : get_default_land_structure();
+    xcode %= 21;
+    shmup::on = 0; hardcore = false;
+    if(xcode % 3 == 2) shmup::on = true;
+    if(xcode % 3 == 1) hardcore = true;
+    xcode /= 3;
+    geometry = gNormal; variation = eVariation::bitruncated;
+    if(xcode == 1) variation = eVariation::pure;
+    if(xcode == 2) geometry = gEuclid;
+    if(xcode == 3) geometry = gSphere;
+    if(xcode == 4) geometry = gSphere, variation = eVariation::pure;
+    if(xcode == 5) geometry = gElliptic;
+    if(xcode == 6) geometry = gElliptic, variation = eVariation::pure;
+
+    use_custom_land_list = false;
+    bow::weapon = bow::wBlade;
+    casual = false;
+    return;
+    }
+
+  throw hr_exception("legacy code not recognized");
   }
 
 #if CAP_RACING
@@ -426,6 +457,14 @@ int read_legacy_args_anim() {
       shift_arg_formula(movement_angle);
       shift_arg_formula(normal_angle);
       }
+    }
+  else if(argis("-innerwall")) {
+    PHASEFROM(2);
+    patterns::innerwalls = true;
+    }
+  else if(argis("-noinnerwall")) {
+    PHASEFROM(2);
+    patterns::innerwalls = false;
     }
   else if(argis("-animrotd")) {
     start_game();
