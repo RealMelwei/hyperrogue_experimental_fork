@@ -1,3 +1,5 @@
+#ifndef APINTERFACE_CPP
+#define APINTERFACE_CPP
 #include <apclient.hpp>
 #include <apuuid.hpp>
 #include <stdio.h>
@@ -31,6 +33,7 @@
 using nlohmann::json;
 
 std::unique_ptr<APClient> client;
+bool ap_socket_connect_sent = false;
 bool ap_sync_queued = false;
 bool ap_connect_sent = false; // TODO: move to APClient::State ?
 bool is_https = false; // set to true if the context only supports wss://
@@ -47,6 +50,8 @@ std::string slot = "Player";
 #if __cplusplus < 201500L
 decltype(APClient::DEFAULT_URI) constexpr APClient::DEFAULT_URI;  // c++14 needs a proper declaration
 #endif
+
+using namespace ap;
 
 void disconnect_ap()
 {
@@ -65,6 +70,7 @@ void connect_slot(const std::string& password)
 
 void connect_ap(std::string uri="", std::string newSlot="")
 {
+    ap_socket_connect_sent = true;
     client.reset();
 
     if (!newSlot.empty())
@@ -91,23 +97,75 @@ void connect_ap(std::string uri="", std::string newSlot="")
     });
     client->set_socket_disconnected_handler([](){
         printf("Socket disconnected\n");
+        ap_socket_connect_sent = false;
     });
     client->set_socket_error_handler([](const std::string& error) {
         connect_error_count++;
         if (!error.empty() && error != "Unknown")
             printf("%s\n", error.c_str());
+        if(connect_error_count%5==0){       // Every 5 connect failures, reset entire connection attempt
+            ap_socket_connect_sent = false;
+        }
     });
     client->set_room_info_handler([](){
-        connect_slot(""); //TODO Password
+        connect_slot("");
     });
-    client->set_slot_connected_handler([](const json&){
+    client->set_slot_connected_handler([](const json& data){
+        ap::progressCheck landProgressChecksSentIncoming[eItem::ittypes]={ap::progressCheck::unlocked}; 
+        bool landUnlockCheckSentIncoming[eItem::ittypes]={false};
+        std::vector<int> checked_locations = data.value("checked_locations",std::vector<int>(0));
+        for(int& loc_id: checked_locations){
+            int land_id = (loc_id - HYPERROGUE_BASE_ID)%0X100;
+            int progress_id = (loc_id - HYPERROGUE_BASE_ID) - land_id;
+            eItem item = ap::itemByID[land_id];
+            if(progress_id == 0){
+                landUnlockCheckSentIncoming[item] = true;
+            }
+            else {
+                switch (landProgressChecksSentIncoming[item])
+                {
+                case ap::progressCheck::unlocked: 
+                    landProgressChecksSentIncoming[item]=ap::progressCheck::orbunlocked;
+                    break;
+                case ap::progressCheck::orbunlocked: 
+                    landProgressChecksSentIncoming[item]=ap::progressCheck::orbunlockedglobal;
+                    break;
+                case ap::progressCheck::orbunlockedglobal:
+                    landProgressChecksSentIncoming[item]=ap::progressCheck::completed;
+                    break;
+                case ap::progressCheck::notingame:
+                    std::cout << "Server accepted check for " << iinf[item].name << ", which is not in the game." << std::endl;
+                    break;
+                default:
+                    break;
+                }
+            }
+        }
+        bool haveToSync = false;
+        for(int i=0; i<eItem::ittypes; i++){
+            eItem item = eItem(i);
+            if(ap::isTreasure(item)){
+                if((!landUnlockCheckSentIncoming[item]) && ap::landUnlockCheckSent[item]){ //Happens if checks are collected while not online
+                    haveToSync = true;
+                }
+                ap::landUnlockCheckSent[item] = ap::landUnlockCheckSent[item] || landUnlockCheckSentIncoming[item];
+                if(landProgressChecksSentIncoming[item]<ap::landProgressChecksSent[item]){ //Happens if checks are collected while not online
+                    haveToSync = true;
+                } else {
+                    ap::landProgressChecksSent[item] = landProgressChecksSentIncoming[item];
+                }
+            }
+        }
+        if(haveToSync){
+            ap::checks::doFullSync();
+            ap_sync_queued = true;
+        }
         printf("Slot connected\n");
-        client->poll();
-        // Once starting inventory has been received, (re-)start the Hyperrogue game.
-        if(!ap::init::jsonInitialized){
-            ap::init::jsonInitialized = true;
-            hr::stop_game();
-            hr::start_game();
+        for(int i=0; i<eItem::ittypes; i++){
+            eItem item = eItem(i);
+            std::cout << iinf[item].name << "Locked: " << (ap::landProgressChecksSent[item] == progressCheck::locked)  << std::endl;
+            std::cout << iinf[item].name << "Unlocked: " << (ap::landProgressChecksSent[item] == progressCheck::unlocked)  << std::endl;
+            std::cout << iinf[item].name << "Orb Unlocked: " << (ap::landProgressChecksSent[item] == progressCheck::orbunlocked)  << std::endl;
         }
     });
     client->set_slot_disconnected_handler([](){
@@ -127,7 +185,7 @@ void connect_ap(std::string uri="", std::string newSlot="")
     client->set_items_received_handler([](const std::list<APClient::NetworkItem>& items) {
         if (!client->is_data_package_valid()) {
             // NOTE: this should not happen since we ask for data package before connecting
-            if (!ap_sync_queued) client->Sync();
+            if (!ap_sync_queued) ap::checks::doFullSync();
             ap_sync_queued = true;
             return;
         }
@@ -139,6 +197,12 @@ void connect_ap(std::string uri="", std::string newSlot="")
             printf("  #%d: %s (%" PRId64 ") from %s - %s\n",
                    item.index, itemname.c_str(), item.item,
                    sender.c_str(), location.c_str());
+        }
+        // Once starting inventory has been received, (re-)start the Hyperrogue game.
+        if(!ap::init::initialRestartDone){
+            ap::init::initialRestartDone = true;
+            hr::stop_game();
+            hr::start_game();
         }
     });
     client->set_data_package_changed_handler([](const json& data) {
@@ -152,3 +216,5 @@ void connect_ap(std::string uri="", std::string newSlot="")
         hr::addMessage(client->render_json(msg));
     });
 }
+
+#endif

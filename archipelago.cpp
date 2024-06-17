@@ -59,36 +59,11 @@ RANDOMIZER INITIALIZATION
 */
 
 void ap::init::initRando(){
-  if (!client || client->get_state() < APClient::State::SOCKET_CONNECTED) {
-    saves::readApState();
-    init::initItemByID();
-    connect_ap(APClient::DEFAULT_URI, "melwei");
+  for(int i=0; i<eItem::ittypes; i++){
+    landProgressChecksSent[i] = progressCheck::unlocked;
   }
-  return;
-}
-
-void ap::saves::readApState() {
-  std::ifstream i("apstate.json");
-  if (i.is_open()) {
-    json state;
-    i >> state;
-    i.close();
-    for(int i=0; i<eItem::ittypes; i++){
-      eItem item = eItem(i);
-      if(isTreasure(item)){ //Technically not neccessary, but reduces json accesses
-        json::iterator itementry = state.find(iinf[item].name);
-        if(itementry!=state.end()){
-          std::string landname = itementry.key();
-          landChecksReceived[item]=(progressCheck) state[landname]["Received"];
-          landUnlockCheckSent[item]=(bool) (int) state[landname]["Unlock Sent"];
-          landProgressChecksSent[item]=(progressCheck) state[landname]["Progress Sent"];
-        } else {
-          landChecksReceived[item]=progressCheck::notingame;
-        }
-      }
-    }
-    checks::alreadyHandledChecks = state["Already handled checks"];
-  }
+  landChecksReceived[itHyperstone] = progressCheck::unlocked;
+  init::initItemByID();
   return;
 }
 
@@ -124,48 +99,52 @@ void ap::checks::resetInventory(){
 
 void ap::checks::receiveCheck(APClient::NetworkItem netitem){
   if(netitem.index==0){
+    ap_sync_queued = false;
     checks::resetInventory();
     checks::alreadyHandledChecks=-1;
   }
-  if(netitem.index>checks::alreadyHandledChecks+1) {
-    client->Sync();
-  } else if(netitem.index==checks::alreadyHandledChecks+1) {
-    eItem item = itemByID[netitem.item - HYPERROGUE_BASE_ID];
-    switch (landChecksReceived[item])
-    {
-    case progressCheck::locked: 
-      landChecksReceived[item]=progressCheck::unlocked;
-      break;
-    case progressCheck::unlocked: 
-      landChecksReceived[item]=progressCheck::orbunlocked;
-      break;
-    case progressCheck::orbunlocked: 
-      landChecksReceived[item]=progressCheck::orbunlockedglobal;
-      break;
-    case progressCheck::orbunlockedglobal:
-      landChecksReceived[item]=progressCheck::completed;
-      break;
-    case progressCheck::notingame:
-      std::cout << "Received check for " << iinf[item].name << ", which is not in the game." << std::endl;
-      break;
-    default:
-      break;
+  if(netitem.index!=checks::alreadyHandledChecks+1) {
+    checks::doFullSync();
+    ap_sync_queued = true;
+  } else {
+    if(netitem.item - HYPERROGUE_BASE_ID != -1){ // Crossroads (init) check is excluded
+      eItem item = itemByID[netitem.item - HYPERROGUE_BASE_ID];
+      switch (landChecksReceived[item])
+      {
+      case progressCheck::locked: 
+        landChecksReceived[item]=progressCheck::unlocked;
+        break;
+      case progressCheck::unlocked: 
+        landChecksReceived[item]=progressCheck::orbunlocked;
+        break;
+      case progressCheck::orbunlocked: 
+        landChecksReceived[item]=progressCheck::orbunlockedglobal;
+        break;
+      case progressCheck::orbunlockedglobal:
+        landChecksReceived[item]=progressCheck::completed;
+        break;
+      case progressCheck::notingame:
+        std::cout << "Received check for " << iinf[item].name << ", which is not in the game." << std::endl;
+        break;
+      default:
+        break;
+      }
     }
     checks::alreadyHandledChecks++;
-    saves::writeApState();
   }
   return;
 }
 
 void ap::checks::collectCheck(eItem treasure, progressCheck progress){
-  if(treasure != itHyperstone)
-    client -> LocationChecks({getLocationID(treasure, progress)});
-    saves::writeApState();
-  return;
+  if (client && client->get_state() >= APClient::State::SLOT_CONNECTED) {
+    if(treasure != itHyperstone)
+      client -> LocationChecks({getLocationID(treasure, progress)});
+    return;
+  }
 }
 
 void ap::checks::updateChecks(){
-  if(init::jsonInitialized){
+  if(init::initialRestartDone){
     for(int i=0; i<eLand::landtypes; i++) {
       eLand l = eLand(i);
       eItem treasure = linf[l].treasure;
@@ -191,9 +170,33 @@ void ap::checks::updateChecks(){
   return;
 }
 
-void ap::saves::writeApState(){
+void ap::checks::doFullSync(){
+  if (client && client->get_state() >= APClient::State::SLOT_CONNECTED) {
+    client->Sync();
+    std::list<int64_t> locations = {};
+    for(int i=0; i<eItem::ittypes; i++){
+      eItem item = eItem(i);
+      if(isTreasure(item)){
+        if(landUnlockCheckSent[item]) locations.push_back(getLocationID(item, progressCheck::unlocked));
+        if(landProgressChecksSent[item]>=progressCheck::orbunlocked) locations.push_back(getLocationID(item, progressCheck::orbunlocked));
+        if(landProgressChecksSent[item]>=progressCheck::orbunlockedglobal) locations.push_back(getLocationID(item, progressCheck::orbunlockedglobal));
+        if(landProgressChecksSent[item]>=progressCheck::completed) locations.push_back(getLocationID(item, progressCheck::completed));
+      }
+    }
+    client->LocationChecks(locations);
+  }
+}
+
+
+
+// Might be interesting later:
+/*
+SAVE MANAGEMENT
+*/
+
+void ap::saves::writeApState(std::string fileName){
   std::ofstream statefile;
-  statefile.open ("apstate.json");
+  statefile.open (fileName);
   statefile << "{" << std::endl;
   for(int i=0; i<eItem::ittypes; i++){
     eItem item = eItem(i);
@@ -209,5 +212,31 @@ void ap::saves::writeApState(){
   statefile.close();
 }
 
+void ap::saves::readApState(std::string fileName) {
+  std::ifstream i(fileName);
+  if (i.is_open()) {
+    json state;
+    i >> state;
+    i.close();
+    for(int i=0; i<eItem::ittypes; i++){
+      eItem item = eItem(i);
+      if(isTreasure(item)){ //Technically not neccessary, but reduces json accesses
+        json::iterator itementry = state.find(iinf[item].name);
+        if(itementry!=state.end()){
+          std::string landname = itementry.key();
+          landChecksReceived[item]=(progressCheck) state[landname]["Received"];
+          landUnlockCheckSent[item]=(bool) (int) state[landname]["Unlock Sent"];
+          landProgressChecksSent[item]=(progressCheck) state[landname]["Progress Sent"];
+        } else {
+          landChecksReceived[item]=progressCheck::notingame;
+        }
+      }
+    }
+    checks::alreadyHandledChecks = state["Already handled checks"];
+  } else {
+    writeApState(fileName);
+  }
+  return;
+}
 
 #endif

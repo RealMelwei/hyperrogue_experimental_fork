@@ -6,6 +6,7 @@
  */
 
 #include "hyper.h"
+#include "apinterface.cpp"
 
 namespace hr {
 

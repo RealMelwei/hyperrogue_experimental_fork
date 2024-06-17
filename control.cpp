@@ -751,6 +751,9 @@ EX bool mouseaiming(bool shmupon) {
 EX purehookset hooks_control;
 
 EX void mainloopiter() {
+  if ((!client || client->get_state() < APClient::State::SOCKET_CONNECTING) && !ap_socket_connect_sent) {
+    connect_ap(APClient::DEFAULT_URI, "melwei");
+  }
   if(client) {
     client->poll();
   }
