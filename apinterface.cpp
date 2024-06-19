@@ -111,10 +111,15 @@ void connect_ap(std::string uri="", std::string newSlot="")
         connect_slot("");
     });
     client->set_slot_connected_handler([](const json& data){
-        ap::progressCheck landProgressChecksSentIncoming[eItem::ittypes]={ap::progressCheck::unlocked}; 
-        bool landUnlockCheckSentIncoming[eItem::ittypes]={false};
-        std::vector<int> checked_locations = data.value("checked_locations",std::vector<int>(0));
-        for(int& loc_id: checked_locations){
+        ap::settings::readSettings(data);
+
+        ap::progressCheck landProgressChecksSentIncoming[eItem::ittypes]={};
+        bool landUnlockCheckSentIncoming[eItem::ittypes]={};
+        for(int i=0; i<eItem::ittypes; i++){
+            landProgressChecksSentIncoming[i]=ap::progressCheck::unlocked;
+        }
+        std::set<int64_t> checked_locations = client->get_checked_locations();
+        for(int loc_id: checked_locations){
             int land_id = (loc_id - HYPERROGUE_BASE_ID)%0X100;
             int progress_id = (loc_id - HYPERROGUE_BASE_ID) - land_id;
             eItem item = ap::itemByID[land_id];
@@ -160,13 +165,13 @@ void connect_ap(std::string uri="", std::string newSlot="")
             ap::checks::doFullSync();
             ap_sync_queued = true;
         }
-        printf("Slot connected\n");
         for(int i=0; i<eItem::ittypes; i++){
             eItem item = eItem(i);
-            std::cout << iinf[item].name << "Locked: " << (ap::landProgressChecksSent[item] == progressCheck::locked)  << std::endl;
-            std::cout << iinf[item].name << "Unlocked: " << (ap::landProgressChecksSent[item] == progressCheck::unlocked)  << std::endl;
-            std::cout << iinf[item].name << "Orb Unlocked: " << (ap::landProgressChecksSent[item] == progressCheck::orbunlocked)  << std::endl;
+            if(ap::isTreasure(item)){
+                std::cout << iinf[item].name << ", Sent: " << (int) landProgressChecksSent[item] << ", Incoming Sent: " << (int) landProgressChecksSentIncoming[item] << std::endl;
+            }
         }
+        printf("Slot connected\n");
     });
     client->set_slot_disconnected_handler([](){
         printf("Slot disconnected\n");

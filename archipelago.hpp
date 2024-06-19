@@ -3,6 +3,7 @@
 #include "hyper.h"
 #include <apclient.hpp>
 using namespace hr;
+using namespace nlohmann;
 
 namespace ap{
 
@@ -23,6 +24,8 @@ progressCheck landChecksReceived[eItem::ittypes]={progressCheck::locked};
 // Progress like "10 treasures in land X" can already be achieved without having sent "unlocked land X"
 progressCheck landProgressChecksSent[eItem::ittypes]; 
 bool landUnlockCheckSent[eItem::ittypes]={false};
+bool victoryAchieved = false;
+bool victoryPackageSent = false;
 
 // Utility functions
 int getNumberOfProgressedLands(progressCheck prog);
@@ -41,12 +44,23 @@ namespace init {
 
 // Check management
 namespace checks{
+  bool checkWinCon();
   int alreadyHandledChecks = -1;
   void resetInventory();
   void receiveCheck(APClient::NetworkItem item);
   void collectCheck(eItem treasure, progressCheck progress);
   void updateChecks();
   void doFullSync();
+}
+
+namespace settings{
+  enum goalCondition{
+    hyperstones10=0,
+    hyperstones50=1,
+    orbofyendor=2
+  };
+  goalCondition goal=goalCondition::orbofyendor;
+  void readSettings(json settings);
 }
 
 namespace saves{

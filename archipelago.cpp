@@ -166,8 +166,29 @@ void ap::checks::updateChecks(){
         checks::collectCheck(treasure, progressCheck::completed);
       }
     }
+
+    victoryAchieved = victoryAchieved || checks::checkWinCon();
+    if(victoryAchieved && client && !victoryPackageSent) {
+       victoryPackageSent = client->StatusUpdate(APClient::ClientStatus::GOAL);
+    }
   }
+
   return;
+}
+
+bool ap::checks::checkWinCon(){
+  switch (ap::settings::goal)
+  {
+  case ap::settings::goalCondition::hyperstones10:
+    return items[itHyperstone]>=10;
+  case ap::settings::goalCondition::hyperstones50:
+    return items[itHyperstone]>=50;
+  case ap::settings::goalCondition::orbofyendor:
+    return items[itOrbYendor]>=1;
+  default:
+    printf("Goal not set\n");
+    return false;
+  }
 }
 
 void ap::checks::doFullSync(){
@@ -187,6 +208,17 @@ void ap::checks::doFullSync(){
   }
 }
 
+/*
+SETTINGS MANAGEMENT
+*/
+void ap::settings::readSettings(json settings){
+  try{
+    ap::settings::goal = static_cast<ap::settings::goalCondition>(settings["goal"]);
+  } catch(std::exception err) {
+    std::cout << "Goal not set" << std::endl;
+    throw err;
+  }
+}
 
 
 // Might be interesting later:
