@@ -218,6 +218,7 @@ void ap::settings::readSettings(json settings){
     std::cout << "Goal not set" << std::endl;
     throw err;
   }
+  ap::settings::deathLink = (bool) (int) settings["death_link"];
 }
 
 

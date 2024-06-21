@@ -60,6 +60,8 @@ namespace settings{
     orbofyendor=2
   };
   goalCondition goal=goalCondition::orbofyendor;
+  bool easierHyperstones = true;
+  bool deathLink = false;
   void readSettings(json settings);
 }
 

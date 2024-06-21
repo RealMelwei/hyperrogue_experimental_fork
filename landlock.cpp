@@ -293,6 +293,8 @@ EX bool required_for_hyperstones(eItem ttype) {
     return false;
   if(among(ttype, itHolyGrail, itSavedPrincess))
     return false;
+  if(ap::settings::easierHyperstones && ap::landChecksReceived[ttype] == ap::progressCheck::completed)
+    return false;
   if(euclid && among(ttype, itBabyTortoise, itHunting))
     return false;
   return true;
