@@ -152,3 +152,21 @@ int ap::getLocationID(eItem treas, ap::progressCheck prog){
   }
   
 }
+
+namespace ap{
+std::vector<std::string> invalidStartingLandNames({
+  "Kraken Depths",
+  "Whirlpool",
+  "Temple of Cthulhu",
+  "Ivory Tower",
+  "Yendorian Forest",
+  "Free Fall",
+  "Dungeon",
+  "Lost Mountain",
+  "Haunted Woods",
+  "Clearing",
+  "Camelot",
+  "Crossroads V",
+  "None"
+});
+}

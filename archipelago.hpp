@@ -63,6 +63,7 @@ namespace settings{
   bool easierHyperstones = true;
   bool deathLink = false;
   void readSettings(json settings);
+  int startLandID=-1;
 }
 
 namespace saves{

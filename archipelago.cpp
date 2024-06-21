@@ -68,19 +68,33 @@ void ap::init::initRando(){
 }
 
 eLand ap::init::getFirstLand(){
-  std::ifstream i("apworldsettings.json");
-  if (i.is_open()) {
-    json settings;
-    i >> settings;
-    std::string firstlandstr = settings["firstland"];
-    for(int k=0; k<eLand::landtypes; k++) {
-      eLand l = eLand(k);
-      if(linf[l].name==firstlandstr){
-        return l;
+  if(ap::settings::startLandID == -10){
+    std::vector<eLand> validLands;
+    for(int i=0;i<eItem::ittypes;i++){
+      eItem item = eItem(i);
+      if(isTreasure(item) && landChecksReceived[item]>=progressCheck::unlocked){
+        if(std::find(invalidStartingLandNames.begin(), invalidStartingLandNames.end(), linf[landof(item)].name) == invalidStartingLandNames.end())
+          validLands.push_back(landof(item));
       }
     }
+    return validLands[hrand(validLands.size())];
   }
-  return laCrossroads;
+  if(ap::settings::startLandID < 0){
+    switch (ap::settings::startLandID)
+    {
+    case -1:
+      return laCrossroads;
+    case -2:
+      return laCrossroads2;
+    case -3:
+      return laCrossroads3;
+    case -4:
+      return laCrossroads4;
+    case -5:
+      return laCrossroads5;
+    }
+  }
+  return landof(ap::itemByID[ap::settings::startLandID]);
 }
 
 /*
@@ -219,8 +233,8 @@ void ap::settings::readSettings(json settings){
     throw err;
   }
   ap::settings::deathLink = (bool) (int) settings["death_link"];
+  ap::settings::startLandID = settings["starting_land"];
 }
-
 
 // Might be interesting later:
 /*
