@@ -403,7 +403,6 @@ int yasc_recode(int x) {
   };
 
 EX void checkmove() {
-
   if(dual::state == 2) return;
   if(shmup::on) return;
 
@@ -464,8 +463,13 @@ EX void checkmove() {
     }
 #endif
 
+  if(ap::deathLinkPending) canmove = false;
+
   if(!canmove) {
-    create_yasc_message();
+    if(!ap::deathLinkPending){
+      create_yasc_message();
+      ap::sendDeathLink(yasc_message);
+    }
     achievement_final(true);
     if(cmode & sm::NORMAL) showMissionScreen();
     }

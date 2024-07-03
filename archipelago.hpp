@@ -26,6 +26,8 @@ progressCheck landProgressChecksSent[eItem::ittypes];
 bool landUnlockCheckSent[eItem::ittypes]={false};
 bool victoryAchieved = false;
 bool victoryPackageSent = false;
+double deathtime = -1;
+bool deathLinkPending = false;
 
 // Utility functions
 int getNumberOfProgressedLands(progressCheck prog);
@@ -53,6 +55,7 @@ namespace checks{
   void doFullSync();
 }
 
+void sendDeathLink(std::string msg);
 namespace settings{
   enum goalCondition{
     hyperstones10=0,

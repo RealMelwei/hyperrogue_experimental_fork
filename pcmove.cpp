@@ -348,6 +348,7 @@ bool pcmove::try_shooting(bool auto_target) {
   }
 
 bool pcmove::movepcto() {  
+  if(ap::deathLinkPending) return false;
   reset_spill();
   if(dual::state == 1) return dual::movepc(d, subdir, checkonly);
   if(d >= 0 && !checkonly && subdir != 1 && subdir != -1) printf("subdir = %d\n", subdir);

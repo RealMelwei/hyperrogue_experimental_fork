@@ -61,7 +61,7 @@ void disconnect_ap()
 void connect_slot(const std::string& password)
 {
     if (client) {
-        client->ConnectSlot(slot, password, 0b111, {}, VERSION_TUPLE);
+        client->ConnectSlot(slot, password, 0b111, {"AP"}, VERSION_TUPLE);
         ap_connect_sent = true;
     } else {
         printf("Connection lost!\n");
@@ -171,6 +171,7 @@ void connect_ap(std::string uri="", std::string newSlot="")
                 std::cout << iinf[item].name << ", Sent: " << (int) landProgressChecksSent[item] << ", Incoming Sent: " << (int) landProgressChecksSentIncoming[item] << std::endl;
             }
         }
+        if(ap::settings::deathLink) client->ConnectUpdate(false, 0b111, true, {"AP", "DeathLink"});
         printf("Slot connected\n");
     });
     client->set_slot_disconnected_handler([](){
@@ -219,6 +220,29 @@ void connect_ap(std::string uri="", std::string newSlot="")
     client->set_print_json_handler([](const std::list<APClient::TextNode>& msg) {
         printf("%s\n", client->render_json(msg, APClient::RenderFormat::ANSI).c_str());
         hr::addMessage(client->render_json(msg));
+    });
+    client->set_bounced_handler([](const json& cmd) {
+        if (ap::settings::deathLink) {
+        auto tagsIt = cmd.find("tags");
+        auto dataIt = cmd.find("data");
+        if (tagsIt != cmd.end() && tagsIt->is_array()
+            && std::find(tagsIt->begin(), tagsIt->end(), "DeathLink") != tagsIt->end()) {
+            if (dataIt != cmd.end() && dataIt->is_object()) {
+            json data = *dataIt;
+            if (data["time"].is_number() && std::abs(1-(data["time"].get<double>()/ap::deathtime))<=0.01) {
+                ap::deathtime = -1;
+            } else {
+                ap::deathLinkPending = true;
+                canmove = false;
+                yasc_message = data.contains("cause") ? data["cause"] : "You were killed by an external force!";
+                achievement_final(true);
+                if(cmode & sm::NORMAL) showMissionScreen();
+            }
+            } else {
+            printf("Bad deathlink packet!\n");
+            }
+        }
+    }
     });
 }
 

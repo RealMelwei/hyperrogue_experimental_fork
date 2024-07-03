@@ -752,7 +752,15 @@ EX purehookset hooks_control;
 
 EX void mainloopiter() {
   if ((!client || client->get_state() < APClient::State::SOCKET_CONNECTING) && !ap_socket_connect_sent) {
-    connect_ap(APClient::DEFAULT_URI, "melwei");
+    std::ifstream i("apsettings.json");
+    if (i.is_open()) {
+      json state;
+      i >> state;
+      i.close();
+      connect_ap(state["ip"], "melwei");
+    } else {
+      hr::addMessage("Could not open apsettings.json");
+    }
   }
   if(client) {
     client->poll();

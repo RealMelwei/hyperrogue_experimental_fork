@@ -59,9 +59,7 @@ RANDOMIZER INITIALIZATION
 */
 
 void ap::init::initRando(){
-  for(int i=0; i<eItem::ittypes; i++){
-    landProgressChecksSent[i] = progressCheck::unlocked;
-  }
+  deathLinkPending = false;
   landChecksReceived[itHyperstone] = progressCheck::unlocked;
   init::initItemByID();
   return;
@@ -234,6 +232,19 @@ void ap::settings::readSettings(json settings){
   }
   ap::settings::deathLink = (bool) (int) settings["death_link"];
   ap::settings::startLandID = settings["starting_land"];
+}
+
+void ap::sendDeathLink(std::string msg)
+{
+  if (!ap::settings::deathLink) return;
+  deathtime = client->get_server_time();
+  json data{
+    {"time", deathtime},
+    {"cause", msg}, // TODO: Player name
+    {"source", client->get_slot()}
+  };
+  client->Bounce(data, {}, {}, {"DeathLink"});
+  return;
 }
 
 // Might be interesting later:
