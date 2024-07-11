@@ -757,7 +757,7 @@ EX void mainloopiter() {
       json state;
       i >> state;
       i.close();
-      connect_ap(state["ip"], "melwei");
+      connect_ap(state["ip"], state["slotname"]);
     } else {
       hr::addMessage("Could not open apsettings.json");
     }
