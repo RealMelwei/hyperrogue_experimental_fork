@@ -111,14 +111,14 @@ EX void showOverview() {
     else if(items[it]) col = 0xC0C0C0;
     else col = BLACKISH;
     int c8 = (vf+2)/3;
-    if(displayfrZH(xr*24-c8*6, i0, 1, vf-4, (required_for_hyperstones(it) ? "" : "*") + its(items[it]), col, 16))
+    if(displayfrZH(xr*24-c8*8, i0, 1, vf-4, (required_for_hyperstones(it) ? "" : "*") + its(items[it]), col, 16))
       getcstat = 2000+it;
-    if(displayfrZH(xr*24-c8*12, i0, 1, vf-4, its(ap::getVirtualTreasureCount(ap::landChecksReceived[it])), col, 16))
+    if(displayfrZH(xr*24-c8*14, i0, 1, vf-4, its(ap::getVirtualTreasureCount(ap::landChecksReceived[it])), col, 16))
       getcstat = 2000+it;
     if(!cheater)
     //if(displayfrZH(xr*24, i0, 1, vf-4, its(hiitems[modecode()][it]), col, 16))
     //  getcstat = 2000+it;
-    if(displayfrZH(xr*24, i0, 1, vf-4, its(ap::landUnlockCheckSent[it] ? ap::getVirtualTreasureCount(ap::landProgressChecksSent[it]) : -1), col, 16))
+    if(displayfrZH(xr*24, i0, 1, vf-4, its(ap::getVirtualTreasureCount(ap::landProgressChecksSent[it])) + (ap::landUnlockCheckSent[it] ? "*" : " "), col, 16))
       getcstat = 2000+it;
     if(items[it]) col = iinf[it].color; else col = BLACKISH;
     if(displayfrZH(xr*24+c8*4, i0, 1, vf-4, s0 + iinf[it].glyph, col, 16))
