@@ -193,9 +193,9 @@ namespace rg {
 EX char specgeom_zebra() { return rg::check(geometry == gZebraQuotient && !disksize && BITRUNCATED && firstland == laDesert); }
 EX char specgeom_lovasz() { return rg::check(geometry == gKleinQuartic && variation == eVariation::untruncated && gp::param == gp::loc(1,1) && !disksize && in_lovasz()); }
 EX char specgeom_halloween() { return rg::check((geometry == gSphere || geometry == gElliptic) && BITRUNCATED && !disksize && firstland == laHalloween); }
-EX char specgeom_heptagonal() { return rg::check(PURE && geometry == gNormal && !disksize, rg::special_geometry_nicewalls); }
+EX char specgeom_heptagonal() { return rg::check(hr__PURE && geometry == gNormal && !disksize, rg::special_geometry_nicewalls); }
 EX char specgeom_euclid_gen() { return rg::check(geometry == gEuclid && !disksize && firstland == laMirrorOld); }
-EX char specgeom_crystal1() { return rg::check(PURE && cryst && ginf[gCrystal].sides == 8 && ginf[gCrystal].vertex == 4 && !crystal::used_compass_inside && !disksize && firstland == laCamelot); }
+EX char specgeom_crystal1() { return rg::check(hr__PURE && cryst && ginf[gCrystal].sides == 8 && ginf[gCrystal].vertex == 4 && !crystal::used_compass_inside && !disksize && firstland == laCamelot); }
 EX char specgeom_crystal2() { return rg::check(BITRUNCATED && cryst && ginf[gCrystal].sides == 8 && ginf[gCrystal].vertex == 3 && !crystal::used_compass_inside && !disksize && firstland == laCamelot); }
 
 EX vector<std::function<char()>> all_specgeom_checks = { specgeom_zebra, specgeom_lovasz, specgeom_halloween, specgeom_heptagonal, specgeom_crystal1, specgeom_crystal2, specgeom_euclid_gen };
@@ -816,7 +816,7 @@ EX void achievement_final(bool really_final) {
   if(shmup::on) specialcode++;
   if(ls::std_chaos()) specialcode+=2;
   else if(!ls::nice_walls()) return;
-  if(PURE) specialcode+=4;
+  if(hr__PURE) specialcode+=4;
   if(numplayers() > 1) specialcode+=8;
   if(inv::on) specialcode+=16;
   if(bow::crossbow_mode() && bow::style == bow::cbBull) specialcode += 32;
@@ -913,7 +913,7 @@ EX void check_total_victory() {
 /** gain the victory achievements. 
  *  @param hyper true for the Hyperstone victory, and false for the Orb of Yendor victory.
  */
-EX void achievement_victory(bool hyper) {
+EX void achievement_victory(bool bHyper) {
   DEBBI(DF_STEAM, ("achievement_victory"))
   if(offlineMode) return;
 #if CAP_ACHIEVE
@@ -923,23 +923,23 @@ EX void achievement_victory(bool hyper) {
   if(geometry) return;
   if(CHANGED_VARIATION) return;
   if(randomPatternsMode) return;
-  if(hyper && shmup::on) return;
+  if(bHyper && shmup::on) return;
   if(yendor::on) return;
   if(peace::on) return;
   if(tactic::on) return;
   if(!ls::nice_walls()) return;
   if(ineligible_starting_land) return;
   if(use_custom_land_list) return;
-  LATE( achievement_victory(hyper); )
+  LATE( achievement_victory(bHyper); )
   DEBB(DF_STEAM, ("after checks"))
 
   int t = getgametime();
   
-  if(hyper && shmup::on) return;
-  if(hyper && inv::on) return;
+  if(bHyper && shmup::on) return;
+  if(bHyper && inv::on) return;
   
-  int ih1 = hyper ? 15 : inv::on ? 70 : shmup::on ? (numplayers() > 1 ? 45 : 29) : 13;
-  int ih2 = hyper ? 16 : inv::on ? 71 : shmup::on ? 30 : 14;
+  int ih1 = bHyper ? 15 : inv::on ? 70 : shmup::on ? (numplayers() > 1 ? 45 : 29) : 13;
+  int ih2 = bHyper ? 16 : inv::on ? 71 : shmup::on ? 30 : 14;
   
   int improved = 0;
   if(score_loaded(ih1) && score_loaded(ih2)) {
@@ -955,12 +955,12 @@ EX void achievement_victory(bool hyper) {
       }
     }
 
-  if(hyper)
+  if(bHyper)
     addMessage(XLAT("You have collected 10 treasures of each type."));
 
   if(improved) {
     if(improved >= 4) {
-      if(!hyper) addMessage(XLAT("This is your first victory!"));
+      if(!bHyper) addMessage(XLAT("This is your first victory!"));
 #if !ISANDROID
       addMessage(XLAT("This has been recorded in the " LEADERFULL "."));
 #endif

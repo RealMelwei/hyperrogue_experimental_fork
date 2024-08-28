@@ -872,10 +872,10 @@ EX void toggleGates(cell *c, eWall type, int rad) {
   }
 
 EX int toggle_radius(eWall type) {
-  if(type == waClosePlate && PURE)
+  if(type == waClosePlate && hr__PURE)
     return 2;
   else
-    return (GOLDBERG && !sphere && !a4) ? gp::dist_3() : 3;
+    return (GOLDBERG && !sphere && !hr__a4) ? gp::dist_3() : 3;
   }
 
 EX void toggleGates(cell *ct, eWall type) {

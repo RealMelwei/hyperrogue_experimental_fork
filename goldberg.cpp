@@ -33,7 +33,7 @@ EX namespace gp {
     
     loc operator*(loc e2) {
       return loc(first*e2.first-second*e2.second, 
-        first*e2.second + e2.first*second + (S3 == 3 ? second*e2.second : 0));
+        first*e2.second + e2.first*second + (hr__S3 == 3 ? second*e2.second : 0));
       }
   
     loc operator*(int i) {
@@ -49,7 +49,7 @@ EX namespace gp {
       }
       
     loc conj() {
-      if(S3 == 4) return loc(first, -second);
+      if(hr__S3 == 4) return loc(first, -second);
       return loc(first+second, -second);
       }
 
@@ -67,7 +67,7 @@ EX namespace gp {
   EX cell *li_for;
   
   EX loc eudir(int d) {
-    if(S3 == 3) {
+    if(hr__S3 == 3) {
       d %= 6; if (d < 0) d += 6;
       switch(d) {
         case 0: return loc(1, 0);
@@ -312,12 +312,12 @@ EX namespace gp {
       extend_map(c, d);
       extend_map(c, c->c.fix(d-1));
       extend_map(c, c->c.fix(d+1));
-      if(S3 == 4 && !c1->move(d1)) {
+      if(hr__S3 == 4 && !c1->move(d1)) {
         for(int i=0; i<S7; i++)
         for(int j=0; j<S7; j++)
           extend_map(createStep(c->master, i)->c7, j);
         }
-      if(S3 == 4 && !c1->move(d1)) {
+      if(hr__S3 == 4 && !c1->move(d1)) {
         for(int i=0; i<S7; i++)
         for(int i1=0; i1<S7; i1++)
         for(int j=0; j<S7; j++)
@@ -326,7 +326,7 @@ EX namespace gp {
       return;
       }
 
-    if(S3 == 4 && param.first <= param.second) { d--; if(d<0) d += S7; }
+    if(hr__S3 == 4 && param.first <= param.second) { d--; if(d<0) d += S7; }
     clear_mapping();
 
     // we generate a local map from an Euclidean grid to the
@@ -337,7 +337,7 @@ EX namespace gp {
     loc vc[4];
     vc[0] = loc(0,0);
     vc[1] = param;
-    if(S3 == 3)
+    if(hr__S3 == 3)
       vc[2] = param * loc(0,1);
     else 
       vc[2] = param * loc(1,1),
@@ -349,9 +349,9 @@ EX namespace gp {
     ac0.mindir = -1;
     auto& ac1 = set_heptspin(vc[1], hs + wstep - SG3);
     ac1.mindir = 0;
-    auto& ac2 = set_heptspin(vc[S3-1], S3 == 3 ? hs + 1 + wstep - 4 : hs + 1 + wstep + 1);
-    ac2.mindir = S3 == 3 ? 1 : -2;
-    if(S3 == 4) {
+    auto& ac2 = set_heptspin(vc[hr__S3-1], hr__S3 == 3 ? hs + 1 + wstep - 4 : hs + 1 + wstep + 1);
+    ac2.mindir = hr__S3 == 3 ? 1 : -2;
+    if(hr__S3 == 4) {
       set_heptspin(vc[2], hs + wstep - 1 + wstep + 1).mindir = -3;
       }
 
@@ -360,8 +360,8 @@ EX namespace gp {
       auto m = (hrmap_standard*)currentmap;
       get_mapping(vc[0]).adjm = Id;
       get_mapping(vc[1]).adjm = m->adj(c->master, d);
-      get_mapping(vc[S3-1]).adjm = m->adj(c->master, (d+1)%c->master->type);
-      if(S3 == 4) {
+      get_mapping(vc[hr__S3-1]).adjm = m->adj(c->master, (d+1)%c->master->type);
+      if(hr__S3 == 4) {
         heptspin hs1 = hs + wstep - 1;
         get_mapping(vc[2]).adjm = m->adj(c->master, d) * m->adj(hs1.at, hs1.spin);
         }
@@ -370,13 +370,13 @@ EX namespace gp {
     auto fix_mirrors = [&] {
       if(ac1.cw.mirrored != hs.mirrored) ac1.cw--;
       if(ac2.cw.mirrored != hs.mirrored) ac2.cw--;
-      if(S3 == 4) {
+      if(hr__S3 == 4) {
         auto& ac3 = get_mapping(vc[2]);
         if(ac3.cw.mirrored != hs.mirrored) ac3.cw--;
         }
       };
 
-    if(S3 == 4 && param == loc(1,1)) {
+    if(hr__S3 == 4 && param == loc(1,1)) {
       fix_mirrors();
       conn(loc(0,0), 1);
       conn(loc(0,1), 0);
@@ -386,7 +386,7 @@ EX namespace gp {
       return;
       }
 
-    if(S3 == 4 && param.first == param.second && nonorientable) {
+    if(hr__S3 == 4 && param.first == param.second && nonorientable) {
       fix_mirrors();
 
       int size = param.first;
@@ -459,9 +459,9 @@ EX namespace gp {
       }
 
     // then we set the edges of our big equilateral triangle (in a symmetric way)
-    for(int i=0; i<S3; i++) {
+    for(int i=0; i<hr__S3; i++) {
       loc start = vc[i];
-      loc end = vc[(i+1)%S3];
+      loc end = vc[(i+1)%hr__S3];
       DEBB(DF_GP, ("from ", start, " to ", end); )
       loc rel = param;
       auto build = [&] (loc& at, int dx, bool forward) {
@@ -472,7 +472,7 @@ EX namespace gp {
         else get_mapping(at+eudir(dx1)).rdir = fixg6(dx1+SG3);
         at = at + eudir(dx1);
         };
-      while(rel.first >= 2 && (S3 == 3 ? rel.first >= 2 - rel.second : true)) {
+      while(rel.first >= 2 && (hr__S3 == 3 ? rel.first >= 2 - rel.second : true)) {
         build(start, 0, true);
         build(end, SG3, false);
         rel.first -= 2;
@@ -482,18 +482,18 @@ EX namespace gp {
         build(end, 1+SG3, false);
         rel.second -= 2;
         }
-      while(rel.second <= -2 && S3 == 3) {
+      while(rel.second <= -2 && hr__S3 == 3) {
         build(start, 5, true);
         build(end, 2, false);
         rel.second += 2;
         rel.first -= 2;
         }
-      if(S3 == 3) while((rel.first>0 && rel.second > 0) | (rel.first > 1 && rel.second < 0)) {
+      if(hr__S3 == 3) while((rel.first>0 && rel.second > 0) | (rel.first > 1 && rel.second < 0)) {
         build(start, 0, true);
         build(end, 3, false);
         rel.first -= 2;
         }
-      if(S3 == 4 && rel == loc(1,1)) {
+      if(hr__S3 == 4 && rel == loc(1,1)) {
         if(param == loc(3,1) || param == loc(5,1)) {
           build(start, 1, true);
           build(end, 2, false);
@@ -526,7 +526,7 @@ EX namespace gp {
       int df = wc1.rdir - dx;
       if(df < 0) df += SG6;
       if(df == SG3) break;
-      if(S3 == 3) switch(df) {
+      if(hr__S3 == 3) switch(df) {
         case 0:
         case 4:
         case 5:
@@ -627,10 +627,10 @@ EX namespace gp {
     point3(0, 0, 0)
     };
 
-  #define corner_coords (S3==3 ? corner_coords6 : corner_coords4)
+  #define corner_coords (hr__S3==3 ? corner_coords6 : corner_coords4)
   
   hyperpoint cornmul(const transmatrix& corners, const hyperpoint& c) {
-    if(sphere && S3 == 3) {
+    if(sphere && hr__S3 == 3) {
       ld cmin = c[0] * c[1] * c[2] * (6 - S7);
       return corners * point3(c[0] + cmin, c[1] + cmin, c[2] + cmin);
       }
@@ -681,7 +681,7 @@ EX namespace gp {
       transmatrix T = dir_matrix(i);
       for(int x=-GOLDBERG_LIMIT_HALF; x<GOLDBERG_LIMIT_HALF; x++)
       for(int y=-GOLDBERG_LIMIT_HALF; y<GOLDBERG_LIMIT_HALF; y++)
-      for(int d=0; d<(S3==3?6:4); d++) {
+      for(int d=0; d<(hr__S3==3?6:4); d++) {
         loc at = loc(x, y);
         
         hyperpoint h = atz(T, cgi.gpdata->corners, at, 6);
@@ -696,7 +696,7 @@ EX namespace gp {
     for(int i=0; i<S7; i++) {
       for(int x=-GOLDBERG_LIMIT_HALF; x<GOLDBERG_LIMIT_HALF; x++)
       for(int y=-GOLDBERG_LIMIT_HALF; y<GOLDBERG_LIMIT_HALF; y++)
-      for(int d=0; d<(S3==3?6:4); d++) {
+      for(int d=0; d<(hr__S3==3?6:4); d++) {
         auto& T = cgi.gpdata->Tf[i][x&GOLDBERG_MASK][y&GOLDBERG_MASK][d];
         T = cgi.emb->base_to_actual(T);
         }
@@ -726,7 +726,7 @@ EX namespace gp {
       gp::clear_plainshapes();
       int x = param.first;
       int y = param.second;
-      if(S3 == 3)
+      if(hr__S3 == 3)
         cgi.gpdata->area = ((2*x+y) * (2*x+y) + y*y*3) / 4;
       else
         cgi.gpdata->area = x * x + y * y;
@@ -741,7 +741,7 @@ EX namespace gp {
 //    spin = spintox(next);
 //    ispin = rspintox(next);
       cgi.gpdata->alpha = -atan2(next[1], next[0]) * 6 / S7;
-      if(S3 == 3)
+      if(hr__S3 == 3)
         cgi.base_distlimit = (cgi.base_distlimit + log(scale) / log(2.618)) / scale;
       else
         cgi.base_distlimit = 3 * max(param.first, param.second) + 2 * min(param.first, param.second);
@@ -771,13 +771,13 @@ EX namespace gp {
     while(!rotate_and_check_limits(v)) {
       if(x > y) x--; else y--;
       }
-    if(S3 == 3 && y > x) v = v * loc(1, -1);
+    if(hr__S3 == 3 && y > x) v = v * loc(1, -1);
     return v;
     }
   
   EX loc human_representation(loc v) {
     int& x = v.first, &y = v.second;
-    if(S3 == 3) while(x < 0 || y < 0 || (x == 0 && y > 0))
+    if(hr__S3 == 3) while(x < 0 || y < 0 || (x == 0 && y > 0))
       v = v * loc(0, 1);
     return v;
     }
@@ -785,7 +785,7 @@ EX namespace gp {
   EX eVariation variation_for(loc xy) {
     if(xy.first == 1 && xy.second == 0) 
       return eVariation::pure;
-    if(xy.first == 1 && xy.second == 1 && S3 == 3) 
+    if(xy.first == 1 && xy.second == 1 && hr__S3 == 3) 
       return eVariation::bitruncated;
     return eVariation::goldberg;
     }
@@ -804,7 +804,7 @@ EX namespace gp {
     if(xy.first == 1 && xy.second == 0) {
       set_variation(eVariation::pure);
       }
-    else if(xy.first == 1 && xy.second == 1 && S3 == 3) {
+    else if(xy.first == 1 && xy.second == 1 && hr__S3 == 3) {
       set_variation(eVariation::bitruncated);
       }
     else 
@@ -845,12 +845,12 @@ EX namespace gp {
       if(texture::cgroup == cpFootball || texture::cgroup == cpThree) min_quality = 1;
       }
 
-    if((texture::config.tstate == texture::tsActive) && (S7 % 2 == 1) && (S3 == 4)) {
+    if((texture::config.tstate == texture::tsActive) && (S7 % 2 == 1) && (hr__S3 == 4)) {
       if(texture::cgroup == cpChess) min_quality = 1;
       }
 #endif    
     if(min_quality == 0 && min_quality_chess == 0) {
-      dialog::addBoolItem(XLAT("pure"), PURE || (GOLDBERG && univ_param() == loc(1,0)), 'a');
+      dialog::addBoolItem(XLAT("pure"), hr__PURE || (GOLDBERG && univ_param() == loc(1,0)), 'a');
       dialog::lastItem().value = "GP(1,0)";
       dialog::add_action_confirmed([] { whirl_set(loc(1, 0)); });
       }
@@ -858,7 +858,7 @@ EX namespace gp {
     if(min_quality_chess == 0) {
       dialog::addBoolItem(XLAT("bitruncated"), BITRUNCATED, 'b');  
       dialog::add_action_confirmed([] { 
-        if(S3 == 4) {
+        if(hr__S3 == 4) {
           if(!BITRUNCATED) {
             stop_game();
             set_variation(eVariation::bitruncated);
@@ -870,17 +870,17 @@ EX namespace gp {
         });
       }
 
-    dialog::lastItem().value = S3 == 3 ? "GP(1,1)" : ONOFF(BITRUNCATED);
+    dialog::lastItem().value = hr__S3 == 3 ? "GP(1,1)" : ONOFF(BITRUNCATED);
 
     if(min_quality == 0 || min_quality_chess) {
-      dialog::addBoolItem(S3 == 3 ? XLAT("chamfered") : XLAT("expanded"), univ_param() == loc(2,0) && GOLDBERG, 'c');
+      dialog::addBoolItem(hr__S3 == 3 ? XLAT("chamfered") : XLAT("expanded"), univ_param() == loc(2,0) && GOLDBERG, 'c');
       dialog::lastItem().value = "GP(2,0)";
       dialog::add_action_confirmed([] { 
         whirl_set(loc(2, 0));
         });
       }
 
-    if(S3 == 3) {
+    if(hr__S3 == 3) {
       dialog::addBoolItem(XLAT("2x bitruncated"), GOLDBERG && univ_param() == loc(3,0), 'd');
       dialog::lastItem().value = "GP(3,0)";
       dialog::add_action_confirmed([] { 
@@ -936,7 +936,7 @@ EX namespace gp {
     dialog::addBreak(100);
     int style = 0;
     auto v0 = variation_for(param);
-    bool bad_bi = BITRUNCATED && a4;
+    bool bad_bi = BITRUNCATED && hr__a4;
     if(!bad_bi) {
       dynamicval<eVariation> v(variation, v0);
       if(geosupport_football() == 2) style = 3;
@@ -974,32 +974,32 @@ EX namespace gp {
     dialog::add_action([] { swap(config.first, config.second); });
 
     bool have_dual = !bad_bi && !IRREGULAR && !WARPED;
-    if(S3 == 3 && UNTRUNCATED && (univ_param()*loc(1,1)) % 3) have_dual = false;
-    if(S3 == 4 && UNRECTIFIED && (univ_param()*loc(1,1)) % 2) have_dual = false;
+    if(hr__S3 == 3 && UNTRUNCATED && (univ_param()*loc(1,1)) % 3) have_dual = false;
+    if(hr__S3 == 4 && UNRECTIFIED && (univ_param()*loc(1,1)) % 2) have_dual = false;
     
     if(have_dual) {
       dialog::addItem(XLAT("dual of current"), 'D');
       dialog::add_action([] { 
         auto p = univ_param();
-        if(S3 == 3 && !UNTRUNCATED) {
+        if(hr__S3 == 3 && !UNTRUNCATED) {
           println(hlog, "set param to ", p * loc(1,1));
           if(!check_whirl_set(p * loc(1, 1))) return;
           set_variation(eVariation::untruncated);
           start_game();
           config = human_representation(univ_param());
           }
-        else if(S3 == 4 && !UNRECTIFIED) {
+        else if(hr__S3 == 4 && !UNRECTIFIED) {
           if(!check_whirl_set(p * loc(1, 1))) return;
           set_variation(eVariation::unrectified);
           start_game();
           config = human_representation(univ_param());
           }
-        else if(S3 == 3 && UNTRUNCATED) {
+        else if(hr__S3 == 3 && UNTRUNCATED) {
           println(hlog, "whirl_set to ", (p * loc(1,1)) / 3);
           if(!check_whirl_set((p * loc(1,1)) / 3)) return;
           config = human_representation(univ_param());
           }
-        else if(S3 == 4 && UNRECTIFIED) {
+        else if(hr__S3 == 4 && UNRECTIFIED) {
           if(!check_whirl_set((p * loc(1,1)) / 2)) return;
           config = human_representation(univ_param());
           }
@@ -1015,7 +1015,7 @@ EX namespace gp {
   
   EX loc univ_param() {
     if(GOLDBERG_INV) return param;
-    else if(PURE) return loc(1,0);
+    else if(hr__PURE) return loc(1,0);
     else return loc(1,1);
     }
   
@@ -1114,7 +1114,7 @@ EX namespace gp {
     auto d0 = master_function(createStep(cm->master, i)->c7);
     auto d1 = master_function(createStep(cm->master, cm->c.fix(i+1))->c7);
     
-    if(S3 == 4) {
+    if(hr__S3 == 4) {
       heptspin hs(cm->master, i);
       hs += wstep; hs+=-1; hs += wstep;
       auto d2 = master_function(hs.at->c7);
@@ -1172,24 +1172,24 @@ EX namespace gp {
     #endif
     else if(DUAL)
       return XLAT("dual");
-    else if(PURE)
+    else if(hr__PURE)
       return XLAT("pure");
     else if(BITRUNCATED)
       return XLAT("bitruncated");
     #if CAP_GP
     else if(GOLDBERG && param == loc(1, 0))
       return XLAT("pure");
-    else if(GOLDBERG && param == loc(1, 1) && S3 == 3)
+    else if(GOLDBERG && param == loc(1, 1) && hr__S3 == 3)
       return XLAT("bitruncated");
-    else if(GOLDBERG && param == loc(1, 1) && S3 == 4)
+    else if(GOLDBERG && param == loc(1, 1) && hr__S3 == 4)
       return XLAT("rectified");
-    else if(UNRECTIFIED && param == loc(1, 1) && S3 == 4)
+    else if(UNRECTIFIED && param == loc(1, 1) && hr__S3 == 4)
       return XLAT("dual");
-    else if(UNTRUNCATED && param == loc(1, 1) && S3 == 3)
+    else if(UNTRUNCATED && param == loc(1, 1) && hr__S3 == 3)
       return XLAT("dual");
     else if(GOLDBERG && param == loc(2, 0))
-      return S3 == 3 ? XLAT("chamfered") : XLAT("expanded");
-    else if(GOLDBERG && param == loc(3, 0) && S3 == 3)
+      return hr__S3 == 3 ? XLAT("chamfered") : XLAT("expanded");
+    else if(GOLDBERG && param == loc(3, 0) && hr__S3 == 3)
       return XLAT("2x bitruncated");
     #if MAXMDIM >= 4
     else if(variation == eVariation::subcubes)

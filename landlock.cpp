@@ -1038,7 +1038,7 @@ EX land_validity_t& land_validity(eLand l) {
     if(l == laDragon) return not_in_full_game;
     }
   
-  if(l == laDice && geometry == gNormal && PURE)
+  if(l == laDice && geometry == gNormal && hr__PURE)
     return dont_work;
 
   if(l == laDice && WDIM == 3)
@@ -1165,12 +1165,12 @@ EX land_validity_t& land_validity(eLand l) {
     if(weirdhyperbolic)
       return simplified_walls;
     // works nice on a big non-tetrahedron-based sphere
-    if(sphere && S3 != 3 && GOLDBERG)
+    if(sphere && hr__S3 != 3 && GOLDBERG)
       return special_geo3;
     }
   
   // not enough space
-  if(l == laStorms && (old_daily_id < 35 ? !BITRUNCATED : PURE) && elliptic) 
+  if(l == laStorms && (old_daily_id < 35 ? !BITRUNCATED : hr__PURE) && elliptic) 
     return not_enough_space;
   
   if(l == laStorms && WDIM == 3)
@@ -1240,10 +1240,10 @@ EX land_validity_t& land_validity(eLand l) {
   if(ls::any_chaos() && (l == laTemple || l == laHive || l == laOcean || l == laHaunted))
     return special_chaos;
   
-  if(l == laWhirlpool && a4)
+  if(l == laWhirlpool && hr__a4)
     return dont_work;
 
-  if(isWarpedType(l) && a4 && GOLDBERG)
+  if(isWarpedType(l) && hr__a4 && GOLDBERG)
     return dont_work;
   
   #if CAP_IRR
@@ -1324,8 +1324,8 @@ EX land_validity_t& land_validity(eLand l) {
     if(!closed_or_bounded)
       return not_implemented;
 
-  // does not work in non-bitrunc a4
-  if(l == laOvergrown && a4 && !BITRUNCATED)
+  // does not work in non-bitrunc hr__a4
+  if(l == laOvergrown && hr__a4 && !BITRUNCATED)
     return some0;
 
   // does not work in bounded either
@@ -1401,7 +1401,7 @@ EX land_validity_t& land_validity(eLand l) {
     }
   
   // Warped Coast does not work on non-bitrunc S3s (except standard heptagonal where we have to keep it)
-  if(l == laWarpCoast && (S3==3) && geosupport_football() != 2 && !(old_daily_id >= 33 && geosupport_chessboard())) {
+  if(l == laWarpCoast && (hr__S3==3) && geosupport_football() != 2 && !(old_daily_id >= 33 && geosupport_chessboard())) {
     return ugly_version_infull;
     }
 
@@ -1442,7 +1442,7 @@ EX land_validity_t& land_validity(eLand l) {
 
   if(l == laReptile) {
     if(old_daily_id <= 64) {
-      if(l == laReptile && (a38 || a4 || sphere || !BITRUNCATED || (quotient && !euclid && geometry != gZebraQuotient)))
+      if(l == laReptile && (a38 || hr__a4 || sphere || !BITRUNCATED || (quotient && !euclid && geometry != gZebraQuotient)))
         return bad_graphics;
       }
     else {  
@@ -1479,7 +1479,7 @@ EX land_validity_t& land_validity(eLand l) {
   if(among(l, laZebra, laFrog) && quotient && geometry != gZebraQuotient && !randomPatternsMode)
     return pattern_incompatibility;
   
-  if(among(l, laZebra, laFrog) && !(stdeucx || (a4 && !BITRUNCATED) || a46 || (geometry == gZebraQuotient && old_daily_id > 106)) && !randomPatternsMode)
+  if(among(l, laZebra, laFrog) && !(stdeucx || (hr__a4 && !BITRUNCATED) || a46 || (geometry == gZebraQuotient && old_daily_id > 106)) && !randomPatternsMode)
     return pattern_not_implemented_weird;
   
   if(l == laCrossroads3 && euclid)

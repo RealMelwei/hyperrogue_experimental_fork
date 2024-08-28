@@ -30,10 +30,10 @@ EX hstate transition(hstate s, int dir) {
     if(S7 == 4) {
       if(s == hsOrigin) return dir == 0 ? hsB0 : hsB1;
       }
-    if(S7 == 3 && S3 == 3) {
+    if(S7 == 3 && hr__S3 == 3) {
       if(s == hsOrigin) return hsB1;
       }
-    if(S7 == 3 && S3 == 4) {
+    if(S7 == 3 && hr__S3 == 4) {
       if(s == hsOrigin) return dir == 0 ? hsA0 : hsA1;
       if(s == hsA0 && dir == 1) return hsB0;
       if(s == hsA1 && dir == 1) return hsB1;
@@ -53,7 +53,7 @@ EX hstate transition(hstate s, int dir) {
     if(s == hsB && (dir >= 2 && dir < S7-2)) return hsA;
     if(s == hsB && (dir == S7-2)) return hsB;
     }
-  else if(S3 >= OINF) {
+  else if(hr__S3 >= OINF) {
     if(s == hsOrigin) return hsA;
     if(s == hsA && dir) return hsA;
     }
@@ -128,7 +128,7 @@ heptagon *buildHeptagon(heptagon *parent, int d, hstate s, int pard = 0, int fix
   if(pard == 0) {
     h->dm4 = parent->dm4+1;
     if(fixdistance != COMPUTE) h->distance = fixdistance;
-    else if(S3 == 4 && BITRUNCATED) {
+    else if(hr__S3 == 4 && BITRUNCATED) {
       h->distance = parent->distance + 2;
       if(h->c.spin(0) == 2 || (h->c.spin(0) == 3 && S7 <= 5))
         h->distance = min<short>(h->distance, createStep(h->move(0), 0)->distance + 3);
@@ -172,7 +172,7 @@ heptagon *buildHeptagon(heptagon *parent, int d, hstate s, int pard = 0, int fix
       }
     else if(parent->s == hsOrigin) h->distance = parent->distance + gp::dist_2();
     #if CAP_GP
-    else if(S3 == 4 && GOLDBERG && h->c.spin(0) == S7-2 && h->move(0)->c.spin(0) >= S7-2 && h->move(0)->move(0)->s != hsOrigin) {
+    else if(hr__S3 == 4 && GOLDBERG && h->c.spin(0) == S7-2 && h->move(0)->c.spin(0) >= S7-2 && h->move(0)->move(0)->s != hsOrigin) {
       heptspin hs(h, 0);
       hs += wstep;
       int d1 = hs.at->distance;
@@ -182,7 +182,7 @@ heptagon *buildHeptagon(heptagon *parent, int d, hstate s, int pard = 0, int fix
       int d0 = hs.at->distance;
       h->distance = gp::solve_triangle(dm, d0, d1, gp::param * gp::loc(-1,1));
       }
-    else if(S3 == 4 && GOLDBERG && h->c.spin(0) == S7-1 && among(h->move(0)->c.spin(0), S7-2, S7-3) && h->move(0)->move(0)->s != hsOrigin) {
+    else if(hr__S3 == 4 && GOLDBERG && h->c.spin(0) == S7-1 && among(h->move(0)->c.spin(0), S7-2, S7-3) && h->move(0)->move(0)->s != hsOrigin) {
       heptspin hs(h, 0);
       hs += wstep;
       int d0 = hs.at->distance;
@@ -192,7 +192,7 @@ heptagon *buildHeptagon(heptagon *parent, int d, hstate s, int pard = 0, int fix
       int d1 = hs.at->distance;
       h->distance = gp::solve_triangle(dm, d0, d1, gp::param * gp::loc(1,1));
       }
-    else if(S3 == 4 && GOLDBERG && h->c.spin(0) >= 2 && h->c.spin(0) <= S7-2) {
+    else if(hr__S3 == 4 && GOLDBERG && h->c.spin(0) >= 2 && h->c.spin(0) <= S7-2) {
       h->distance = parent->distance + gp::dist_2();
       }
     #endif
@@ -218,17 +218,17 @@ heptagon *buildHeptagon(heptagon *parent, int d, hstate s, int pard = 0, int fix
       #endif
       h->distance = createStep(h->move(0), (h->c.spin(0)+2)%S7)->distance + gp::dist_3();
       }
-    else if(h->c.spin(0) == S7-1 && S3 == 4 && GOLDBERG) {
+    else if(h->c.spin(0) == S7-1 && hr__S3 == 4 && GOLDBERG) {
       h->distance = parent->distance + gp::dist_1();
       }
     else h->distance = parent->distance + gp::dist_2();
     }
   else {
     h->distance = parent->distance - gp::dist_2();
-    if(S3 == 4 && S7 > 5 && BITRUNCATED) {
+    if(hr__S3 == 4 && S7 > 5 && BITRUNCATED) {
       h->distance = parent->distance - 2;
       }
-    if(S3 == 4 && S7 == 5) {
+    if(hr__S3 == 4 && S7 == 5) {
       if(h->s == hsOrigin) {
         printf("had to cheat!\n");
         h->distance = parent->distance - 2;
@@ -269,11 +269,11 @@ heptagon *hrmap_standard::create_step(heptagon *h, int d) {
   if(!h->move(0) && h->s != hsOrigin && !bt::in() && !cryst) {
     // cheating: 
     int pard=0;
-    if(S3 == 3) 
+    if(hr__S3 == 3) 
       pard = 3 + hrand(2);
-    else if(S3 == 4 && S7 == 5)
+    else if(hr__S3 == 4 && S7 == 5)
       pard = 3; // to do: randomize
-    else if(S3 == 4)
+    else if(hr__S3 == 4)
       pard = 3;
     buildHeptagon(h, 0, h->distance < -global_distance_limit - 200 ? hsOrigin : hsA, pard);
     }
@@ -281,7 +281,7 @@ heptagon *hrmap_standard::create_step(heptagon *h, int d) {
   if(h->s == hsOrigin) {
     buildHeptagon(h, d, hsA);
     }
-  else if(S3 == 4) {
+  else if(hr__S3 == 4) {
     if(d == 1) {
       heptspin hs(h, 0, false);
       hs = hs + wstep - 1 + wstep - 1 + wstep - 1;
@@ -295,7 +295,7 @@ heptagon *hrmap_standard::create_step(heptagon *h, int d) {
     else 
       buildHeptagon(h, d, transition(h->s, d));
     }
-  else if(S3 > 4 && quotient) {
+  else if(hr__S3 > 4 && quotient) {
     /* this branch may be used for some >4-valent quotient spaces outside of standard HyperRogue */
     /* this is wrong, but we don't care in quotient */
     h->move(d) = h;

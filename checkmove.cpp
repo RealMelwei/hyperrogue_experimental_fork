@@ -101,9 +101,9 @@ player_move_info::player_move_info(movei _mi) : mi(_mi) {
     swordtransit[b] = NULL;
     if(swordnext[b] && swordnext[b] != swordlast[b] && !isNeighbor(swordlast[b], swordnext[b])) {
       forCellEx(c2, swordnext[b])
-        if(c2 != mi.t && c2 != mi.s && isNeighbor(c2, S3==3 ? swordlast[b] : mi.t))
+        if(c2 != mi.t && c2 != mi.s && isNeighbor(c2, hr__S3==3 ? swordlast[b] : mi.t))
           swordtransit[b] = c2;
-      if(S3 == 4)
+      if(hr__S3 == 4)
         forCellEx(c2, mi.s)
           if(c2 != mi.s && isNeighbor(c2, swordlast[b]))
             swordtransit[b] = c2;

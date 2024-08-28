@@ -414,7 +414,7 @@ EX bool sizes_known() {
   }
 
 EX bool trees_known() {
-  return sizes_known() && !(BITRUNCATED && a4 && S7 <= 5);
+  return sizes_known() && !(BITRUNCATED && hr__a4 && S7 <= 5);
   }
 
 string expansion_analyzer::approximate_descendants(int d, int max_length) {
@@ -951,7 +951,7 @@ int expansion_readArgs() {
       for(int x=1; x<9; x++)
       for(int y=0; y<=x; y++) {
         if(x == 1 && y == 0) continue;
-        if(x == 1 && y == 1 && S3 == 3) continue;
+        if(x == 1 && y == 1 && hr__S3 == 3) continue;
         if(x+y > 10) continue;
         stop_game();
         gp::param = gp::loc(x, y);
@@ -1007,7 +1007,7 @@ EX void set_sibling_limit() {
     sibling_limit = 2 * p.first + p.second;
     }
   #else
-  else sibling_limit = PURE ? 2 : 3;
+  else sibling_limit = hr__PURE ? 2 : 3;
   #endif
   }
 

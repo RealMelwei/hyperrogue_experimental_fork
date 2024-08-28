@@ -965,7 +965,7 @@ EX vector<geometryinfo> ginf = {
   {"{3,5,5}","none",    "{3,5,5} hyperbolic honeycomb",               "355",     20, 5, qIDEAL | qULTRA,    giHyperb3, {{7, 2}}, eVariation::pure},
   {"{5,4}", "pBring",   "projective Bring's Surface",                 "pBring",   5, 4, qsSMALLN,   giHyperb2, {{6, 4}}, eVariation::bitruncated},
   {"hat",    "none",    "aperiodic hat",                              "hat",     14, 3, qAPERIODIC | qHAT,  giEuclid2, {{7, 7}}, eVariation::pure},
-  {"triangle","none",   "Sierpiński triangle",                        "S3",       6, 3, qFRACTAL,  giEuclid2, {{10, 10}}, eVariation::pure},
+  {"triangle","none",   "Sierpiński triangle",                        "hr__S3",       6, 3, qFRACTAL,  giEuclid2, {{10, 10}}, eVariation::pure},
   {"carpet", "none",    "Sierpiński carpet",                          "S4",       4, 4, qFRACTAL,  giEuclid2, {{10, 10}}, eVariation::pure},
   {"6-flake","none",    "6-flake fractal",                            "S6",       6, 3, qFRACTAL,  giEuclid2, {{10, 10}}, eVariation::pure},
   {"{4,3,4}","none",    "Menger sponge",                              "S8",       6, 4, qFRACTAL,  giEuclid3, {{10, 10}}, eVariation::pure},

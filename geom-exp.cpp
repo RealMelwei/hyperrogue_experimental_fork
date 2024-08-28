@@ -325,9 +325,9 @@ void set_or_configure_geometry(eGeometry g) {
         }
       if(g == gRotSpace) {
         bool ok = true;
-        if(arcm::in()) ok = PURE;
+        if(arcm::in()) ok = hr__PURE;
         else if(bt::in() || aperiodic) ok = false;
-        else ok = PURE || BITRUNCATED;
+        else ok = hr__PURE || BITRUNCATED;
         if(!ok) {
           addMessage(XLAT("Only works with (semi-)regular tilings"));
           return;
@@ -353,7 +353,7 @@ bool same_tiling(eGeometry g2) {
   /* no quotients for fractals */
   if(cgflags & qFRACTAL) return g2 == geometry;
   if(g2 == gCrystal)
-    return S3 == 4;
+    return hr__S3 == 4;
   if(g2 == gFieldQuotient && (hyperbolic || (geometry == gCubeTiling && reg3::cubes_reg3)) && standard_tiling())
     return true;
   if(g2 == gFieldQuotient && geometry != gFieldQuotient) {
@@ -666,11 +666,11 @@ void action_change_variation() {
   else if(reg3::in() || geometry == gCubeTiling) reg3::configure_variation();
   #endif
   else if(euc::in(2,4) || !CAP_GP) dialog::do_if_confirmed([] {
-    set_variation(PURE ? eVariation::bitruncated : eVariation::pure);
+    set_variation(hr__PURE ? eVariation::bitruncated : eVariation::pure);
     start_game();
     });
   #if CAP_GP
-  else // if(S3 == 3) 
+  else // if(hr__S3 == 3) 
     gp::configure();
   #endif
   }
@@ -749,13 +749,13 @@ EX geometry_data compute_geometry_data() {
     gd.area = PIU(cgi.gpdata->area);
 
     if(GOLDBERG || WARPED) {
-      gd.nom = 2 * (2*tv + (S3-2) * ts * (gd.area-1));
+      gd.nom = 2 * (2*tv + (hr__S3-2) * ts * (gd.area-1));
       }
     else if(UNRECTIFIED) {
       if((gp::param.first + gp::param.second) % 2 == 0)
         gd.nom = ts * 2 * gd.area;
       else
-        gd.nom = (2*tv + (S3-2) * ts * (gd.area-1));
+        gd.nom = (2*tv + (hr__S3-2) * ts * (gd.area-1));
       }
     else if(UNTRUNCATED) {
       if((gp::param.first - gp::param.second) % 3 == 0) {
@@ -763,14 +763,14 @@ EX geometry_data compute_geometry_data() {
         gd.denom *= 3;
         }
       else {
-        gd.nom = 2 * (2*tv + (S3-2) * ts * (gd.area-1));
+        gd.nom = 2 * (2*tv + (hr__S3-2) * ts * (gd.area-1));
         gd.denom *= 3;
         }
       }
     }
   else
   #endif
-  gd.area = PURE ? 1 : 3;
+  gd.area = hr__PURE ? 1 : 3;
 
   gd.euler = 0;
   if(meuclid) gd.euler = 0;
@@ -828,7 +828,7 @@ EX geometry_data compute_geometry_data() {
   
   if(euclid && closed_manifold) {
     gd.worldsize = euc::eu.det;
-    if(BITRUNCATED) gd.worldsize *= (a4 ? 2 : 3);
+    if(BITRUNCATED) gd.worldsize *= (hr__a4 ? 2 : 3);
     if(GOLDBERG) gd.worldsize *= cgi.gpdata->area;
     #if CAP_IRR
     if(IRREGULAR) gd.worldsize *= isize(irr::cells) / isize(irr::cells_of_heptagon);
@@ -892,22 +892,22 @@ EX geometry_data compute_geometry_data() {
         }
       }
     }
-  else if(GOLDBERG && S3 == 4 && gp::param == gp::loc(1, 1))
+  else if(GOLDBERG && hr__S3 == 4 && gp::param == gp::loc(1, 1))
     spf = spf + ",4," + spf + ",4";
-  else if(GOLDBERG && S3 == 4 && gp::param == gp::loc(2, 0))
+  else if(GOLDBERG && hr__S3 == 4 && gp::param == gp::loc(2, 0))
     spf = spf + ",4,4,4";
-  else if(GOLDBERG && S3 == 4)
+  else if(GOLDBERG && hr__S3 == 4)
     spf = "[" + spf + ",4],4,4,4";
-  else if(WARPED && S3 == 3 && gp::param == gp::loc(1,1))
+  else if(WARPED && hr__S3 == 3 && gp::param == gp::loc(1,1))
     spf = spf + ",3,3";
-  else if(WARPED && S3 == 3)
+  else if(WARPED && hr__S3 == 3)
     spf = "[" + spf + ",6],3,3";
-  else if(GOLDBERG && S3 == 3)
+  else if(GOLDBERG && hr__S3 == 3)
     spf = "[" + spf + ",6],6,6";
   #endif
   else {
     string spf0 = spf;
-    for(int z=1; z<S3; z++) spf = spf + "," + spf0;
+    for(int z=1; z<hr__S3; z++) spf = spf + "," + spf0;
     }
 
   gd.size_str =
@@ -1273,7 +1273,7 @@ int read_geom_args() {
   else if(argis("-mineadj")) {
     shift(); mine_adjacency_rule = argi();
     }
-  TOGGLE('7', PURE, set_variation(PURE ? eVariation::bitruncated : eVariation::pure))
+  TOGGLE('7', hr__PURE, set_variation(hr__PURE ? eVariation::bitruncated : eVariation::pure))
   else if(argis("-geo")) { 
     PHASEFROM(2);
     shift(); 
@@ -1345,7 +1345,7 @@ int read_geom_args() {
   else if(argis("-fi-at")) {
     geometry = gNormal;
     shift(); dynamicval<int> s7(S7, argi());
-    shift(); dynamicval<int> s3(S3, argi());
+    shift(); dynamicval<int> s3(hr__S3, argi());
     fieldpattern::info();
     exit(0);
     } 

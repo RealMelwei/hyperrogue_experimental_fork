@@ -336,7 +336,7 @@ EX namespace yendor {
         bool onlychild = true;
 
         cellwalker ycw = p.start;
-        ycw--; if(S3 == 3) ycw--;
+        ycw--; if(hr__S3 == 3) ycw--;
 
         for(int i=0; i<YDIST-1; i++) {          
         

@@ -27,7 +27,7 @@ EX int ctof(cell *c) {
   #if CAP_IRR
   if(IRREGULAR) return irr::ctof(c);
   #endif
-  if(PURE) return 1;
+  if(hr__PURE) return 1;
   // if(meuclid) return 0;
   if(!c) return 1;
   if(bt::in()) return c->type == 7;
@@ -43,7 +43,7 @@ int gp_threecolor() {
   if(cgflags & qPORTALSPACE) return 0;
   if(!GOLDBERG) return 0;
   #if CAP_GP
-  if(S3 == 3 && (gp::param.first - gp::param.second) % 3 == 0) return 2;
+  if(hr__S3 == 3 && (gp::param.first - gp::param.second) % 3 == 0) return 2;
   #endif
   return 1;
   }
@@ -52,7 +52,7 @@ int eupattern(cell *c) {
   if(cgflags & qPORTALSPACE) return 0;
   auto co = euc2_coordinates(c);
   int x = co.first, y = co.second;
-  if(a4)
+  if(hr__a4)
     return ((x&1) + 2*(y&1)) % 3;
   else
     return gmod(y-x, 3);
@@ -67,7 +67,7 @@ int eupattern4(cell *c) {
 EX bool ishept(cell *c) {
   if(cgflags & qPORTALSPACE) return 0;
   // EUCLIDEAN
-  if(euc::in() && PURE) return eupattern(c) == 0;
+  if(euc::in() && hr__PURE) return eupattern(c) == 0;
   else if(mhybrid) { cell *c1 = hybrid::get_where(c).first; return c1 == c1->master->c7; }
   else return c == c->master->c7;
   }
@@ -75,7 +75,7 @@ EX bool ishept(cell *c) {
 EX bool ishex1(cell *c) {
   if(cgflags & qPORTALSPACE) return 0;
   // EUCLIDEAN
-  if(euc::in() && PURE) return eupattern(c) == 1;
+  if(euc::in() && hr__PURE) return eupattern(c) == 1;
   #if CAP_GP
   else if(GOLDBERG) return c->master->c7 != c && !pseudohept(c->move(0));
   #endif
@@ -85,7 +85,7 @@ EX bool ishex1(cell *c) {
 bool ishex2(cell *c) {
   if(cgflags & qPORTALSPACE) return 0;
   // EUCLIDEAN
-  if(euc::in() && PURE) return eupattern(c) == 1;
+  if(euc::in() && hr__PURE) return eupattern(c) == 1;
   #if CAP_GP
   else if(GOLDBERG) return c->master->c7 != c && gp::pseudohept_val(c) == 1;
   #endif
@@ -102,7 +102,7 @@ EX int chessvalue(cell *c) {
   #if CAP_GP
   if(WARPED)
     return gp::untruncated_shift(c) == 2;
-  else if(UNRECTIFIED && a4) {
+  else if(UNRECTIFIED && hr__a4) {
     auto li = gp::get_local_info(c);
     bool odd_a = gp::param.first & 1;
     bool odd_b = gp::param.second & 1;
@@ -180,7 +180,7 @@ int fiftyval(cell *c) {
   }
 
 EX int cdist50(cell *c) {
-  if(meuclid && S3 == 4) {
+  if(meuclid && hr__S3 == 4) {
     auto co = euc2_coordinates(c);
     int x = co.first, y = co.second;
     return abs(szgmod(x, 5)) + abs(zgmod(y, 5));
@@ -344,7 +344,7 @@ EX int zebra40(cell *c) {
     else return 4+(v-4)/2;
     }
   else if(ctof(c)) return (c->master->zebraval/10);
-  else if(a4) {
+  else if(hr__a4) {
     if(GOLDBERG) return zebra40(c->master->c7);
     int ws = dir_bitrunc457(c);
     if(ws < 0) return -ws;
@@ -368,7 +368,7 @@ EX int zebra40(cell *c) {
     return 24;
     }
   else if(msphere) return 0;
-  else if(S3 == 4 && S7 == 6) {
+  else if(hr__S3 == 4 && S7 == 6) {
     return 8 + ((c->master->zebraval / 10 + c->c.spin(0))%2) * 2;
     }
   else if(reg3::in()) return 0;
@@ -422,7 +422,7 @@ EX pair<int, bool> fieldval(cell *c) {
 EX int fieldval_uniq(cell *c) {
   if(fake::in()) return FPIU(fieldval_uniq(c));
   if(experimentalhr) return 0;
-  if(reg3::in() && !PURE) return 0;
+  if(reg3::in() && !hr__PURE) return 0;
   else if(arb::in()) return arb::id_of(c->master);
   else if(mhybrid) {
     auto c1 = hybrid::get_where(c).first; 
@@ -449,7 +449,7 @@ EX int fieldval_uniq(cell *c) {
     if(closed_manifold) return co[0] + (co[1] << 10) + (co[2] << 20);
     return gmod(co[0] + 3 * co[1] + 9 * co[2], 3*127);
     }
-  else if(bt::in() || arcm::in() || nil || S3 >= OINF || (cgflags & qIDEAL)) return 0;
+  else if(bt::in() || arcm::in() || nil || hr__S3 >= OINF || (cgflags & qIDEAL)) return 0;
   else if(&currfp == &fp_invalid) return 0;
   else if(geometry == gSpace535) return 0;
   else if(WDIM == 3) return c->master->fieldval;
@@ -665,17 +665,17 @@ EX namespace patterns {
       }
     else {
       int ids = 0, td = 0;
-      for(int i=0; i<S3; i++) {
+      for(int i=0; i<hr__S3; i++) {
         int d = c->move(2*i)->master->fieldval;
         ids |= (1<<d);
         }
-      for(int i=0; i<S3; i++) {
+      for(int i=0; i<hr__S3; i++) {
         int d = c->move(2*i)->master->fieldval;
         if(ids & (1<<siblings[d])) td += d;
         }
       if(td) {
         si.id = 4;
-        for(int i=0; i<S3; i++) {
+        for(int i=0; i<hr__S3; i++) {
           int d = c->move(2*i)->master->fieldval;
           if(!(ids & (1<<siblings[d]))) si.dir = 2*i;
           }
@@ -900,16 +900,16 @@ EX namespace patterns {
     if(IRREGULAR || arcm::in() || bt::in() || arb::in() || WDIM == 3 || currentmap->strict_tree_rules()) si.symmetries = c->type;
     else if(a46) val46(c, si, sub, pat);
     else if(a38) val38(c, si, sub, pat);
-    else if(S7 < 6 && S3 == 3 && !INVERSE && !aperiodic) valSibling(c, si, sub, pat);
+    else if(S7 < 6 && hr__S3 == 3 && !INVERSE && !aperiodic) valSibling(c, si, sub, pat);
     else if(euc::in(2,4)) valEuclid4(c, si, sub);
     else if(euc::in(2,6)) valEuclid6(c, si, sub);
-    else if(a4) val457(c, si, sub);
+    else if(hr__a4) val457(c, si, sub);
     else si.symmetries = ctof(c) ? 1 : 2;
     }
 
   void val_warped(cell *c, patterninfo& si) {
     int u = ishept(c)?1:0;
-    if(S3 != 3 || S7 != 7 || NONSTDVAR) {
+    if(hr__S3 != 3 || S7 != 7 || NONSTDVAR) {
       si.id = u;
       si.dir = 1;
       return;
@@ -979,7 +979,7 @@ EX namespace patterns {
     val_all(c, si, 0, 0);
     
     // get id:
-    if((GOLDBERG? (S3==3) : !weirdhyperbolic) && isWarped(c)) 
+    if((GOLDBERG? (hr__S3==3) : !weirdhyperbolic) && isWarped(c)) 
       val_warped(c, si);
     else {
       si.id = pseudohept(c) ? 1 : 0;
@@ -1124,7 +1124,7 @@ EX namespace patterns {
       si.id = zebra40(c); // 4 to 43
       int t4 = si.id>>2, tcdir = 0;
       
-      if(PURE) tcdir = si.id^1;
+      if(hr__PURE) tcdir = si.id^1;
       
       else if(t4 == 10) tcdir = si.id-20;
       else if(t4 >= 4 && t4 < 7) tcdir = 40 + (si.id&3);
@@ -1179,11 +1179,11 @@ EX namespace patterns {
       int look_for = -1;
       int shft = 0;
       if(inr(si.id, 0, 4)) {
-        look_for = si.id + (PURE ? 4 : 60);
+        look_for = si.id + (hr__PURE ? 4 : 60);
         if(symRotation) si.symmetries = 1;
         }
-      else if(inr(si.id, 4, 32)) look_for = si.id + (PURE ? 28 : 168);
-      else if(inr(si.id, 32, 60)) look_for = si.id + (PURE ? -28 : 112);
+      else if(inr(si.id, 4, 32)) look_for = si.id + (hr__PURE ? 28 : 168);
+      else if(inr(si.id, 32, 60)) look_for = si.id + (hr__PURE ? -28 : 112);
       else if(inr(si.id, 60, 88)) look_for = si.id - 56, shft = si.reflect ? 1 : 5;
       else if(inr(si.id, 88, 116)) look_for = si.id - 84, shft = 3;
       else if(inr(si.id, 116, 144)) look_for = si.id + 56;
@@ -1228,7 +1228,7 @@ EX namespace patterns {
       if(meuclid)
         // use the torus ID
         si.id = fieldpattern::fieldval_uniq(c);
-      else if(PURE && standard_tiling())
+      else if(hr__PURE && standard_tiling())
         // use the actual field codes
         si.id = fieldpattern::fieldval(c).first;
       else          
@@ -1282,13 +1282,13 @@ EX namespace patterns {
 EX bool geosupport_chessboard() {
   return 
 #if CAP_ARCM
-    (arcm::in() && PURE) ? arcm::current.support_chessboard() : 
+    (arcm::in() && hr__PURE) ? arcm::current.support_chessboard() : 
     (arcm::in() && DUAL) ? arcm::current.support_threecolor_bitruncated() :
 #endif
     WARPED ? true :
     INVERSE ? false :
     (bt::in() || aperiodic) ? 0 :
-    (S3 >= OINF) ? true :
+    (hr__S3 >= OINF) ? true :
     (valence() % 2 == 0);
   }
 
@@ -1296,19 +1296,19 @@ EX int geosupport_threecolor() {
   if(IRREGULAR) return 0;
   if(aperiodic || bt::in()) return 0;
   #if CAP_ARCM
-  if(arcm::in() && PURE) return arcm::current.support_threecolor();
+  if(arcm::in() && hr__PURE) return arcm::current.support_threecolor();
   if(arcm::in() && BITRUNCATED) return arcm::current.support_threecolor_bitruncated();
   if(arcm::in() && DUAL) return 0; // it sometimes does support threecolor, but it can be obtained in other ways then
   #endif
   if(INVERSE) return 0;
-  if(BITRUNCATED && S3 == 3) {
+  if(BITRUNCATED && hr__S3 == 3) {
     if(S7 % 2) return 1;
     return 2;
     }
-  if(S3 >= OINF) return 0;
-  if((S7 % 2 == 0) && (S3 == 3))
+  if(hr__S3 >= OINF) return 0;
+  if((S7 % 2 == 0) && (hr__S3 == 3))
     return 2;
-  if(a46 && PURE)
+  if(a46 && hr__PURE)
     return 1;
   return 0;
   }
@@ -1323,7 +1323,7 @@ EX int geosupport_football() {
   if(arcm::in() && DUAL) return false;
   // it sometimes does support football, but it can be obtained in other ways then
 
-  if(arcm::in() /* PURE */) return arcm::current.support_football();
+  if(arcm::in() /* hr__PURE */) return arcm::current.support_football();
 #endif
 
   if(arb::in()) return arb::current.have_ph;
@@ -1336,17 +1336,17 @@ EX int geosupport_football() {
   int tc = max(geosupport_threecolor(), gp_threecolor());
   if(tc) return tc;
   
-  if(S3 == 3 && S7 == 7) return 1;
+  if(hr__S3 == 3 && S7 == 7) return 1;
   // nice chessboard pattern, but not the actual Graveyard
-  if(S3 == 4 && !(S7&1)) return 1;
-  if(S3 == 4 && GOLDBERG) return 1;
+  if(hr__S3 == 4 && !(S7&1)) return 1;
+  if(hr__S3 == 4 && GOLDBERG) return 1;
   return 0;
   }
 
 EX int pattern_threecolor(cell *c) {
   #if CAP_ARCM
   if(arcm::in()) {
-    if(PURE)
+    if(hr__PURE)
       return arcm::threecolor(c);
     else /* if(BITRUNCATED) */
       return c->master->rval1;
@@ -1355,7 +1355,7 @@ EX int pattern_threecolor(cell *c) {
   if(arb::in()) return arb::id_of(c->master) % 3;
   if(IRREGULAR || bt::in()) return !pseudohept(c);
   #if CAP_GP
-  if(S3 == 3 && !(S7&1) && gp_threecolor() == 1 && c->master->c7 != c) {
+  if(hr__S3 == 3 && !(S7&1) && gp_threecolor() == 1 && c->master->c7 != c) {
     auto li = gp::get_local_info(c);
     int rel = gmod(li.relative.first - li.relative.second, 3);
     int par = gmod(gp::param.first - gp::param.second, 3);
@@ -1380,7 +1380,7 @@ EX int pattern_threecolor(cell *c) {
     return rel;
     }
   #if CAP_GP
-  if(a4 && GOLDBERG) {
+  if(hr__a4 && GOLDBERG) {
     patterns::patterninfo si;
     auto li = gp::get_local_info(c);
     if(S7 & 1) return (li.relative.first&1) + (li.relative.second&1)*2;
@@ -1404,12 +1404,12 @@ EX int pattern_threecolor(cell *c) {
     return i >> 2;
     }
   if(meuclid) {
-    if(a4 && PURE) return eupattern4(c);
+    if(hr__a4 && hr__PURE) return eupattern4(c);
     if(euc::in(2,6) && !BITRUNCATED) return eupattern(c) % 3;
     return c == c->master->c7 ? 0 : (c->c.spin(0)&1) ? 1 : 2;
     }
-  if(S3 >= OINF) return c->master->distance % 3;
-  if(S7 == 4 && S3 == 3) {
+  if(hr__S3 >= OINF) return c->master->distance % 3;
+  if(S7 == 4 && hr__S3 == 3) {
     int codesN[6] = {0,1,2,1,2,0};
     #if CAP_GP
     if(gp_threecolor() == 2) {
@@ -1424,7 +1424,7 @@ EX int pattern_threecolor(cell *c) {
       return sp;
       }
     #endif
-    if(PURE)
+    if(hr__PURE)
       return codesN[c->master->fiftyval];
     if(ctof(c))
       return 0;
@@ -1436,7 +1436,7 @@ EX int pattern_threecolor(cell *c) {
         return 2 - (c->c.spin(i)&1);
       }
     }
-  if(stdhyperbolic && PURE) {
+  if(stdhyperbolic && hr__PURE) {
     int z = zebra40(c);
     if(z == 5 || z == 8 || z == 15) return 0;
     if(c->land == laSnakeNest) {
@@ -1451,11 +1451,11 @@ EX int pattern_threecolor(cell *c) {
     patterns::val46(c, si, 0, patterns::PAT_COLORING);
     return si.id;
     }
-  if(S7 == 5 && PURE && S3 == 3) {
+  if(S7 == 5 && hr__PURE && hr__S3 == 3) {
     const int codes[12] = {1, 2, 0, 3, 2, 0, 0, 1, 3, 1, 2, 3};
     return codes[c->master->fiftyval];
     }
-  if(S7 == 3 && PURE)
+  if(S7 == 3 && hr__PURE)
     return c->master->fiftyval;
   #if CAP_GP
   if(gp_threecolor() && (S7&1))
@@ -1480,7 +1480,7 @@ EX bool pseudohept(cell *c) {
   if(hat::in()) return hat::pseudohept(c);
   if(bt::in()) return bt::pseudohept(c);
   #endif
-  if(S3 >= OINF) return c->master->distance % 3 == 1;
+  if(hr__S3 >= OINF) return c->master->distance % 3 == 1;
   #if MAXMDIM == 4
   if(WDIM == 3) {
     if(geometry == gField435) return false;
@@ -1496,7 +1496,7 @@ EX bool pseudohept(cell *c) {
   if(INVERSE) return gp::inverse_pseudohept(c);
   if(GOLDBERG && gp_threecolor() == 2)
     return gp::pseudohept_val(c) == 0;
-  if(GOLDBERG && gp_threecolor() == 1 && (S7&1) && (S3 == 3))
+  if(GOLDBERG && gp_threecolor() == 1 && (S7&1) && (hr__S3 == 3))
     return gp::pseudohept_val(c) == 0;
   #endif
   return pattern_threecolor(c) == 0;
@@ -1514,7 +1514,7 @@ EX bool pseudohept_r(cell *c) {
 EX bool kraken_pseudohept(cell *c) {
   if(0);
   #if CAP_GP
-  else if(!meuclid && S3 == 4 && GOLDBERG && (gp::param.first % 2 || gp::param.second % 2 || S7 % 2))
+  else if(!meuclid && hr__S3 == 4 && GOLDBERG && (gp::param.first % 2 || gp::param.second % 2 || S7 % 2))
     return ishept(c);
   #endif
   #if CAP_IRR
@@ -1522,14 +1522,14 @@ EX bool kraken_pseudohept(cell *c) {
     return c->type != 6;
   #endif
   #if CAP_ARCM
-  else if(arcm::in() && PURE)
+  else if(arcm::in() && hr__PURE)
     return c->type != isize(arcm::current.triangles[0]);
   else if(arcm::in() && BITRUNCATED)
     return pseudohept(c);
   else if(arcm::in() && DUAL)
     return false;
   #endif
-  else if(!meuclid && S3 == 3 && !(S7&1) && gp_threecolor() == 1)
+  else if(!meuclid && hr__S3 == 3 && !(S7&1) && gp_threecolor() == 1)
     return ishept(c);
   else
     return pseudohept(c);
@@ -1786,7 +1786,7 @@ EX namespace ccolor {
     }, {});
   #endif
 
-  EX data zebra_pattern = data("zebra", [] { return stdhyperbolic || a4; }, CCO {
+  EX data zebra_pattern = data("zebra", [] { return stdhyperbolic || hr__a4; }, CCO {
     return cco.ctab[zebra40(c)];
     }, {0x1C0C0C0, 0x1E0E0E0, 0x404040, 0x606060 });
 
@@ -2226,7 +2226,7 @@ EX namespace patterns {
 
     dialog::addBoolItem(XLAT("cell types"), (whichPattern == PAT_TYPES), PAT_TYPES);
     
-    if(stdhyperbolic || a4)
+    if(stdhyperbolic || hr__a4)
       dialog::addBoolItem(XLAT("Zebra Pattern"), (whichPattern == PAT_ZEBRA), PAT_ZEBRA);
     
     if(stdhyperbolic)
@@ -2268,7 +2268,7 @@ EX namespace patterns {
     
     if((meuclid && whichPattern == PAT_COLORING) ||
       (a38 && whichPattern == PAT_COLORING) ||
-      (a4 && !BITRUNCATED && whichPattern == PAT_COLORING && !a46))
+      (hr__a4 && !BITRUNCATED && whichPattern == PAT_COLORING && !a46))
       dialog::addBoolItem(XLAT("edit all three colors"), subpattern_flags & SPF_ROT, '0');
 
     if(meuclid && whichPattern == PAT_COLORING)
@@ -2307,11 +2307,11 @@ EX namespace patterns {
     if(meuclid && among(whichPattern, PAT_COLORING, 0))
       dialog::addBoolItem(XLAT("full symmetry"), subpattern_flags & SPF_FULLSYM, '!');
 
-    if(a38 && PURE && whichPattern == PAT_TYPES) {
+    if(a38 && hr__PURE && whichPattern == PAT_TYPES) {
       dialog::addBoolItem(XLAT("extra symmetries"), subpattern_flags & SPF_EXTRASYM, '=');
       }
 
-    if(a46 && PURE && whichPattern == PAT_COLORING) {
+    if(a46 && hr__PURE && whichPattern == PAT_COLORING) {
       dialog::addBoolItem(XLAT("extra symmetries"), subpattern_flags & SPF_EXTRASYM, '=');
       }
 
@@ -2533,7 +2533,7 @@ EX namespace patterns {
           }
         dialog::addBoolItem(s, geometry == g.geo && variation == g.var && whichPattern == g.whichPattern && subpattern_flags == g.subpattern_flags, 'a'+j);
         }
-    bool have_goldberg = (S3 == 3 && among(cgroup, cpFootball, cpThree) && !meuclid);
+    bool have_goldberg = (hr__S3 == 3 && among(cgroup, cpFootball, cpThree) && !meuclid);
     bool have_variations = (among(cgroup, cpSingle, cpSingleSym) && !meuclid);
     if(!(S7&1) && BITRUNCATED) have_goldberg = false; // always start from pure
     if(have_goldberg) {
@@ -2694,7 +2694,7 @@ EX namespace linepatterns {
   linepattern patDual("dual grid", 0xFFFFFF00, always_available,
     ALLCELLS(
       forCellIdEx(c2, i, c) if(way(c,i)) {
-        if((patTriTree.color & 0xFF) || (PURE && (patTree.color & 0xFF))) {
+        if((patTriTree.color & 0xFF) || (hr__PURE && (patTree.color & 0xFF))) {
           cell *parent = ts::right_parent(c, curr_dist);
           if(c2 == parent) continue;
           cell *parent2 = ts::right_parent(c2, curr_dist);
@@ -2750,7 +2750,7 @@ EX namespace linepatterns {
        )
     );
 
-  linepattern patBigRings("big triangles: rings", 0x00606000, [] { return standard_tiling() && S3 == 3 && mod_allowed(); },
+  linepattern patBigRings("big triangles: rings", 0x00606000, [] { return standard_tiling() && hr__S3 == 3 && mod_allowed(); },
     ALLCELLS(
       if(is_master(c) && !meuclid) for(int i=0; i<S7; i++)
         if(c->master->move(i) && way(c->master, i) && c->master->move(i)->dm4 == c->master->dm4)
@@ -2820,8 +2820,8 @@ EX namespace linepatterns {
         
         double x = cgi.hexhexdist / 2; // msphere?.3651:meuclid?.2611:.2849;
         
-        gridlinef(V, ddspin(c,i,-M_PI/S3) * xpush0(x), 
-          ddspin(c,i,M_PI/S3) * xpush0(x), 
+        gridlinef(V, ddspin(c,i,-M_PI/hr__S3) * xpush0(x), 
+          ddspin(c,i,M_PI/hr__S3) * xpush0(x), 
           col, 1 + vid.linequality);
         }
       )

@@ -368,7 +368,7 @@ struct hrmap_quotient : hrmap_standard {
 
     int TOT = connections.size() / S7;
     // printf("heptagons = %d\n", TOT);
-    // printf("all cells = %d\n", TOT*(S7+S3)/S3);
+    // printf("all cells = %d\n", TOT*(S7+hr__S3)/hr__S3);
     if(!TOT) exit(1);
     allh.resize(TOT);
     for(int i=0; i<TOT; i++) allh[i] = init_heptagon(S7);

@@ -453,7 +453,7 @@ EX bool no_easy_spin() {
 
 EX bool never_invert;
 
-EX bool dont_inverse() { return never_invert || (PURE && cgi.emb->is_euc_in_noniso()); }
+EX bool dont_inverse() { return never_invert || (hr__PURE && cgi.emb->is_euc_in_noniso()); }
 
 ld hrmap_standard::spin_angle(cell *c, int d) {
   if(WDIM == 3) return SPIN_NOT_AVAILABLE;
@@ -570,7 +570,7 @@ EX hyperpoint randomPointIn(int t) {
   while(true) {
     hyperpoint h = xspinpush0(TAU * (randd()-.5)/t, asinh(randd()));
     double d =
-      PURE ? cgi.tessf : t == 6 ? cgi.hexhexdist : cgi.crossf;
+      hr__PURE ? cgi.tessf : t == 6 ? cgi.hexhexdist : cgi.crossf;
     if(hdist0(h) < hdist0(xpush(-d) * h))
       return spin(TAU / t * (rand() % t)) * h;
     }
@@ -595,7 +595,7 @@ hyperpoint hrmap_standard::get_corner(cell *c, int cid, ld cf) {
     return mid_at_actual(vs.vertices[cid], 3/cf);
     }
   #endif
-  if(PURE) {
+  if(hr__PURE) {
     if(cgi.emb->is_euc_in_noniso()) {
       return lspinpush0(spin_angle(c, cid) + M_PI/S7, cgi.hcrossf * 3 / cf);
       }
@@ -632,7 +632,7 @@ EX hyperpoint nearcorner(cell *c, int i) {
   #endif
   #if CAP_ARCM
   if(arcm::in()) {
-    if(PURE) { 
+    if(hr__PURE) { 
       auto &ac = arcm::current;
       auto& t = ac.get_triangle(c->master, i-1);
       int id = arcm::id_of(c->master);
@@ -747,7 +747,7 @@ EX hyperpoint farcorner(cell *c, int i, int which) {
   #endif
   #if CAP_ARCM
   if(arcm::in()) {
-    if(PURE) {
+    if(hr__PURE) {
       auto &ac = arcm::current;
       auto& t = ac.get_triangle(c->master, i-1);
       int id = arcm::id_of(c->master);
@@ -1049,8 +1049,8 @@ EX pathgen generate_random_path(cellwalker start, int length, bool for_yendor, b
         stupid:
         // stupid
         ycw += rev;
-        // well, make it a bit more clever on bitruncated a4 grids
-        if(a4 && BITRUNCATED && S7 <= 5) {
+        // well, make it a bit more clever on bitruncated hr__a4 grids
+        if(hr__a4 && BITRUNCATED && S7 <= 5) {
           if(ycw.at->type == 8 && ycw.cpeek()->type != 8)
             ycw++;
           if(hrand(100) < 10) {

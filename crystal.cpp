@@ -45,7 +45,7 @@ static constexpr ldcoord ldc0 = {};
  */
 
 EX bool pure() {
-  return PURE && ginf[gCrystal].vertex == 4;
+  return hr__PURE && ginf[gCrystal].vertex == 4;
   }
 
 EX bool view_coordinates = false;
@@ -734,7 +734,7 @@ EX color_t colorize(cell *c, char whichCanvas) {
   else if(euc::in()) {
     auto tab = euc::get_ispacemap()[c->master];
     for(int a=0; a<3; a++) co[a] = tab[a];
-    if(PURE) for(int a=0; a<3; a++) co[a] *= 2;
+    if(hr__PURE) for(int a=0; a<3; a++) co[a] *= 2;
     dim = 3;
     }
 

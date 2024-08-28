@@ -58,17 +58,19 @@ ifeq (${OS},linux)
   LDFLAGS_GLEW := -lGLEW
   LDFLAGS_PNG := -lpng
   LDFLAGS_SDL := -lSDL -lSDL_gfx -lSDL_mixer -lSDL_ttf -lpthread -lz
+  LDFLAGS_AP :=
   OBJ_EXTENSION := .o
   hyper_RES :=
 endif
 
 ifeq (${OS},mingw)
-  CXXFLAGS_EARLY += -DWINDOWS -mwindows -D_A_VOLID=8 -I/ucrt64/include/SDL
+  CXXFLAGS_EARLY += -DWINDOWS -mwindows -D_A_VOLID=8 -I/ucrt64/include/SDL -I${CURDIR}/submodules/apclientpp -I${CURDIR}/submodules/json/include -I${CURDIR}/submodules/valijson/include -I${CURDIR}/submodules/websocketpp -I${CURDIR}/submodules/wswrap/include -DASIO_STANDALONE
   EXE_EXTENSION := .exe
   LDFLAGS_GL := -lopengl32
   LDFLAGS_GLEW := -lglew32
   LDFLAGS_PNG := -lpng
   LDFLAGS_SDL := -lSDL -lSDL_gfx -lSDL_mixer -lSDL_ttf -lpthread -lz
+  LDFLAGS_AP := -lws2_32 -lssl -lcrypt32 -lcrypto
   OBJ_EXTENSION := .o
   hyper_RES := hyper.res
   ifeq (${HYPERROGUE_USE_GLEW},)
@@ -85,6 +87,7 @@ ifeq (${OS},osx)
   LDFLAGS_GLEW := -lGLEW
   LDFLAGS_PNG := -lpng
   LDFLAGS_SDL := -lSDL -lSDLMain -lSDL_gfx -lSDL_mixer -lSDL_ttf -lpthread -lz
+  LDFLAGS_AP :=
   OBJ_EXTENSION := .o
   hyper_RES :=
 endif
@@ -122,7 +125,7 @@ endif
 
 
 hyper_OBJS = hyper$(OBJ_EXTENSION)
-hyper_LDFLAGS = $(LDFLAGS_GL) $(LDFLAGS_SDL) $(LDFLAGS_SSL)
+hyper_LDFLAGS = $(LDFLAGS_GL) $(LDFLAGS_SDL) $(LDFLAGS_SSL) $(LDFLAGS_AP)
 
 ifeq (${HYPERROGUE_USE_GLEW},1)
   CXXFLAGS_EARLY += -DCAP_GLEW=1

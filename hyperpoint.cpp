@@ -1873,7 +1873,7 @@ EX ld inner3(hyperpoint h1, hyperpoint h2) {
   }
 
 #if MAXMDIM >= 4
-/** circumscribe for H3 and S3 (not for E3 yet!) */
+/** circumscribe for H3 and hr__S3 (not for E3 yet!) */
 EX hyperpoint circumscribe(hyperpoint a, hyperpoint b, hyperpoint c, hyperpoint d) {
   
   array<hyperpoint, 4> ds = { b-a, c-a, d-a, C0 };
