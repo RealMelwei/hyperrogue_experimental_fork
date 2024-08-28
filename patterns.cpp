@@ -1071,7 +1071,7 @@ EX int zebratable6[28][3] = {
 
 // rules for the emeraldvalues of heptagons.
 EX int zebra_heptagon(int parent, int dir) {
-  if(S3 == 4) {
+  if(hr__S3 == 4) {
     int mm = (parent % 10 + S7 - dir) % S7;
     int mv = parent / 10;
     // whichbright: d&1

@@ -844,7 +844,7 @@ EX namespace clearing {
       gen_alt_around(c);
     int d = celldistAlt(c);
     
-    if(PURE) {
+    if(hr__PURE) {
       forCellIdCM(c2, i, c) {
         if(!pseudohept(c2) && celldistAlt(c2) == d-1)
           return i;
@@ -1210,7 +1210,7 @@ EX namespace mirror {
         }
       return false;
       }
-    if(PURE?pseudohept(c):!ishept(c)) {
+    if(hr__PURE?pseudohept(c):!ishept(c)) {
       c->wall = hrand(2) ? waMirror : waCloud;
       return true;
       }
@@ -1383,17 +1383,17 @@ EX namespace mirror {
       return;
       }
     #endif
-    if(PURE && !(S7 & 1)) {
+    if(hr__PURE && !(S7 & 1)) {
       for(int i=0; i<cw.at->type; i++)
         createMirror(cw + i + wstep + 1 + wstep + 1 + (S7/2) - i, cpid);
       return;
       }
-    if(PURE && (S7 & 1) && (S3 == 4)) {
+    if(hr__PURE && (S7 & 1) && (hr__S3 == 4)) {
       for(int i=0; i<cw.at->type; i++) 
         createMirror(cw + i + wstep + 1 + wstep - (S7/2) + wstep - (S7/2) - i, cpid);
       return;
       }
-    if(PURE && (S7 & 1)) {
+    if(hr__PURE && (S7 & 1)) {
       for(int i=0; i<cw.at->type; i++)
         createMirror(cw + i + wstep + (S7/2) + wstep - 2 + wstep + (S7/2) - i, cpid);
       return;
@@ -1590,9 +1590,9 @@ EX namespace mirror {
           v.push_back(1);
           stepcount++; if(stepcount > 10000) { printf("failhep\n"); return cw; }
           }
-        if(PURE && (cw+wstep).at == cwcopy.at)
+        if(hr__PURE && (cw+wstep).at == cwcopy.at)
           v.pop_back();
-        if(PURE && (cw+3+wstep).at->land == laMirrored && (cw+2+wstep).at->land == laMirrorWall) {
+        if(hr__PURE && (cw+3+wstep).at->land == laMirrored && (cw+2+wstep).at->land == laMirrorWall) {
           cw += wmirror;
           auto p = traceback(v, cw);
           if(p.first) return p.second;
@@ -2100,7 +2100,7 @@ EX namespace heat {
       cell *c = playerpos(i);
       if(!c) continue;
       double xrate = (c->land == laCocytus && shmup::on) ? rate/3 : rate;
-      if(PURE) xrate *= 1.7; // todo-variation
+      if(hr__PURE) xrate *= 1.7; // todo-variation
       if(!shmup::on) xrate /= FIX94;
       if(isIcyLand(c))
         HEAT(c) += (markOrb(itOrbWinter) ? -1.2 : 1.2) * xrate;
@@ -2120,7 +2120,7 @@ EX namespace heat {
     for(int i=0; i<dcs; i++) {
       cell *c = allcells[i];
       double xrate = (c->land == laCocytus && shmup::on) ? 1/3. : 1;
-      if(PURE) xrate *= 1.7; // todo-variation
+      if(hr__PURE) xrate *= 1.7; // todo-variation
       if(!shmup::on) xrate /= FIX94;
       if(c->cpdist > gr && !doallhr) break;
   
@@ -2834,13 +2834,13 @@ EX namespace sword {
     #endif
     #if CAP_ARCM
     else if(arcm::in()) {
-      if(!PURE) possible_divisor((BITRUNCATED ? 2 : 1) * isize(arcm::current.faces));
+      if(!hr__PURE) possible_divisor((BITRUNCATED ? 2 : 1) * isize(arcm::current.faces));
       if(!DUAL) for(int f: arcm::current.faces) possible_divisor(f);
       }
     #endif
     else {
       possible_divisor(S7);
-      if(BITRUNCATED) possible_divisor(S3);
+      if(BITRUNCATED) possible_divisor(hr__S3);
       }
     }
   
@@ -3132,7 +3132,7 @@ EX namespace prairie {
       c->LHU.fi.rval = (y&15);
       }
     else if(sphere) {
-      c->LHU.fi.rval = celldistance(c, cwt.at) + 8 - (PURE ? 2 : 3);
+      c->LHU.fi.rval = celldistance(c, cwt.at) + 8 - (hr__PURE ? 2 : 3);
       }
     else if(weirdhyperbolic) {
       c->LHU.fi.rval = max(celldist(c), 15);
@@ -3194,8 +3194,8 @@ EX namespace prairie {
       }
     }
   
-  #define RLOW (sphere?(PURE?7:6):PURE?4:2)
-  #define RHIGH (sphere?(PURE?8:9):PURE?11:13)
+  #define RLOW (sphere?(hr__PURE?7:6):hr__PURE?4:2)
+  #define RHIGH (sphere?(hr__PURE?8:9):hr__PURE?11:13)
 
   EX int get_val(cell *c) {
     if(ls::hv_structure()) {
@@ -3394,7 +3394,7 @@ EX namespace prairie {
     else if(!enter && isriver(cwt.at)) enter = cwt.at;
     if(isize(tchoices)) {
       if(lasttreasure && lasttreasure->item == itGreenGrass) {
-        if(celldistance(lasttreasure, cwt.at) >= (PURE ? 7 : 10)) {
+        if(celldistance(lasttreasure, cwt.at) >= (hr__PURE ? 7 : 10)) {
           lasttreasure->item = itNone;
           forCellEx(c2, lasttreasure) if(c2->item == itGreenGrass) c2->item = itNone;
           }

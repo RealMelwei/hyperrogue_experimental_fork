@@ -13,7 +13,7 @@ namespace hr {
 EX int spherecells() {
   if(S7 == 5) return (elliptic?6:12);
   if(S7 == 4) return (elliptic?3:6);
-  if(S7 == 3 && S3 == 4) return (elliptic?4:8);
+  if(S7 == 3 && hr__S3 == 4) return (elliptic?4:8);
   if(S7 == 3) return 4;
   if(S7 == 2) return (elliptic?1:2);
   if(S7 == 1) return 1;
@@ -41,7 +41,7 @@ struct hrmap_spherical : hrmap_standard {
     else
       siblings = {1, 0, 3, 2, 5, 4};
     
-    if(S7 == 3 && S3 == 4) {
+    if(S7 == 3 && hr__S3 == 4) {
       for(int i=0; i<8; i++) {
         dodecahedron[i]->move(0) = dodecahedron[i^1];
         dodecahedron[i]->c.setspin(0, 0, false);
@@ -150,7 +150,7 @@ struct hrmap_spherical : hrmap_standard {
     for(int i=0; i<spherecells(); i++) for(int k=0; k<S7; k++) {
       heptspin hs(dodecahedron[i], k, false);
       heptspin hs2 = hs + wstep + (S7-1) + wstep + (S7-1) + wstep + (S7-1);
-      if(S3 == 4) hs2 = hs2 + wstep + (S7-1);
+      if(hr__S3 == 4) hs2 = hs2 + wstep + (S7-1);
       if(hs2.at != hs.at) printf("error %d,%d\n", i, k);
       }
     for(int i=0; i<spherecells(); i++) verifycells(dodecahedron[i]);

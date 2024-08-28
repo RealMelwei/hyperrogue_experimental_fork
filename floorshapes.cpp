@@ -140,7 +140,7 @@ matrixitem genitem(const transmatrix& m1, const transmatrix& m2, int nsym) {
   return mi;
   }
 
-bool do_kleinize() { return S3 >= OINF || (cgflags & qIDEAL); }
+bool do_kleinize() { return hr__S3 >= OINF || (cgflags & qIDEAL); }
 
 EX hyperpoint may_kleinize(hyperpoint h) { 
   if(do_kleinize()) return kleinize(h);
@@ -194,7 +194,7 @@ void generate_matrices_scale(ld scale, int noft) {
       }
     }
   else {
-    generate_matrices(hex_matrices, ohex, msh(geometry, S6, cgi.hexvdist, cgi.hexhexdist, cgi.hcrossf, (S3-3)*M_PI/S3, scale));
+    generate_matrices(hex_matrices, ohex, msh(geometry, S6, cgi.hexvdist, cgi.hexhexdist, cgi.hcrossf, (hr__S3-3)*M_PI/hr__S3, scale));
     generate_matrices(hept_matrices, ohept, msh(geometry, S7, cgi.rhexf, cgi.hcrossf, cgi.hcrossf, M_PI/S7, scale));
     }
   }
@@ -418,18 +418,18 @@ void geometry_information::generate_floorshapes_for(int id, cell *c, int siid, i
       
       for(int k=0; k<SIDEPARS; k++) sizeto(fsh.side[k], id);
       
-      ld td = (PURE && !(S7&1)) ? S42+S6 : 0;
+      ld td = (hr__PURE && !(S7&1)) ? S42+S6 : 0;
       if(&fsh == &shBigHepta) td += S6;
       
-      if(S3 >= OINF && !(S7 & 1)) td = S42 * 1. / S7;
+      if(hr__S3 >= OINF && !(S7 & 1)) td = S42 * 1. / S7;
     
       int b = 0;
-      if(S3 == 4 && BITRUNCATED) b += S14;
+      if(hr__S3 == 4 && BITRUNCATED) b += S14;
   
       if(id)
         bshape_regular(fsh, id, S7, td, heptside, c);
       
-      else if(PURE) {
+      else if(hr__PURE) {
         if(&fsh == &shTriheptaFloor)
           bshape_regular(fsh, 0, S7/2, 0, hexside, c);
         else if(&fsh == &shBigTriangle)
@@ -438,9 +438,9 @@ void geometry_information::generate_floorshapes_for(int id, cell *c, int siid, i
           bshape_regular(fsh, 0, S7, td, heptside, c);
         }
       else if(&fsh == &shBigTriangle) 
-        bshape_regular(fsh, 0, S3, b+S14, hexside, c);
+        bshape_regular(fsh, 0, hr__S3, b+S14, hexside, c);
       else if(&fsh == &shTriheptaFloor)
-        bshape_regular(fsh, 0, S3, b, hexside, c);
+        bshape_regular(fsh, 0, hr__S3, b, hexside, c);
       else 
         bshape_regular(fsh, 0, S6, S7, hexside, c);
     
@@ -616,7 +616,7 @@ void geometry_information::generate_floorshapes_for(int id, cell *c, int siid, i
     
     if(STDVAR && standard_tiling()) {
       generate_matrices_scale(fsh.scale, fsh.noftype);
-      if(PURE && geosupport_football() < 2) {
+      if(hr__PURE && geosupport_football() < 2) {
         bshape2(fsh.b[id], fsh.prio, fsh.shapeid2 ? fsh.shapeid2 : fsh.shapeid1, hept_matrices);
         }
       else {
@@ -624,7 +624,7 @@ void geometry_information::generate_floorshapes_for(int id, cell *c, int siid, i
         if(id == 1) bshape2(fsh.b[1], fsh.prio, fsh.shapeid1, hept_matrices);
         }
       generate_matrices_scale(fsh.scale * SHADMUL, fsh.noftype);
-      if(PURE && geosupport_football() < 2) {
+      if(hr__PURE && geosupport_football() < 2) {
         bshape2(fsh.shadow[id], fsh.prio, fsh.shapeid2 ? fsh.shapeid2 : fsh.shapeid1, hept_matrices);
         }
       else {
@@ -958,7 +958,7 @@ void geometry_information::generate_floorshapes() {
       }
     }
 
-  else if(PURE && geometry != gBinaryTiling && geosupport_football() < 2) {
+  else if(hr__PURE && geometry != gBinaryTiling && geosupport_football() < 2) {
     generate_floorshapes_for(0, &model, 1, 0);
     }
 
@@ -1145,7 +1145,7 @@ int hrmap_standard::shvid(cell *c) {
       }
     return t;
     }
-  else if(PURE)
+  else if(hr__PURE)
     return 0;
   else
     return ctof(c);
@@ -1182,7 +1182,7 @@ EX struct dqi_poly *draw_shapevec(cell *c, const shiftmatrix& V, const vector<hp
   #endif
   else if(GOLDBERG && ishex1(c)) 
     return &queuepolyat(V * pispin, shv[0], col, prio);
-  else if(!(S7&1) && PURE && !aperiodic && !a4) {
+  else if(!(S7&1) && hr__PURE && !aperiodic && !hr__a4) {
     auto si = patterns::getpatterninfo(c, patterns::PAT_COLORING, 0);
     if(si.id == 8) si.dir++;
     transmatrix D = applyPatterndir(c, si);

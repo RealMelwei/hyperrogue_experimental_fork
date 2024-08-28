@@ -955,7 +955,7 @@ void celldrawer::draw_halfvine() {
   for(int t=0;t<6; t++) if(c->move(t) && c->move(t)->wall == c->wall)
     i = t;
 
-  qfi.spin = ddspin(c, i, M_PI/S3);
+  qfi.spin = ddspin(c, i, M_PI/hr__S3);
   shiftmatrix V2 = V * qfi.spin;
   
   if(wmspatial && wmescher && GDIM == 2) {
@@ -1019,7 +1019,7 @@ void celldrawer::draw_mirrorwall() {
     onleft = !onleft;
   if(c->type == 6 && d != -1 && c->move(d)->barleft == laMirror)
     onleft = !onleft;
-  if(PURE) onleft = !onleft;
+  if(hr__PURE) onleft = !onleft;
   
   if(d == -1) {
     for(d=0; d<c->type; d++)
@@ -1029,16 +1029,16 @@ void celldrawer::draw_mirrorwall() {
     shiftmatrix V2 = V * qfi.spin;
     if(!wmblack) for(int d=0; d<c->type; d++) {
       inmirrorcount+=d;
-      queuepolyat(V2 * spin(d*M_PI/S3), cgi.shHalfFloor[2], darkena(fcol, fd, 0xFF), PPR::FLOORa);
+      queuepolyat(V2 * spin(d*M_PI/hr__S3), cgi.shHalfFloor[2], darkena(fcol, fd, 0xFF), PPR::FLOORa);
       #if MAXMDIM >= 4
       if(GDIM == 3 && camera_level > cgi.WALL && pmodel == mdPerspective)
-        queuepolyat(V2 * spin(d*M_PI/S3), cgi.shHalfFloor[5], darkena(fcol, fd, 0xFF), PPR::FLOORa);
+        queuepolyat(V2 * spin(d*M_PI/hr__S3), cgi.shHalfFloor[5], darkena(fcol, fd, 0xFF), PPR::FLOORa);
       #endif
       inmirrorcount-=d;
       }          
     if(GDIM == 3) {
       for(int d=0; d<6; d++)
-        queue_transparent_wall(V2 * spin(d*M_PI/S3), cgi.shHalfMirror[2], 0xC0C0C080);
+        queue_transparent_wall(V2 * spin(d*M_PI/hr__S3), cgi.shHalfMirror[2], 0xC0C0C080);
       }
     else if(wmspatial) {
       const int layers = 2 << detaillevel;
@@ -1607,10 +1607,10 @@ void celldrawer::draw_features() {
       #if MAXMDIM >= 4
       if(GDIM == 3)
         for(int a=0; a<10; a++)
-        queuepoly(V * lzpush(cgi.FLOOR + (cgi.WALL - cgi.FLOOR) * a/10.) * spin(a *degree) * spintick(PURE ? -1000 : -500, 1/12.), cgi.shFan, darkena(wcol, 0, 0xFF));
+        queuepoly(V * lzpush(cgi.FLOOR + (cgi.WALL - cgi.FLOOR) * a/10.) * spin(a *degree) * spintick(hr__PURE ? -1000 : -500, 1/12.), cgi.shFan, darkena(wcol, 0, 0xFF));
       else
       #endif
-        queuepoly(V * spintick(PURE ? -1000 : -500, 1/12.), cgi.shFan, darkena(wcol, 0, 0xFF));
+        queuepoly(V * spintick(hr__PURE ? -1000 : -500, 1/12.), cgi.shFan, darkena(wcol, 0, 0xFF));
       break;
     
     case waArrowTrap:
@@ -2637,7 +2637,7 @@ void celldrawer::add_map_effects() {
           ld airdir = calcAirdir(c2); // printf("airdir = %d\n", airdir);
           transmatrix V0 = ddspin180(c, i);
           
-          double ph = ptick(PURE?150:75) + airdir;
+          double ph = ptick(hr__PURE?150:75) + airdir;
           
           int aircol = 0x8080FF00 | int(32 + 32 * -cos(ph));
           
@@ -2694,7 +2694,7 @@ void celldrawer::add_map_effects() {
       ld hdir1 = currentmap->spin_angle(c, whirlwind::dto[i]);
       /* todo what if no spin_angle */
   
-      double ph1 = fractick(PURE ? 150 : 75);
+      double ph1 = fractick(hr__PURE ? 150 : 75);
       
       int aircol = 0xC0C0FF40;
       
@@ -2707,7 +2707,7 @@ void celldrawer::add_map_effects() {
       double ldist = 
         cellgfxdist(c, whirlwind::dfrom[i]) * (1-ph1)/2 + 
         cellgfxdist(c, whirlwind::dto[i]) * ph1/2; 
-      // PURE ? cgi.crossf : c->type == 6 ? .2840 : 0.3399;
+      // hr__PURE ? cgi.crossf : c->type == 6 ? .2840 : 0.3399;
   
       poly_outline = OUTLINE_TRANS;
       queuepoly(Vd*V0*xpush(ldist*(2*ph1-1)), cgi.shDisk, aircol);
@@ -2740,7 +2740,7 @@ void celldrawer::draw_bowpath() {
       t1 = ddspin(c, m.next.spin) * xpush(d) * xtangent(-d*2);
       }
 
-    ld t = frac(ptick(PURE?500:250));
+    ld t = frac(ptick(hr__PURE?500:250));
 
     color_t arrow_color = getcs().swordcolor;
 
@@ -3065,7 +3065,7 @@ void celldrawer::set_towerfloor(const cellfunction& cf) {
     if(i == 9) j = 4;
     if(i == 10) j = 5;
     if(i == 13) j = 6;
-    if(PURE) {
+    if(hr__PURE) {
       if(i == 7) j = 7;
       if(i == 11) j = 8;
       if(i == 15) j = 9;
@@ -3090,7 +3090,7 @@ void celldrawer::set_zebrafloor() {
   auto si = patterns::getpatterninfo(c, patterns::PAT_ZEBRA, patterns::SPF_SYM0123);
   
   int j;
-  if(PURE) j = 4;
+  if(hr__PURE) j = 4;
   else if(si.id >=4 && si.id < 16) j = 2;
   else if(si.id >= 16 && si.id < 28) j = 1;
   else if(si.id >= 28 && si.id < 40) j = 3;

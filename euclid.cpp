@@ -661,7 +661,7 @@ EX namespace euc {
     for(int i=0; i<4; i++) swap(M[i][0], M[i][1]);
     }
   
-  gp::loc ort1() { return (S3 == 3 ? gp::loc(1, -2) : gp::loc(0, 1)); }
+  gp::loc ort1() { return (hr__S3 == 3 ? gp::loc(1, -2) : gp::loc(0, 1)); }
 
   int diagonal_cross(const coord& a, const coord& b) {
     return a[0]*b[1] + a[1]*b[2] + a[2]*b[0]
@@ -869,12 +869,12 @@ EX namespace euc {
     }
   
   EX torus_config rectangular_torus(int x, int y, bool klein) { 
-    if(S3 == 3) y /= 2;
+    if(hr__S3 == 3) y /= 2;
     return { on_periods(ort1() * gp::loc(y,0), gp::loc(x,0)), klein?8:0 };
     }
   
   void torus_config_option(string name, char key, torus_config tc) {
-    dialog::addBoolItem(name, eu_edit.user_axes == tc.user_axes && eu_edit.twisted == tc.twisted && PURE, key);
+    dialog::addBoolItem(name, eu_edit.user_axes == tc.user_axes && eu_edit.twisted == tc.twisted && hr__PURE, key);
     dialog::add_action([tc] {
       stop_game();
       eu_input = eu_edit = tc;
@@ -988,8 +988,8 @@ EX namespace euc {
       torus_config_option(XLAT("Klein bottle"), 'C', rectangular_torus(12, 6, true));
       torus_config_option(XLAT("cylinder"), 'D', rectangular_torus(6, 0, false));
       torus_config_option(XLAT("Möbius band"), 'E', rectangular_torus(6, 0, true));
-      if(S3 == 3) torus_config_option(XLAT("seven-colorable torus"), 'F', regular_torus(gp::loc{1,2}));
-      if(S3 == 3) torus_config_option(XLAT("HyperRogue classic torus"), 'G', single_row_torus(381, -22));
+      if(hr__S3 == 3) torus_config_option(XLAT("seven-colorable torus"), 'F', regular_torus(gp::loc{1,2}));
+      if(hr__S3 == 3) torus_config_option(XLAT("HyperRogue classic torus"), 'G', single_row_torus(381, -22));
       torus_config_option(XLAT("no quotient"), 'H', rectangular_torus(0, 0, false));
       }
       
@@ -1136,7 +1136,7 @@ EX namespace euc {
   #endif
 
 EX int dscalar(gp::loc e1, gp::loc e2) {
-  return 2 * (e1.first * e2.first + e1.second*e2.second) + (S3 == 3 ? e1.first*e2.second + e2.first * e1.second : 0);
+  return 2 * (e1.first * e2.first + e1.second*e2.second) + (hr__S3 == 3 ? e1.first*e2.second + e2.first * e1.second : 0);
   }
 
 EX int dsquare(gp::loc e) { return dscalar(e, e)/2; }
@@ -1207,7 +1207,7 @@ EX transmatrix eumove(coord co) {
     return eupush3(co[0], co[1], co[2]);
     }
   transmatrix Mat = Id;
-  if(a4) {
+  if(hr__a4) {
     Mat[0][2] += co[0] * cgi.tessf;
     Mat[1][2] += co[1] * cgi.tessf;
     }
@@ -1228,8 +1228,8 @@ EX bool chiral(gp::loc g) {
   if(y == 0) return false;
   if(x+y == 0) return false;
   if(x==y) return false;
-  if(S3 == 3 && y == -2*x) return false;
-  if(S3 == 3 && x == -2*y) return false;
+  if(hr__S3 == 3 && y == -2*x) return false;
+  if(hr__S3 == 3 && x == -2*y) return false;
   return true;
   }
 
@@ -1248,9 +1248,9 @@ EX void twist_once(gp::loc coo) {
 EX int dist(int sx, int sy, bool reduce IS(true)) {
   int z0 = abs(sx);
   int z1 = abs(sy);
-  if(a4 && BITRUNCATED)
+  if(hr__a4 && BITRUNCATED)
     return (z0 == z1 && z0 > 0 && !reduce) ? z0+1: max(z0, z1);
-  if(a4) return z0 + z1;
+  if(hr__a4) return z0 + z1;
   int z2 = abs(sx+sy);
   return max(max(z0,z1), z2);
   }
@@ -1365,7 +1365,7 @@ EX void generate() {
  */
 EX bool in() { 
   if(fake::in()) return FPIU(in()); 
-  if(geometry == gCubeTiling && (reg3::cubes_reg3 || !PURE)) return false;
+  if(geometry == gCubeTiling && (reg3::cubes_reg3 || !hr__PURE)) return false;
   if(cgflags & qEXPERIMENTAL) return false;
   return meuclid && standard_tiling();
   }

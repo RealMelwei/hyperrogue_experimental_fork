@@ -125,11 +125,11 @@ void addMessage(string s, char spamtype = 0);
 #define cginf ginf[geometry]
 
 #define S7 cginf.sides
-#define S3 cginf.vertex
-#define hyperbolic_37 (S7 == 7 && S3 == 3 && !bt::in() && !arcm::in())
-#define hyperbolic_not37 ((S7 > 7 || S3 > 3 || bt::in() || arcm::in()) && hyperbolic)
-#define weirdhyperbolic ((S7 > 7 || S3 > 3 || !STDVAR || bt::in() || arcm::in() || arb::in()) && hyperbolic)
-#define stdhyperbolic (S7 == 7 && S3 == 3 && STDVAR && !bt::in() && !arcm::in() && !arb::in())
+#define hr__S3 cginf.vertex
+#define hyperbolic_37 (S7 == 7 && hr__S3 == 3 && !bt::in() && !arcm::in())
+#define hyperbolic_not37 ((S7 > 7 || hr__S3 > 3 || bt::in() || arcm::in()) && hyperbolic)
+#define weirdhyperbolic ((S7 > 7 || hr__S3 > 3 || !STDVAR || bt::in() || arcm::in() || arb::in()) && hyperbolic)
+#define stdhyperbolic (S7 == 7 && hr__S3 == 3 && STDVAR && !bt::in() && !arcm::in() && !arb::in())
 
 #define cgflags cginf.flags 
 
@@ -177,24 +177,24 @@ void addMessage(string s, char spamtype = 0);
 
 #define sphere_narcm (sphere && !arcm::in())
 
-#define a4 (S3 == 4)
-#define a45 (S3 == 4 && S7 == 5)
-#define a46 (S3 == 4 && S7 == 6)
-#define a47 (S3 == 4 && S7 == 7)
-#define a457 (S3 == 4 && S7 != 6)
-#define a467 (S3 == 4 && S7 >= 6)
-#define a38 (S3 == 3 && S7 == 8)
+#define hr__a4 (hr__S3 == 4)
+#define a45 (hr__S3 == 4 && S7 == 5)
+#define a46 (hr__S3 == 4 && S7 == 6)
+#define a47 (hr__S3 == 4 && S7 == 7)
+#define a457 (hr__S3 == 4 && S7 != 6)
+#define a467 (hr__S3 == 4 && S7 >= 6)
+#define a38 (hr__S3 == 3 && S7 == 8)
 #define sphere4 (sphere && S7 == 4)
 #define stdeuc (geometry == gNormal || geometry == gEuclid || geometry == gEuclidSquare)
 #define smallsphere (sphere_narcm && S7 < 5)
 #define bigsphere (sphere_narcm && S7 == 5)
 
-#define S6 (S3*2)
+#define S6 (hr__S3*2)
 #define MAX_S3 4
 
-#define SG6 (S3==3?6:4)
-#define SG3 (S3==3?3:2)
-#define SG2 (S3==3?2:1)
+#define SG6 (hr__S3==3?6:4)
+#define SG3 (hr__S3==3?3:2)
+#define SG2 (hr__S3==3?2:1)
 
 #define GOLDBERG_INV (GOLDBERG || INVERSE)
 
@@ -207,14 +207,14 @@ void addMessage(string s, char spamtype = 0);
 
 #define GOLDBERG (variation == eVariation::goldberg)
 #define IRREGULAR (variation == eVariation::irregular)
-#define PURE (variation == eVariation::pure)
+#define hr__PURE (variation == eVariation::pure)
 #define BITRUNCATED (variation == eVariation::bitruncated)
 #define DUAL (variation == eVariation::dual)
 #define DUALMUL (DUAL ? 2 : 1)
 
 #define CHANGED_VARIATION (variation != cginf.default_variation)
 
-#define STDVAR (PURE || BITRUNCATED)
+#define STDVAR (hr__PURE || BITRUNCATED)
 #define NONSTDVAR (!STDVAR)
 
 #define VALENCE current_valence()

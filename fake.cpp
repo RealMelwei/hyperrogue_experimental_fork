@@ -30,8 +30,8 @@ EX namespace fake {
   
   EX bool available() {
     if(in()) return true;
-    if(WDIM == 2 && standard_tiling() && (PURE || BITRUNCATED)) return true;
-    if(arcm::in() && PURE) return true;
+    if(WDIM == 2 && standard_tiling() && (hr__PURE || BITRUNCATED)) return true;
+    if(arcm::in() && hr__PURE) return true;
     if(hat::in()) return true;
     if(WDIM == 2) return false;
     if(among(geometry, gBitrunc3)) return false;
@@ -155,9 +155,9 @@ EX namespace fake {
       transmatrix S1, S2;
       ld dist;
       #if MAXMDIM >= 4
-      bool impure = reg3::in() && !PURE;
+      bool impure = reg3::in() && !hr__PURE;
       #else
-      bool impure = !PURE;
+      bool impure = !hr__PURE;
       #endif
       vector<int> mseq;
       if(impure) {
@@ -397,7 +397,7 @@ EX namespace fake {
       if(WDIM == 2)
         return to_other_side(get_corner(c, i), get_corner(c, i+1));
       #if MAXMDIM >= 4
-      if(PURE) return iadj(c, i);      
+      if(hr__PURE) return iadj(c, i);      
       auto& v = get_cellshape(c).faces_local[i];
       hyperpoint h = 
         project_on_triangle(v[0], v[1], v[2]);
@@ -572,7 +572,7 @@ EX ld around_orig() {
   #endif
   if(hat::in()) return 6;
   if(WDIM == 2)
-    return S3;
+    return hr__S3;
   if(underlying == gRhombic3)
     return 3;
   if(underlying == gBitrunc3)

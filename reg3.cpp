@@ -133,7 +133,7 @@ EX namespace reg3 {
 
   EX bool in() {
     if(fake::in()) return FPIU(in());
-    if(geometry == gCubeTiling && (cubes_reg3 || !PURE)) return true;
+    if(geometry == gCubeTiling && (cubes_reg3 || !hr__PURE)) return true;
     return WDIM == 3 && !euclid && !bt::in() && !nonisotropic && !mhybrid && !kite::in();
     }
 
@@ -766,7 +766,7 @@ EX namespace reg3 {
       }
 
     subcellshape& get_cellshape(cell *c) override {
-      if(PURE) return *cgi.heptshape ;
+      if(hr__PURE) return *cgi.heptshape ;
       int id = local_id.at(c).second;
       return cgi.subshapes[id];
       }
@@ -799,7 +799,7 @@ EX namespace reg3 {
   #endif
 
   transmatrix hrmap_closed3::ray_iadj(cell *c, int i) {
-    if(PURE) return iadj(c, i);
+    if(hr__PURE) return iadj(c, i);
     auto& v = get_face_vertices(c, i); 
     hyperpoint h = 
       project_on_triangle(v[0], v[1], v[2]);
@@ -808,7 +808,7 @@ EX namespace reg3 {
     }
   
   int hrmap_closed3::wall_offset(cell *c) {
-    if(PURE) return 0;
+    if(hr__PURE) return 0;
     auto& wo = cgi.walloffsets[ local_id.at(c).second ];
     if(wo.second == nullptr)
       wo.second = c;
@@ -1127,7 +1127,7 @@ EX namespace reg3 {
     void create_patterns() {
       DEBB(DF_GEOM, ("creating pattern = ", isize(allh)));
       
-      if(!PURE) {
+      if(!hr__PURE) {
          println(hlog, "create_patterns not implemented");
          return;
          }
@@ -1345,39 +1345,39 @@ EX namespace reg3 {
       }
 
     transmatrix relative_matrixc(cell *c2, cell *c1, const hyperpoint& hint) override {
-      if(PURE) return relative_matrix(c2->master, c1->master, hint);
+      if(hr__PURE) return relative_matrix(c2->master, c1->master, hint);
       return relative_matrix_via_masters(c2, c1, hint);
       }
 
     transmatrix master_relative(cell *c, bool get_inverse) override {
-      if(PURE) return Id;
+      if(hr__PURE) return Id;
       int aid = cell_id.at(c);
       return quotient_map->master_relative(quotient_map->acells[aid], get_inverse);
       }
 
     int shvid(cell *c) override {
-      if(PURE) return 0;
+      if(hr__PURE) return 0;
       if(!cell_id.count(c)) return quotient_map->shvid(c);
       int aid = cell_id.at(c);
       return quotient_map->shvid(quotient_map->acells[aid]);
       }
 
     int wall_offset(cell *c) override {
-      if(PURE) return 0;
+      if(hr__PURE) return 0;
       if(!cell_id.count(c)) return quotient_map->wall_offset(c); /* necessary because ray samples are from quotient_map */
       int aid = cell_id.at(c);
       return quotient_map->wall_offset(quotient_map->acells[aid]);
       }
 
     transmatrix adj(cell *c, int d) override {
-      if(PURE) return adj(c->master, d);
+      if(hr__PURE) return adj(c->master, d);
       if(!cell_id.count(c)) return quotient_map->adj(c, d); /* necessary because ray samples are from quotient_map */
       int aid = cell_id.at(c);
       return quotient_map->tmatrices_cell[aid][d];
       }
 
     subcellshape& get_cellshape(cell *c) override {
-      if(PURE) return *cgi.heptshape;
+      if(hr__PURE) return *cgi.heptshape;
       int aid = cell_id.at(c);
       return quotient_map->get_cellshape(quotient_map->acells[aid]);
       }
@@ -1397,7 +1397,7 @@ EX namespace reg3 {
       }
 
     void find_cell_connection(cell *c, int d) override {
-      if(PURE) {
+      if(hr__PURE) {
         auto h = c->master->cmove(d);
         c->c.connect(d, h->c7, c->master->c.spin(d), false);
         return;
@@ -1412,7 +1412,7 @@ EX namespace reg3 {
       }
 
     transmatrix ray_iadj(cell *c, int i) override {
-      if(PURE) return iadj(c, i);
+      if(hr__PURE) return iadj(c, i);
       if(!cell_id.count(c)) return quotient_map->ray_iadj(c, i); /* necessary because ray samples are from quotient_map */
       int aid = cell_id.at(c);
       return quotient_map->ray_iadj(quotient_map->acells[aid], i);
@@ -1425,11 +1425,11 @@ EX namespace reg3 {
 
     cellwalker strafe(cellwalker cw, int j) override {
 
-      int aid = PURE ? cw.at->master->fieldval : cell_id.at(cw.at);
+      int aid = hr__PURE ? cw.at->master->fieldval : cell_id.at(cw.at);
       auto ress = quotient_map->strafe(cellwalker(quotient_map->acells[aid], cw.spin), j);
       cellwalker res = cellwalker(cw.at->cmove(j), ress.spin);
 
-      if(PURE && strafe_test) {
+      if(hr__PURE && strafe_test) {
         hyperpoint hfront = tC0(cgi.adjmoves[cw.spin]);
         cw.at->cmove(j);
         transmatrix T = currentmap->adj(cw.at, j);
@@ -1437,7 +1437,7 @@ EX namespace reg3 {
           if(hdist(hfront, T * tC0(cgi.adjmoves[i])) < cgi.strafedist + .01) {
             auto resx = cellwalker(cw.at->cmove(j), i);
             if(res == resx) return res;
-            if(PURE && res != resx) println(hlog, "h3: ", res, " vs ", resx);
+            if(hr__PURE && res != resx) println(hlog, "h3: ", res, " vs ", resx);
             }
         throw hr_exception("incorrect strafe");
         }
@@ -1464,7 +1464,7 @@ EX namespace reg3 {
       origin = init_heptagon(S7);
       heptagon& h = *origin;
       h.s = hsOrigin;
-      if(PURE) h.c7 = newCell(S7, origin);
+      if(hr__PURE) h.c7 = newCell(S7, origin);
       worst_error1 = 0, worst_error2 = 0;
       
       dynamicval<hrmap*> cr(currentmap, this);
@@ -1492,7 +1492,7 @@ EX namespace reg3 {
       reg_gmatrix[origin] = make_pair(alt, T);
       altmap[alt].emplace_back(origin, T);
 
-      if(PURE) {
+      if(hr__PURE) {
         celllister cl(origin->c7, 4, 100000, NULL);
         for(cell *c: cl.lst) {
           hyperpoint h = tC0(relative_matrix(c->master, origin, C0));
@@ -1500,7 +1500,7 @@ EX namespace reg3 {
           }
         }
 
-      if(!PURE) get_cell_at(origin, 0);
+      if(!hr__PURE) get_cell_at(origin, 0);
       }
     
     ld worst_error1, worst_error2;
@@ -1638,7 +1638,7 @@ EX namespace reg3 {
         }
       #endif
       heptagon *created = init_heptagon(S7);
-      if(PURE && parent->c7) created->c7 = newCell(S7, created);
+      if(hr__PURE && parent->c7) created->c7 = newCell(S7, created);
       #if CAP_FIELD
       if(quotient_map) {
         created->emeraldval = fv;
@@ -1757,7 +1757,7 @@ EX namespace reg3 {
   EX int get_aid(cell *c) {
     auto m = dynamic_cast<hrmap_h3*> (currentmap);
     if(!m) throw hr_exception("get_aid incorrect");
-    if(PURE) return c->master->fieldval;
+    if(hr__PURE) return c->master->fieldval;
     return m->cell_id[c];
     }
 
@@ -2053,13 +2053,13 @@ EX namespace reg3 {
       heptagon& h = *origin;
       h.s = hsOrigin;
       h.fiftyval = root[0];
-      if(PURE) h.c7 = newCell(S7, origin);
+      if(hr__PURE) h.c7 = newCell(S7, origin);
       
       emerald_map = gen_quotient_map(false, currfp);
 
       h.emeraldval = 0;
       
-      if(!PURE) get_cell_at(origin, 0);
+      if(!hr__PURE) get_cell_at(origin, 0);
       }
     
     int connection(int fv, int d) override {
@@ -2149,7 +2149,7 @@ EX namespace reg3 {
         
       if(id1 != -1) {
         res = init_heptagon(S7);
-        if(PURE && parent->c7)
+        if(hr__PURE && parent->c7)
           res->c7 = newCell(S7, res);
         res->fieldval = fv;
         res->distance = parent->distance + 1;
@@ -2562,7 +2562,7 @@ EX bool in_hrmap_rule_or_subrule() {
   }
 
 EX bool exact_rules() {
-  if(PURE) return in_hrmap_rule_or_subrule();
+  if(hr__PURE) return in_hrmap_rule_or_subrule();
   return dynamic_cast<hrmap_h3_subrule*> (currentmap);
   }
 
@@ -2623,7 +2623,7 @@ EX int celldistance(cell *c1, cell *c2) {
   if(c1 == currentmap->gamestart()) return c2->master->distance;
   if(c2 == currentmap->gamestart()) return c1->master->distance;
   
-  if(geometry == gSpace534 && PURE) return celldistance_534(c1, c2);
+  if(geometry == gSpace534 && hr__PURE) return celldistance_534(c1, c2);
 
   auto r = hypmap();
 

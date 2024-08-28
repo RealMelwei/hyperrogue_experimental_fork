@@ -1277,7 +1277,7 @@ template<class T> void do_swords(movei mi, eMonster who, const T& f) {
     f(st, bb);
     if(sf != st && !isNeighbor(sf,st)) {
       // also attack the in-transit cell
-      if(S3 == 3) {
+      if(hr__S3 == 3) {
         forCellEx(sb, sf) if(isNeighbor(sb, st) && sb != mi.s && sb != mi.t) f(sb, bb);
         }
       else {

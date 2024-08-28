@@ -136,7 +136,7 @@ EX void welcomeMessage() {
     if(hybrid::underlying == gNormal && BITRUNCATED)
       addMessage(XLAT("Hint: this is more playable with pure {7,3} or pure {5,4}"));
     }
-  else if(PURE && geometry == gNormal && !cheater)
+  else if(hr__PURE && geometry == gNormal && !cheater)
     addMessage(XLAT("Welcome to the Heptagonal Mode!"));
   else if(cheater || autocheat)
     addMessage(XLAT("Welcome to HyperRogue! (cheat mode on)"));
@@ -1469,7 +1469,7 @@ EX void set_geometry(eGeometry target) {
     if(IRREGULAR) variation = eVariation::bitruncated;
     #endif
     #if CAP_GP
-    if(GOLDBERG && gp::param == gp::loc(1,1) && S3 == 3) {
+    if(GOLDBERG && gp::param == gp::loc(1,1) && hr__S3 == 3) {
       variation = eVariation::bitruncated;
       }
     if(GOLDBERG && nonorientable) {
@@ -1482,7 +1482,7 @@ EX void set_geometry(eGeometry target) {
     #if CAP_BT
     if(bt::in() || WDIM == 3 || aperiodic || arb::in()) if(!mhybrid) variation = eVariation::pure;
     #endif
-    if(S3 >= OINF) variation = eVariation::pure;
+    if(hr__S3 >= OINF) variation = eVariation::pure;
     if(INVERSE && !mhybrid) variation = gp::variation_for(gp::param);
     if(ginf[target].default_variation == eVariation::pure && geometry != gArchimedean && !mhybrid)
       variation = eVariation::pure;

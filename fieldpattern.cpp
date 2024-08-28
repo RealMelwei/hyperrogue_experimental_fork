@@ -706,7 +706,7 @@ int fpattern::solve() {
         for(auto& X: all_isometries) 
           if(check_order(X, rotations))
             for(auto& Y: all_isometries)
-              if(check_order(Y, 2) && check_order(mmul(X, Y), S3)) {
+              if(check_order(Y, 2) && check_order(mmul(X, Y), hr__S3)) {
                 R = X; P = Y;
                 return 0;
                 }
@@ -736,7 +736,7 @@ int fpattern::solve() {
       R[0][0] = cs; R[1][1] = cs;
       R[0][1] = sn; R[1][0] = sub(0, sn);
       
-      if(!check_order(R, dual ? S3 : rotations)) continue;
+      if(!check_order(R, dual ? hr__S3 : rotations)) continue;
       
       if(R[0][0] == 1) continue;
       
@@ -750,7 +750,7 @@ int fpattern::solve() {
         P[WDIM][0] = sh;
         P[WDIM][WDIM] = ch;
         
-        if(!check_order(mmul(P, R), dual ? rotations : S3)) continue;
+        if(!check_order(mmul(P, R), dual ? rotations : hr__S3)) continue;
         
         if(dual) R = mmul(P, R);
         
@@ -833,7 +833,7 @@ vector<triplet_info> fpattern::find_triplets() {
   
   for(int i: conjugacy_classes) if(gorder(i) == S7) {
     DEBB(DF_FIELD, ("checking i=", i));
-    for(int j=1; j<N; j++) if(gorder(j) == 2 && gorder(gmul(i, j)) == S3) {
+    for(int j=1; j<N; j++) if(gorder(j) == 2 && gorder(gmul(i, j)) == hr__S3) {
       auto t = compute_transcript(i, j);    
       if(!transcripts_seen.count(t)) {
         transcripts_seen.insert(t);
@@ -966,7 +966,7 @@ int fpattern::dijkstra(vector<char>& dists, vector<int> indist[MAXDIST]) {
       dists[at] = i;
       if(WDIM == 3)
         indist[i+1].push_back(gmul(at, local_group));
-      else if(PURE) // todo-variation: PURE here?
+      else if(hr__PURE) // todo-variation: hr__PURE here?
         indist[i+1].push_back(connections[at]);
       else {
         indist[i+2].push_back(connections[at]);
@@ -1108,7 +1108,7 @@ void fpattern::analyze() {
       W = mmul(Wall, W);
       }
     }
-  dijkstra(PURE ? distriver : distflower, indist);
+  dijkstra(hr__PURE ? distriver : distflower, indist);
   
   W = matrices[riverid];
   for(int i=0; i<wallorder; i++) {
@@ -1130,7 +1130,7 @@ void fpattern::analyze() {
     SETDIST(W, 1, itGold)
     W = mmul(W, Wall);
     }
-  int riverdist = dijkstra(PURE ? distflower : distriver, indist);
+  int riverdist = dijkstra(hr__PURE ? distflower : distriver, indist);
   DEBB(DF_FIELD, ("river dist = %d\n", riverdist));
   
   for(int i=0; i<isize(matrices); i++)
@@ -1139,7 +1139,7 @@ void fpattern::analyze() {
       break;
       }
   
-  if(!PURE) {
+  if(!hr__PURE) {
     W = matrices[riverid];
     for(int i=0; i<wallorder; i++) {
       SETDIST(W, 0, itStatue)
@@ -1416,24 +1416,24 @@ EX struct fpattern& getcurrfp() {
     DEBB(DF_FIELD, ("set prime = ", fp.Prime));
     return fp;
     }
-  if(S7 == 8 && S3 == 3 && !bt::in()) {
+  if(S7 == 8 && hr__S3 == 3 && !bt::in()) {
     static fpattern fp(17);
     return fp;
     }
-  if(S7 == 5 && S3 == 4 && !bt::in()) {
+  if(S7 == 5 && hr__S3 == 4 && !bt::in()) {
     static fpattern fp(11);
     return fp;
     }
-  if(S7 == 6 && S3 == 4 && !bt::in()) {
+  if(S7 == 6 && hr__S3 == 4 && !bt::in()) {
     static fpattern fp(13);
     return fp;
     }
-  if(S7 == 7 && S3 == 4 && !bt::in()) {
+  if(S7 == 7 && hr__S3 == 4 && !bt::in()) {
     static fpattern fp(13);
     return fp;
     }
   if(sphere || euclid) return fp_invalid;
-  if(S7 == 7 && S3 == 3 && !bt::in()) {
+  if(S7 == 7 && hr__S3 == 3 && !bt::in()) {
     if(!fp43) fp43 = new fpattern(43);
     return *fp43;
     }

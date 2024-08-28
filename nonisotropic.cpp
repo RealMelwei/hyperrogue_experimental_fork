@@ -1227,7 +1227,7 @@ EX namespace hybrid {
       }
     
     EX int get_shift(cellwalker cw0) {
-      if(S3 >= OINF) return 0;
+      if(hr__S3 >= OINF) return 0;
       auto& v = get_shift_current(cw0);
       if(v != SHIFT_UNKNOWN) return v;
       
@@ -1271,7 +1271,7 @@ EX namespace hybrid {
       }  
     
     EX void ensure_shifts(cell *c) {
-      if(S3 >= OINF) return;
+      if(hr__S3 >= OINF) return;
       if(!make_shift(c)[c->type]) return;
       forCellEx(c1, c)
       for(int a=0; a<c->type; a++) {
@@ -1531,7 +1531,7 @@ EX namespace hybrid {
     });
   
   EX vector<pair<int, cell*>> gen_sample_list() {
-    if(!mhybrid && WDIM != 2 && PURE)
+    if(!mhybrid && WDIM != 2 && hr__PURE)
       return {make_pair(0, centerover), make_pair(centerover->type, nullptr)};
     vector<pair<int, cell*>> result;
     for(auto& v: cgi.walloffsets) if(v.first >= 0) result.push_back(v);
@@ -2339,7 +2339,7 @@ EX namespace rots {
       dynamicval<bool> pf(playerfound, true);
       dynamicval<cell*> m5(centerover, co);
       dynamicval<transmatrix> m2(View, inprod ? pView : ypush(0) * qtm(h));
-      if(PURE && !inprod) View = View * pispin;
+      if(hr__PURE && !inprod) View = View * pispin;
       View = inverse(stretch::mstretch_matrix) * spin(2*d) * View;
       dynamicval<shiftmatrix> m3(playerV, shiftless(Id));
       dynamicval<transmatrix> m4(actual_view_transform, Id);
@@ -2431,7 +2431,7 @@ EX namespace rots {
 #endif
 EX }
 
-/** stretched rotation space (S3 or SLR) */
+/** stretched rotation space (hr__S3 or SLR) */
 EX namespace stretch {
 
   EX ld factor;

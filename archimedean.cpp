@@ -773,7 +773,7 @@ struct hrmap_archimedean : hrmap {
       int id = id_of(h);
       int S = isize(current.triangles[id]);
   
-      if(id < 2*current.N ? !DUAL : !PURE) {
+      if(id < 2*current.N ? !DUAL : !hr__PURE) {
         if(!do_draw(h->c7, V)) continue;
         drawcell(h->c7, V);
         }
@@ -781,7 +781,7 @@ struct hrmap_archimedean : hrmap {
       for(int i=0; i<S; i++) {
         if(DUAL && (i&1)) continue;
         h->cmove(i);
-        if(PURE && id >= 2*current.N && h->move(i) && id_of(h->move(i)) >= 2*current.N) continue;
+        if(hr__PURE && id >= 2*current.N && h->move(i) && id_of(h->move(i)) >= 2*current.N) continue;
         shiftmatrix V1 = V * current.adjcell_matrix(h, i);
         optimize_shift(V1);
         dq::enqueue(h->move(i), V1);
@@ -818,7 +818,7 @@ struct hrmap_archimedean : hrmap {
       
   ld spin_angle(cell *c, int d) override {
     auto &cof = current_or_fake();
-    if(PURE) {
+    if(hr__PURE) {
       auto& t1 = cof.get_triangle(c->master, d-1);
       return -(t1.first + M_PI / c->type);
       }
@@ -833,7 +833,7 @@ struct hrmap_archimedean : hrmap {
     }
 
   void find_cell_connection(cell *c, int d) override {
-    if(PURE) {
+    if(hr__PURE) {
       if(arcm::id_of(c->master) < arcm::current.N * 2) {
         heptspin hs = heptspin(c->master, d) + wstep + 2 + wstep + 1;
         c->c.connect(d, hs.at->c7, hs.spin, hs.mirrored);
@@ -867,7 +867,7 @@ struct hrmap_archimedean : hrmap {
 
   hyperpoint get_corner(cell *c, int cid, ld cf) override {
     auto &ac = arcm::current_or_fake();
-    if(PURE) {
+    if(hr__PURE) {
       if(arcm::id_of(c->master) >= ac.N*2) return C0;
       auto& t = ac.get_triangle(c->master, cid-1);
       return xspinpush0(-t.first, t.second * 3 / cf * (ac.real_faces == 0 ? 0.999 : 1));
@@ -1165,7 +1165,7 @@ EX bool pseudohept(cell *c) {
   if(DUAL)
     return !(c->master->rval0 & 3);
   int id = id_of(c->master);
-  if(PURE) 
+  if(hr__PURE) 
     return current.flags[id] & arcm::sfPH;
   if(BITRUNCATED)
     return id < current.N * 2;
@@ -1185,7 +1185,7 @@ EX bool linespattern(cell *c) {
 EX int threecolor(cell *c) {
   if(current.have_ph)
     return !arcm::pseudohept(c);
-  else if(PURE)
+  else if(hr__PURE)
     return current.tilegroup[id_of(c->master)];
   else {
     int id = id_of(c->master);
@@ -1311,7 +1311,7 @@ bool symbol_editing;
 
 EX void next_variation() {
   set_variation(
-    PURE ? eVariation::dual :
+    hr__PURE ? eVariation::dual :
     DUAL ? eVariation::bitruncated : 
     eVariation::pure);
   start_game();
@@ -1607,7 +1607,7 @@ bool archimedean_tiling::get_step_values(int& steps, int& single_step) {
   }
 
 EX int valence() {
-  if(PURE) return arcm::current.N;
+  if(hr__PURE) return arcm::current.N;
   if(BITRUNCATED) return 3;
   // in DUAL, usually valence would depend on the vertex.
   // 3 is the most interesting, as it allows us to kill hedgehog warriors

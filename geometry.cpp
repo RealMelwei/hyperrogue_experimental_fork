@@ -640,10 +640,10 @@ void geometry_information::prepare_basics() {
     goto finish;
     }
   
-  s3 = S3;
+  s3 = hr__S3;
   if(fake::in() && !arcm::in()) s3 = fake::around;
   
-  beta = (S3 >= OINF && !fake::in()) ? 0 : TAU/s3;
+  beta = (hr__S3 >= OINF && !fake::in()) ? 0 : TAU/s3;
 
   tessf = euclid ? 1 : edge_of_triangle_with_angles(beta, M_PI/S7, M_PI/S7);
   
@@ -651,7 +651,7 @@ void geometry_information::prepare_basics() {
   
   hcrossf = euclid ? tessf / 2 / sin(M_PI/s3) : edge_of_triangle_with_angles(90._deg, M_PI/S7, beta/2);
   
-  if(S3 >= OINF) hcrossf = 10;
+  if(hr__S3 >= OINF) hcrossf = 10;
 
   crossf = BITRUNCATED ? hcrossf : tessf;
   
@@ -666,8 +666,8 @@ void geometry_information::prepare_basics() {
     if(fake::in() && WDIM == 2) {
       hexvdist = hdist(xpush0(f), xspinpush0(ALPHA/2, hcrossf));
       v2 = hdist(
-        spin(90._deg/S3) * xpush0(hexvdist),
-        spin(-90._deg/S3) * xpush0(hexvdist)
+        spin(90._deg/hr__S3) * xpush0(hexvdist),
+        spin(-90._deg/hr__S3) * xpush0(hexvdist)
         );
       
       v1 = hdist(
@@ -817,10 +817,10 @@ void geometry_information::prepare_basics() {
     if(0) ;
     #endif
     else {
-      single_step = S3 * S7 - 2 * S7 - 2 * S3;
+      single_step = hr__S3 * S7 - 2 * S7 - 2 * hr__S3;
       psl_steps = 2 * S7;    
-      if(BITRUNCATED) psl_steps *= S3;
-      if(inv) psl_steps = 2 * S3;
+      if(BITRUNCATED) psl_steps *= hr__S3;
+      if(inv) psl_steps = 2 * hr__S3;
       if(single_step < 0) single_step = -single_step;
       }
     DEBB(DF_GEOM | DF_POLY, ("steps = ", psl_steps, " / ", single_step));
@@ -1266,7 +1266,7 @@ EX string cgi_string() {
   
   if(mproduct) V("PL", fts(vid.plevel_factor));
 
-  if(geometry == gFieldQuotient) { V("S3=", its(S3)); V("S7=", its(S7)); }
+  if(geometry == gFieldQuotient) { V("hr__S3=", its(hr__S3)); V("S7=", its(S7)); }
   if(nil) V("NIL", its(S7));
   
   if(bt::in()) V("BT", fts(vid.binary_width));

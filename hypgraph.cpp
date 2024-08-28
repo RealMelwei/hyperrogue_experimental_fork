@@ -1979,7 +1979,7 @@ void hrmap::draw_at(cell *at, const shiftmatrix& where) {
   }
 
 void hrmap_standard::draw_at(cell *at, const shiftmatrix& where) {
-  if(S3 > 4) {
+  if(hr__S3 > 4) {
     hrmap::draw_at(at, where);
     return;
     }
@@ -2507,7 +2507,7 @@ EX transmatrix atscreenpos(ld x, ld y, ld size) {
     V[0][0] = size * 2 * cgi.hcrossf / cgi.crossf;
     V[1][1] = size * 2 * cgi.hcrossf / cgi.crossf;
     V[2][2] = current_display->radius;
-    if(S3 >= OINF) V[0][0] /= 5, V[1][1] /= 5;
+    if(hr__S3 >= OINF) V[0][0] /= 5, V[1][1] /= 5;
     }
 
   return V;

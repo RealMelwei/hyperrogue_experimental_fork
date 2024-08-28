@@ -3002,7 +3002,7 @@ the interesting (adult) part quickly)
 - water etc and land barriers are now drawn as transparent walls
 - improved which 'circles' are drawn
 - Great Walls and horospheres in H3 geometries
-- set the S3 parameter in 3D geometries to the smallest loop, so that it tells whether hedgehogs can be killed
+- set the hr__S3 parameter in 3D geometries to the smallest loop, so that it tells whether hedgehogs can be killed
 - new 3D geometry: 'triangles on horospheres'
 - improved sightrange change dialog; in standard mode, monster action depends on whether they are drawn. Automatically adjust monster generation based on the number of generated cells.
 - Orb of the Sword and Mirage Clouds work in 3D shmup (Mirrors work too but they start weirdly)
@@ -4048,7 +4048,7 @@ Bugfixes:
 - Reptile counters are now reset when fast creatures move over them
 
 Geometries:
-- primitive-based rendering in stretched S3 and SL geometries (replacing the old SL renderer)
+- primitive-based rendering in stretched hr__S3 and SL geometries (replacing the old SL renderer)
 - period can now be changed in rotation spaces, e.g. to obtain SL or the universal cover
 - fixed a crash when walking over a hyperbolic digon in Archimedean tiling
 - fixed a crash in untruncated sphere
@@ -4873,7 +4873,7 @@ Bug fixes:
 - shallow water is no longer glitched when the 3D settings are illegal
 
 Further improvements to the "3D style" (embed 2D in a 3D geometry) feature:
-- four new embeddings of Euclidean space: Clifford torus (S3), product space (H2xR, S2xR), and SL2
+- four new embeddings of Euclidean space: Clifford torus (hr__S3), product space (H2xR, S2xR), and SL2
 - Hypersian Rug options are now linked in 3D settings
 - fixed movement animations
 - better diagnostics when an embedding does not work

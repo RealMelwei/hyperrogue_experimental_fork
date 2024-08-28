@@ -306,7 +306,7 @@ void geometry_information::bshape(hpcshape& sh, PPR prio, double shzoom, int sha
       if(euclid) shzoomx *= .9, shzoomy *= .9, bonus += .3;
       }
     if(rots == 3) {
-      rots2 = S3;
+      rots2 = hr__S3;
       shzoomx *= bscale6;
       shzoomy *= bscale6;
       if(S6 == 8) bonus += .4;
@@ -371,7 +371,7 @@ template<class... T> ld grot(bool geometry, ld factor, T... t) {
   }
 
 #if HDR
-#define SHADMUL (S3==4 ? 1.05 : 1.3)
+#define SHADMUL (hr__S3==4 ? 1.05 : 1.3)
 #endif
 
 void geometry_information::make_sidewalls() {
@@ -485,7 +485,7 @@ void geometry_information::procedural_shapes() {
   hpcpush(ddi(0, -zhexf*2.4) * TC0);
 
   bshape(shMirror, PPR::WALL);
-  if(PURE) {
+  if(hr__PURE) {
     for(int t=0; t<=S7; t++) hpcpush(ddi(t*12, floorrad1*7/8) * TC0);
     }
   else {
@@ -508,7 +508,7 @@ void geometry_information::procedural_shapes() {
   else {
     ld rad0 = floorrad0, rad1 = floorrad1;
     if(kite::in()) rad0 /= 2, rad1 /= 2;
-    if(S3 >= OINF) rad0 = rad1 = zhexf;
+    if(hr__S3 >= OINF) rad0 = rad1 = zhexf;
     bshape(shWall[0], PPR::WALL);
     for(int t=0; t<=S6; t++) {
       hpcpush(ddi(S7 + t*S14, rad0) * TC0);
@@ -861,7 +861,7 @@ void geometry_information::procedural_shapes() {
     hpc.push_back(hpc[last->s]);
     }
 
-  bshape(shSwitchDisk, PPR::FLOOR); for(int i=0; i<=S84; i+=S3) hpcpush(ddi(i, .06) * TC0);
+  bshape(shSwitchDisk, PPR::FLOOR); for(int i=0; i<=S84; i+=hr__S3) hpcpush(ddi(i, .06) * TC0);
   }
 
 vector<ld> equal_weights(1000, 1);
@@ -1022,7 +1022,7 @@ void geometry_information::create_wall3d() {
     walloffsets.clear();
     }
 
-  else if(reg3::in() && !PURE) {
+  else if(reg3::in() && !hr__PURE) {
     int tot = 0;
     for(auto& ss: cgi.subshapes) tot += isize(ss.faces);
     reserve_wall3d(tot);
@@ -1090,8 +1090,8 @@ void geometry_information::configure_floorshapes() {
 
   double spherezoom = sphere ? 1.2375 : 1;
 
-  double trihepta0 = spherezoom*(.2776+p) * gsca(a4, 1.3, a46, .975, a47, .85, a38, .9) * bscale6;
-  double trihepta1 = (sphere ? .54 : spherezoom*(.5273-2*p)) * gsca(a4, .8, a46, 1.075, sphere4, 1.3) * bscale7;
+  double trihepta0 = spherezoom*(.2776+p) * gsca(hr__a4, 1.3, a46, .975, a47, .85, a38, .9) * bscale6;
+  double trihepta1 = (sphere ? .54 : spherezoom*(.5273-2*p)) * gsca(hr__a4, .8, a46, 1.075, sphere4, 1.3) * bscale7;
 
   double eps = hexhexdist * .05;
   if(euclid) trihepta0 = hexhexdist * .5 - eps * sqrt(3)/2, trihepta1 = hexhexdist * sqrt(3)/2 - eps; // .5-.1; .75-.05
@@ -1139,10 +1139,10 @@ void geometry_information::prepare_shapes() {
     else SD3 = SD7 = 4;
     }
   else {
-    SD3 = S3;
+    SD3 = hr__S3;
     SD7 = S7;
     }
-  if(S3 >= OINF) {
+  if(hr__S3 >= OINF) {
     SD3 = 3;
     SD7 = 9;
     }
@@ -1182,18 +1182,18 @@ void geometry_information::prepare_shapes() {
     }
   else {
     dynamicval<int> d(vid.texture_step, max(vid.texture_step, 4));
-    ld len6 = hdist0(mid(xpush0(hexvdist), spin(M_PI/S3) * xpush0(hexvdist)));
+    ld len6 = hdist0(mid(xpush0(hexvdist), spin(M_PI/hr__S3) * xpush0(hexvdist)));
 
     ld len7 = hdist0(mid(xpush0(hexf), spin(TAU/S7) * xpush0(hexf)));
     ld hlen7 = hdist0(mid(xpush0(hcrossf), spin(TAU/S7) * xpush0(hcrossf)));
 
-    ld lenx = hdist(xpush0(hexvdist), spin(M_PI/S3) * xpush0(hexvdist));
+    ld lenx = hdist(xpush0(hexvdist), spin(M_PI/hr__S3) * xpush0(hexvdist));
     ld hlenx = hdist(xpush0(hcrossf), spin(TAU/S7) * xpush0(hcrossf));
 
     bshape(shHalfMirror[2], PPR::WALL);
     hpcpush(C0); hpcpush(xpush0(-len6*scalefactor));  chasmifyPoly(FLOOR, WALL, 0);
     bshape(shHalfMirror[1], PPR::WALL);
-    if(PURE) {
+    if(hr__PURE) {
       hpcpush(xpush0(-hlen7)); hpcpush(xpush0(hcrossf+hlenx/2));  chasmifyPoly(FLOOR, WALL, 0);
       }
     else {
@@ -1324,7 +1324,7 @@ void geometry_information::prepare_shapes() {
   if(sphere) krsc *= 1.4;
   if(S7 ==8) krsc *= 1.3;
 
-  if(PURE && !euc::in(2,4)) {
+  if(hr__PURE && !euc::in(2,4)) {
     tentacle_length = 1.52;
     bshape(shSeaTentacle, PPR::TENTACLE1, 1, 245);
     }
@@ -1337,7 +1337,7 @@ void geometry_information::prepare_shapes() {
     bshape(shSeaTentacle, PPR::TENTACLE1, scalefactor, 246);
     }
   ld ksc = (!BITRUNCATED ? 1.8 : 1.5) * scalefactor * krsc;
-  if(euc::in(2,4) && PURE) ksc *= .5;
+  if(euc::in(2,4) && hr__PURE) ksc *= .5;
   bshape(shKrakenHead, PPR::ONTENTACLE, ksc, 247);
   bshape(shKrakenEye, PPR::ONTENTACLE_EYES, ksc, 248);
   bshape(shKrakenEye2, PPR::ONTENTACLE_EYES2, ksc, 249);
@@ -1371,7 +1371,7 @@ void geometry_information::prepare_shapes() {
 
   for(int i=0; i<5; i++)
     for(int j=0; j<4; j++)
-      bshape(shReptile[i][j], j >= 2 ? PPR::LIZEYE : j == 1 ? PPR::FLOORa : PPR::FLOOR_DRAGON, (hyperbolic && S3 == 3 && S7 == 7 && BITRUNCATED) ? 1 : scalefactor * gsca(euclid, 1.16), 277+i*4+j); // todo
+      bshape(shReptile[i][j], j >= 2 ? PPR::LIZEYE : j == 1 ? PPR::FLOORa : PPR::FLOOR_DRAGON, (hyperbolic && hr__S3 == 3 && S7 == 7 && BITRUNCATED) ? 1 : scalefactor * gsca(euclid, 1.16), 277+i*4+j); // todo
 
   finishshape();
 

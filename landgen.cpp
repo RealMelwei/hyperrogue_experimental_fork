@@ -148,7 +148,7 @@ EX void createArrowTrapAt(cell *c, eLand land) {
 EX eMonster emerald_monster() {
   static eMonster emeraldmonsters[4] = { moHedge, moLancer, moFlailer, moMiner };
   eMonster m = emeraldmonsters[hrand(4)];
-  if(m == moHedge && (S3 != 3 || (mhybrid && !mproduct)))
+  if(m == moHedge && (hr__S3 != 3 || (mhybrid && !mproduct)))
     m = moFlailer;
   return m;
   }
@@ -198,7 +198,7 @@ EX bool is_zebra_trapdoor(cell *c) {
   else if(arb::in() && arb::current.have_line)
     return arb::linespattern(c);
   #if MAXMDIM >= 4
-  else if(PURE && reg3::exact_rules()) switch(geometry) {
+  else if(hr__PURE && reg3::exact_rules()) switch(geometry) {
     case gSpace534: {
       if(c->master->fieldval == 0) return true;
       return false;
@@ -455,7 +455,7 @@ EX void giantLandSwitch(cell *c, int d, cell *from) {
           if(gs == 3) {
             if(mhybrid) place_random_gate_continuous(c);
             else
-              c->wall = PURE ? waOpenGate : waClosedGate;
+              c->wall = hr__PURE ? waOpenGate : waClosedGate;
             }
           if(gs == 4 && hrand(100) < 40 && !reptilecheat)
             c->wall = waClosePlate;
@@ -483,7 +483,7 @@ EX void giantLandSwitch(cell *c, int d, cell *from) {
           bool lookingForPrincess = !euclid && c->master->alt && !princess::challenge && !ls::hv_structure();
           
           bool pgate = false;
-          if(PURE || GOLDBERG) {
+          if(hr__PURE || GOLDBERG) {
             int i = fiftyval049(c->master->c7);
             if(i >= 8 && i <= 14 && !polarb50(c->master->c7)) pgate = true;
             if(GOLDBERG) {
@@ -532,9 +532,9 @@ EX void giantLandSwitch(cell *c, int d, cell *from) {
               }
             }
           else if(c->wall == waPalace) ;
-          else if((hrand(100) < (lookingForPrincess ? (PURE ? 11 : 7) : 5) && cdist50(c)) ||
+          else if((hrand(100) < (lookingForPrincess ? (hr__PURE ? 11 : 7) : 5) && cdist50(c)) ||
             (cdist50(c) == 0 && polarb50(c) && hrand(100) < 60)) {
-            c->wall = hrand(100) < (lookingForPrincess ? (PURE ? 25 : 30):50) ? waClosePlate : waOpenPlate;
+            c->wall = hrand(100) < (lookingForPrincess ? (hr__PURE ? 25 : 30):50) ? waClosePlate : waOpenPlate;
             }
           else if(hrand(100) < (lookingForPrincess ? 3 : 5))
             c->wall = waTrapdoor;
@@ -551,7 +551,7 @@ EX void giantLandSwitch(cell *c, int d, cell *from) {
           // no Opening Plates nearby
           if(d <= 7 && c->wall == waOpenPlate && BITRUNCATED)
             c->wall = waNone;
-          if(d <= 7 && c->wall == waClosePlate && PURE)
+          if(d <= 7 && c->wall == waClosePlate && hr__PURE)
             c->wall = waOpenPlate;
           // no monsters nearby
           if(d>0) c->monst = moNone;
@@ -656,7 +656,7 @@ EX void giantLandSwitch(cell *c, int d, cell *from) {
             c->wall = waCavewall;
           else c->wall = waCavefloor;
           }
-        else if(a4 || arcm::in() || cryst || bt::in() || S3 >= OINF)
+        else if(hr__a4 || arcm::in() || cryst || bt::in() || hr__S3 >= OINF)
           c->wall = hrand(100) < 50 ? waCavefloor : waCavewall;
         else if(!BITRUNCATED && geometry != gOctagon) {
           if(polarb50(c)) 
@@ -677,7 +677,7 @@ EX void giantLandSwitch(cell *c, int d, cell *from) {
         c->monst = moSeep;
     
       ONEMPTY {
-        if(hrand(PURE?400:1000) < PT(100 + 2 * (kills[moMiner] + kills[moLancer] + kills[moFlailer]), 200) && notDippingFor(itEmerald)) {
+        if(hrand(hr__PURE?400:1000) < PT(100 + 2 * (kills[moMiner] + kills[moLancer] + kills[moFlailer]), 200) && notDippingFor(itEmerald)) {
           // do not destroy walls!
           bool ok = true;
           for(int i=0; i<c->type; i++) if(c->move(i)->wall == waCavewall) ok = false;
@@ -836,7 +836,7 @@ EX void giantLandSwitch(cell *c, int d, cell *from) {
           }
         else if(WDIM == 3 && hyperbolic && !bt::in())
           c->wall = (c->master->zebraval & 2) ? waVinePlant : waNone;
-        else if(a4 || sphere || arcm::in() || bt::in() || S3 >= OINF)
+        else if(hr__a4 || sphere || arcm::in() || bt::in() || hr__S3 >= OINF)
           c->wall = hrand(100) < 50 ? waNone : waVinePlant;
         else {
           int v = emeraldval(c);
@@ -1450,12 +1450,12 @@ EX void giantLandSwitch(cell *c, int d, cell *from) {
             }
           }
         else if(randstorm) ;
-        else if(PURE) {
+        else if(hr__PURE) {
           int i = zebra40(c);
           if((i == 5 || i == 8) && hrand(100) < 20) c->wall = hrand(2) ? waCharged : waGrounded;
           else if(i == 15) c->wall = waSandstone;
           }
-        else if(S3 > 3) {
+        else if(hr__S3 > 3) {
           int z = zebra40(c);
           int i = z;
           int b = 0;
@@ -1640,7 +1640,7 @@ EX void giantLandSwitch(cell *c, int d, cell *from) {
 
     case laHell:      
       if(fargen) {
-        if(hrand(1000) < (PURE ? 16 : 36) && celldist(c) >= 3) {
+        if(hrand(1000) < (hr__PURE ? 16 : 36) && celldist(c) >= 3) {
           for(int i=0; i<c->type; i++) {
             cell *c2 = createMov(c, i);
             setdist(c2, d+1, c);
@@ -1692,7 +1692,7 @@ EX void giantLandSwitch(cell *c, int d, cell *from) {
     
     case laHive:
       if(fargen) {
-        if(hrand(2000) < (ls::tame_chaos() ? 1000 : (PURE && !ls::any_chaos()) ?200: ls::any_chaos() ? 10 : ls::horodisk_structure() ? 50 : ls::hv_structure() ? 10 : 2) && !safety)
+        if(hrand(2000) < (ls::tame_chaos() ? 1000 : (hr__PURE && !ls::any_chaos()) ?200: ls::any_chaos() ? 10 : ls::horodisk_structure() ? 50 : ls::hv_structure() ? 10 : 2) && !safety)
           hive::createBugArmy(c);
         if(hrand_monster(20000) < 10 && ls::horodisk_structure()) c->monst = moPirate;
         if(hrand(2000) < 100 && !c->wall && !c->item && !c->monst) {
@@ -1924,14 +1924,14 @@ EX void giantLandSwitch(cell *c, int d, cell *from) {
       if(d == 7 && c->wall == waNone)
         buildPrizeMirror(c, 1000);    
       ONEMPTY {
-        if(hrand_monster((doCross && celldist(c) <= 5) ?450:16000) < 30+items[itRedGem]+yendor::hardness() && !pseudohept(c) && !c->monst && !c->wall && !(!BITRUNCATED && S3==4)) {
+        if(hrand_monster((doCross && celldist(c) <= 5) ?450:16000) < 30+items[itRedGem]+yendor::hardness() && !pseudohept(c) && !c->monst && !c->wall && !(!BITRUNCATED && hr__S3==4)) {
           int i = -1;
           for(int t=0; t<c->type; t++) if(c->move(t)->mpdist > c->mpdist && !pseudohept(c->move(t)))
             i = t;
           if(i != -1 && !peace::on) 
             generateSnake(c, i, 1);
           }
-        else if(hrand_monster(16000) < 50+items[itRedGem]+yendor::hardness() && (PURE?hrand(10)<3:!ishept(c)) && !c->monst)
+        else if(hrand_monster(16000) < 50+items[itRedGem]+yendor::hardness() && (hr__PURE?hrand(10)<3:!ishept(c)) && !c->monst)
           c->monst = moRedTroll,
           c->mondir = NODIR;
         }
@@ -2440,7 +2440,7 @@ EX void giantLandSwitch(cell *c, int d, cell *from) {
           else
             si.id = arcm::in() ? (hrand(6)*4) : (zebra40(c)&2) ? 0 : zebra40(c) == 4 ? 8 : 1;
           c->wall = waSea;
-          if(among(si.id, 0, 4, 16, PURE ? -1 : 24))
+          if(among(si.id, 0, 4, 16, hr__PURE ? -1 : 24))
             c->wall = waDock;
           if(si.id == 8 && hrand(100) < 75) {
             c->wall = waBoat;
@@ -3190,7 +3190,7 @@ EX void setdist(cell *c, int d, cell *from) {
 
   callhandlers(false, hooks_cellgen, c, d, from);
 
-  if(PURE && c->wall == waMirrorWall && c->land == laMirror)
+  if(hr__PURE && c->wall == waMirrorWall && c->land == laMirror)
     c->land = laMirrorWall; // , c->item = itPirate; // not really a proper bugfix
 
   if(d == 7) playSeenSound(c);

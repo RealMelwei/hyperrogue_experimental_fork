@@ -297,7 +297,7 @@ void hrmap_standard::find_cell_connection(cell *c, int d) {
     hybrid::link();
     }
   #endif
-  else if(PURE) {
+  else if(hr__PURE) {
     hrmap::find_cell_connection(c, d);
     }
   else if(c == c->master->c7) {
@@ -593,7 +593,7 @@ EX void initcells() {
   #if CAP_BT
   else if(bt::in()) currentmap = bt::new_map();
   #endif
-  else if(S3 >= OINF) currentmap = inforder::new_map();
+  else if(hr__S3 >= OINF) currentmap = inforder::new_map();
   else currentmap = new hrmap_hyperbolic;
   
   allmaps.push_back(currentmap);
@@ -730,15 +730,15 @@ EX void verifycells(heptagon *at) {
 
 EX int compdist(int dx[]) {
   int mi = dx[0];
-  for(int u=0; u<S3; u++) mi = min(mi, dx[u]);
-  for(int u=0; u<S3; u++) 
+  for(int u=0; u<hr__S3; u++) mi = min(mi, dx[u]);
+  for(int u=0; u<hr__S3; u++) 
     if(dx[u] > mi+2)
       return -1; // { printf("cycle error!\n"); exit(1); }
-  for(int u=0; u<S3; u++) 
+  for(int u=0; u<hr__S3; u++) 
     if(dx[u] == mi+2)
       return mi+1;
   int cnt = 0;
-  for(int u=0; u<S3; u++) 
+  for(int u=0; u<hr__S3; u++) 
     if(dx[u] == mi) cnt++;
   if(cnt < 2)
     return mi+1;
@@ -766,7 +766,7 @@ EX int celldist(cell *c) {
   if(GOLDBERG) return gp::compute_dist(c, celldist);
   #endif
   int dx[MAX_S3];
-  for(int u=0; u<S3; u++)
+  for(int u=0; u<hr__S3; u++)
     dx[u] = createMov(c, u+u)->master->distance;
   return compdist(dx);
   }
@@ -818,16 +818,16 @@ EX int celldistAlt(cell *c) {
     }
   #endif
   int dx[MAX_S3]; dx[0] = 0;
-  for(int u=0; u<S3; u++) if(createMov(c, u+u)->master->alt == NULL)
+  for(int u=0; u<hr__S3; u++) if(createMov(c, u+u)->master->alt == NULL)
     return ALTDIST_UNKNOWN;
-  for(int u=0; u<S3; u++)
+  for(int u=0; u<hr__S3; u++)
     dx[u] = createMov(c, u+u)->master->alt->distance;
   // return compdist(dx); -> not OK because of boundary conditions
   int mi = dx[0];
-  for(int i=1; i<S3; i++) mi = min(mi, dx[i]);
-  for(int i=0; i<S3; i++) if(dx[i] > mi+2)
+  for(int i=1; i<hr__S3; i++) mi = min(mi, dx[i]);
+  for(int i=0; i<hr__S3; i++) if(dx[i] > mi+2)
     return ALTDIST_BOUNDARY; // { printf("cycle error!\n"); exit(1); }
-  for(int i=0; i<S3; i++) if(dx[i] == mi+2)
+  for(int i=0; i<hr__S3; i++) if(dx[i] == mi+2)
     return mi+1;
   return mi;
   }
@@ -1117,7 +1117,7 @@ cdata *getHeptagonCdata(heptagon *h) {
   
   cdata mydata = *getHeptagonCdata(h->cmove(dir));
 
-  if(S3 >= OINF) {
+  if(hr__S3 >= OINF) {
     setHeptagonRval(h);
     affect(mydata, h->rval0, 1); 
     }
@@ -1145,7 +1145,7 @@ cdata *getHeptagonCdata(heptagon *h) {
       affect(mydata, ws == NOWALLSEP_SWAP ? hs.at->master->rval1 : hs.at->master->rval0, 1);
       }
     }
-  else if(S3 == 4) {
+  else if(hr__S3 == 4) {
     heptspin hs(h, 0);
     while(dmeq((hs+1).cpeek()->dm4, (hs.at->dm4 - 1))) hs = hs + 1 + wstep + 1;
     while(dmeq((hs-1).cpeek()->dm4, (hs.at->dm4 - 1))) hs = hs - 1 + wstep - 1;
@@ -1436,7 +1436,7 @@ EX int celldistance(cell *c1, cell *c2) {
   if(mhybrid) return hybrid::celldistance(c1, c2);
   
   #if CAP_FIELD
-  if(geometry == gFieldQuotient && (PURE || BITRUNCATED)) {
+  if(geometry == gFieldQuotient && (hr__PURE || BITRUNCATED)) {
     int d = fieldpattern::field_celldistance(c1, c2);
     if(d != DISTANCE_UNKNOWN) return d;
     }
@@ -1455,7 +1455,7 @@ EX int celldistance(cell *c1, cell *c2) {
   if(arcm::in() || quotient || sn::in() || (aperiodic && euclid) || experimentalhr || sl2 || nil || arb::in()) 
     return clueless_celldistance(c1, c2);
    
-   if(S3 >= OINF) return inforder::celldistance(c1, c2);
+   if(hr__S3 >= OINF) return inforder::celldistance(c1, c2);
 
   #if CAP_BT && MAXMDIM >= 4
   if(bt::in() && WDIM == 3) 
@@ -1585,7 +1585,7 @@ struct adj_data {
 EX array<map<cell*, vector<adj_data>>, 2> adj_memo;
 
 EX bool geometry_has_alt_mine_rule() {
-  if(S3 >= OINF) return false;
+  if(hr__S3 >= OINF) return false;
   if(aperiodic) return true;
   if(WDIM == 2) return valence() > 3;
   if(WDIM == 3) return !among(geometry, gHoroHex, gCell5, gBitrunc3, gCell8, gECell8, gCell120, gECell120);
@@ -1656,7 +1656,7 @@ EX vector<cell*> adj_minefield_cells(cell *c) {
   }
 
 EX vector<int> reverse_directions(cell *c, int dir) {
-  if(PURE && !(aperiodic && WDIM == 2)) return reverse_directions(c->master, dir);
+  if(hr__PURE && !(aperiodic && WDIM == 2)) return reverse_directions(c->master, dir);
   int d = c->degree();
   if(d & 1)
     return { gmod(dir + c->type/2, c->type), gmod(dir + (c->type+1)/2, c->type) };
@@ -1713,12 +1713,12 @@ EX bool standard_tiling() {
 
 EX int valence() {
   if(BITRUNCATED || IRREGULAR) return 3;
-  if(INVERSE) return WARPED ? 4 : max(S3, S7);
+  if(INVERSE) return WARPED ? 4 : max(hr__S3, S7);
   #if CAP_ARCM
   if(arcm::in()) return arcm::valence();
   #endif
   if(arb::in()) return arb::current.min_valence;
-  return S3;
+  return hr__S3;
   }
 
 /** portalspaces are not defined outside of a boundary */

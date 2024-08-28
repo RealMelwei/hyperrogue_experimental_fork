@@ -2750,8 +2750,8 @@ EX void display_embedded_errors() {
     dialog::addItem(XLAT("set square tiling"), 'A'); dialog::add_action([] { dialog::do_if_confirmed( [] { stop_game(); set_geometry(gEuclidSquare); set_variation(eVariation::pure); start_game(); });});
     dialog::addItem(XLAT("set hex tiling"), 'B'); dialog::add_action([] { dialog::do_if_confirmed( [] { stop_game(); set_geometry(gEuclid); set_variation(eVariation::pure); start_game(); });});
     };
-  if(among(spatial_embedding, seNil, seProductH, seProductS, seCliffordTorus, seSL2) && (!among(geometry, gEuclid, gEuclidSquare) || !PURE)) {
-    dialog::addInfo(XLAT("error: currently works only in PURE Euclidean regular square or hex tiling"), 0xC00000);
+  if(among(spatial_embedding, seNil, seProductH, seProductS, seCliffordTorus, seSL2) && (!among(geometry, gEuclid, gEuclidSquare) || !hr__PURE)) {
+    dialog::addInfo(XLAT("error: currently works only in hr__PURE Euclidean regular square or hex tiling"), 0xC00000);
     eucs();
     return;
     }

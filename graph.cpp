@@ -401,8 +401,8 @@ EX void drawPlayerEffects(const shiftmatrix& V, const shiftmatrix& Vparam, cell 
         bool longer = sword::pos2(cwt.at, a-1) != sword::pos2(cwt.at, a+1);
         if(sword_angles > 48 && !longer) continue;
         color_t col = darkena(0xC0C0C0, 0, 0xFF);
-        ld l0 = PURE ? 0.6 * cgi.scalefactor : longer ? 0.36 : 0.4;
-        ld l1 = PURE ? 0.7 * cgi.scalefactor : longer ? 0.44 : 0.42;
+        ld l0 = hr__PURE ? 0.6 * cgi.scalefactor : longer ? 0.36 : 0.4;
+        ld l1 = hr__PURE ? 0.7 * cgi.scalefactor : longer ? 0.44 : 0.42;
 #if MAXMDIM >= 4
         hyperpoint h0 = GDIM == 3 ? xpush(l0) * lzpush(cgi.FLOOR - cgi.human_height/50) * C0 : xpush0(l0);
         hyperpoint h1 = GDIM == 3 ? xpush(l1) * lzpush(cgi.FLOOR - cgi.human_height/50) * C0 : xpush0(l1);
@@ -3716,9 +3716,9 @@ EX bool has_nice_dual() {
   #endif
   if(bt::in()) return false;
   if(BITRUNCATED) return true;
-  if(a4) return false;
+  if(hr__a4) return false;
   if((S7 & 1) == 0) return true;
-  if(PURE) return false;
+  if(hr__PURE) return false;
   #if CAP_GP
   return (gp::param.first + gp::param.second * 2) % 3 == 0;
   #else
@@ -3732,7 +3732,7 @@ EX bool is_nice_dual(cell *c) {
   }
 
 EX bool use_swapped_duals() {
-  return (euclid && !a4) || GOLDBERG;
+  return (euclid && !hr__a4) || GOLDBERG;
   }
 
 #if CAP_SHAPES
@@ -3819,7 +3819,7 @@ EX bool placeSidewall(cell *c, int i, int sidepar, const shiftmatrix& V, color_t
   
   if(NONSTDVAR || !standard_tiling()) {
     #if CAP_ARCM
-    if(arcm::in() && !PURE)
+    if(arcm::in() && !hr__PURE)
       i = gmod(i + arcm::parent_index_of(c->master)/DUALMUL, c->type);
     #endif
     if(currentmap->strict_tree_rules()) {
