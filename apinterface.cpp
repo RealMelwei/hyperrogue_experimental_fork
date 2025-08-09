@@ -22,7 +22,7 @@
 #include <math.h>
 #include <limits>
 
-#define VERSION_TUPLE {0,4,1}
+#define VERSION_TUPLE {0,6,0}
 
 
 /*
@@ -84,10 +84,10 @@ void connect_ap(std::string uri="", std::string newSlot="")
     printf("Connecting to AP...\n");
     client.reset(new APClient(uuid, "Hyperrogue", uri.empty() ? APClient::DEFAULT_URI : uri, CERT_STORE));
 
-    // load DataPackage cache
-    try {
-        client->set_data_package_from_file(OLD_DATAPACKAGE_CACHE);
-    } catch (std::exception) { /* ignore */ }
+    // load DataPackage cache (deprecated)
+    //try {
+    //    client->set_data_package_from_file(OLD_DATAPACKAGE_CACHE);
+    //} catch (std::exception) { /* ignore */ }
 
     // set state and callbacks
     ap_sync_queued = false;
