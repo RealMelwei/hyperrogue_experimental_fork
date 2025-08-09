@@ -242,7 +242,10 @@ EX bool landUnlocked(eLand l) {
     return (ap::getNumberOfProgressedLands(ap::progressCheck::unlocked) >= 40 && ap::getNumberOfProgressedLands(ap::progressCheck::orbunlocked) >= 20);
   if (l == laCrossroads5)
     return (ap::getNumberOfProgressedLands(ap::progressCheck::unlocked) >= 40 && ap::getNumberOfProgressedLands(ap::progressCheck::orbunlocked) >= 30);
-
+  if (l == laCrossroads6)
+    return (ap::landChecksReceived[linf[laCursed].treasure] > ap::progressCheck::unlocked);
+  if (l == laMasterCrossroads)
+    return (ap::getNumberOfProgressedLands(ap::progressCheck::unlocked) >= 40 && ap::getNumberOfProgressedLands(ap::progressCheck::orbunlocked) >= 50);
   return (ap::landChecksReceived[linf[l].treasure] > ap::progressCheck::locked);
 }
 
