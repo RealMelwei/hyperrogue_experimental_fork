@@ -71,7 +71,7 @@ void find_sibling_limit(cell *c2, cell *c1) {
 
 void correct_sibling_limit() {
   my_sibling_limit = 0;
-  if(S3 < 4) {
+  if(hr_S3 < 4) {
     grow_forever.clear();
     grow_forever.resize(cgi.expansion->N, true);
     

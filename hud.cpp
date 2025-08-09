@@ -73,7 +73,7 @@ bool ikappear(int i) {
   return ikmerge(i);
   }
 
-const int glyphs = ittypes + motypes;
+const int glyphs = int(ittypes) + int(motypes);
 
 int gfirsttime[glyphs], glasttime[glyphs], gcopy[glyphs], ikland[glyphs];
 int glyphorder[glyphs];
@@ -210,13 +210,13 @@ bool displayglyph(int cx, int cy, int buttonsize, char glyph, color_t color, int
       if(m == moKrakenH) bsize /= 3;
       if(m == moKrakenT || m == moDragonTail) bsize /= 2;
       if(m == moSlime) bsize = (2*bsize+1)/3;
-      transmatrix V = atscreenpos(cx+buttonsize/2, cy, bsize*zoom);
+      shiftmatrix V = atscreenpos(cx+buttonsize/2, cy, bsize*zoom);
       if(isWorm(m) && cgi.wormscale != 1) 
         for(int i=0; i<GDIM; i++)
           V[i][i] /= cgi.wormscale;
       int mcol = color;
       mcol -= (color & 0xFCFCFC) >> 2;
-      drawMonsterType(m, NULL, shiftless(V), mcol, glyphphase[id]/500.0, NOCOLOR);
+      drawMonsterType(m, NULL, V, mcol, glyphphase[id]/500.0, NOCOLOR);
       }
     else {
       eItem it = eItem(id);
@@ -241,14 +241,14 @@ bool displayglyph(int cx, int cy, int buttonsize, char glyph, color_t color, int
       icol -= (color & 0xFCFCFC) >> 2;
       int ic = itemclass(it);
       bsize = bsize * zoom;
-      transmatrix V = atscreenpos(cx+buttonsize/2, cy, bsize);
+      shiftmatrix V = atscreenpos(cx+buttonsize/2, cy, bsize);
       double t =
         (ic == IC_ORB || ic == IC_NAI) ? ticks*2 : 
         ((glyph == 't' && qty%5) || it == itOrbYendor) ? ticks/2 : 
         it == itTerra ? glyphphase[id] * 3 * M_PI + 900 * M_PI:
         glyphphase[id] * 2;
 
-      drawItemType(it, NULL, shiftless(V), icol, t, false);
+      drawItemType(it, NULL, V, icol, t, false);
       
       int c1 = max(color_diff(color, backcolor), color_diff(color, bordcolor));
       if(c1 < 0x80) {
@@ -261,7 +261,23 @@ bool displayglyph(int cx, int cy, int buttonsize, char glyph, color_t color, int
     sortquickqueue();
     quickqueue();
     }
-  else if(glyph == '*')
+  else if(zh_ascii) {
+    const char* zh;
+
+    if(isMonster) {
+      eMonster m = eMonster(id - ittypes);
+      zh = XLAT1_acc(minf[m].name, 8);
+      }
+    else {
+      eItem it = eItem(id);
+      zh = XLAT1_acc(iinf[it].name, 8);
+      }
+
+    if(!zh) goto non_zh;
+    dynamicval<fontdata*> df(cfont, cfont_chinese);
+    displaystr(cx + buttonsize/2, cy, 0, glsize, zh, darkenedby(color, b?0:1), 0);
+    }
+  else non_zh: if(glyph == '*')
     displaychr(cx + buttonsize/2, cy+buttonsize/4, 0, glsize*3/2, glyph, darkenedby(color, b?0:1));
   else
     displaychr(cx + buttonsize/2, cy, 0, glsize, glyph, darkenedby(color, b?0:1));
@@ -286,7 +302,7 @@ bool displayglyph(int cx, int cy, int buttonsize, char glyph, color_t color, int
     qty < 100 ? buttonsize / 2 :
     buttonsize / 3;
 
-  if(id == moMutant + ittypes && clearing::imputed.nonzero()) {
+  if(id == int(moMutant) + int(ittypes) && clearing::imputed.nonzero()) {
     bignum bn = clearing::imputed + qty;
     str = short_form(bn);
     bsize = buttonsize / 4;
@@ -410,7 +426,7 @@ void drawMobileArrow(int i) {
   double dx = xmove + rad*(1+SKIPFAC-.2)/2 * cos(alpha);
   double dy = yb + rad*(1+SKIPFAC-.2)/2 * sin(alpha);
   
-  queuepolyat(shiftless(atscreenpos(dx, dy, scale) * spin(-alpha)), cgi.shArrow, col, PPR::MOBILE_ARROW);
+  queuepolyat(atscreenpos(dx, dy, scale) * spin(-alpha), cgi.shArrow, col, PPR::MOBILE_ARROW);
   }
 #endif
 
@@ -439,8 +455,8 @@ EX void draw_crosshair() {
   if(crosshair_color && crosshair_size > 0) {
     initquickqueue();
     vid.linewidth = 1;
-    queueline(shiftless(tC0(atscreenpos(xc - crosshair_size, yc, 1))), shiftless(tC0(atscreenpos(xc + crosshair_size, yc, 1))), crosshair_color).prio = PPR::SUPERLINE;
-    queueline(shiftless(tC0(atscreenpos(xc, yc - crosshair_size, 1))), shiftless(tC0(atscreenpos(xc, yc + crosshair_size, 1))), crosshair_color).prio = PPR::SUPERLINE;
+    queueline(tC0(atscreenpos(xc - crosshair_size, yc)), tC0(atscreenpos(xc + crosshair_size, yc)), crosshair_color).prio = PPR::SUPERLINE;
+    queueline(tC0(atscreenpos(xc, yc - crosshair_size)), tC0(atscreenpos(xc, yc + crosshair_size)), crosshair_color).prio = PPR::SUPERLINE;
     quickqueue();
     }
   return;
@@ -475,7 +491,11 @@ EX string mode_description1() {
   if(md == "") return "standard";
   return md.substr(1);
   }
-  
+
+EX bool radar_drawn;
+EX bool hide_kills;
+EX bool hide_watermark;
+
 EX void drawStats() {
   if(vid.stereo_mode == sLR) return;
   draw_crosshair();
@@ -491,19 +511,25 @@ EX void drawStats() {
 
   bool cornermode = (vid.xres > vid.yres * 85/100 && vid.yres > vid.xres * 85/100);
   
+  bool hyb = mhybrid;
+
   #if MAXMDIM >= 4
-  if(geometry == gRotSpace || geometry == gProduct) rots::draw_underlying(!cornermode);
+  if(mhybrid) hybrid::draw_underlying(!cornermode);
   #endif
   
   {
   
+  radar_drawn = false;
   if(vid.radarsize > 0 && h)
   #if CAP_RACING
     if(!racing::on)
   #endif
     if(!peace::on)
     if(!(cmode & sm::MISSION))
-      draw_radar(cornermode);
+      radar_drawn = true;
+
+  if(radar_drawn)
+    draw_radar(cornermode);
 
   flat_model_enabler fme;
 
@@ -530,6 +556,7 @@ EX void drawStats() {
 #else
     {}
 #endif
+  else if(!hr_hud_enabled) {}
   else if(cornermode) {
     int bycorner[4];
     for(int u=0; u<4; u++) bycorner[u] = 0;
@@ -574,10 +601,15 @@ EX void drawStats() {
     }
   
   else {
-  
+    auto& cd = current_display;
+
     bool portrait = vid.xres < vid.yres;
-    int colspace = portrait ? (current_display->ycenter - current_display->scrsize - 3 * vid.fsize) : (vid.xres - vid.yres - 16) / 2;
-    int rowspace = portrait ? vid.xres - 16 : vid.yres - vid.fsize * (vid.msgleft ? 9 : 4);
+    int colspace = portrait ? (cd->ycenter - cd->scrsize - 3 * vid.fsize) : (vid.xres - vid.yres - 16) / 2;
+    int radar_size = 0;
+    if(radar_drawn) radar_size = 2 * vid.radarsize + 10 + 3.5 * vid.fsize;
+    if(hyb && hybrid::underlying_scale) radar_size = max<int>(radar_size, min(cd->xsize, cd->ysize) * hybrid::underlying_scale + 10 + 3.5 * vid.fsize);
+
+    int rowspace = portrait ? vid.xres - 16 : vid.yres - max(radar_size, vid.fsize * (vid.msgleft ? 9 : 4));
     int colid[4], rowid[4];
     int maxbyclass[4];
     for(int z=0; z<4; z++) maxbyclass[z] = 0;
@@ -702,7 +734,7 @@ EX void drawStats() {
       while(siz > 4 && textwidth(siz, s) > vid.xres - textwidth(vid.fsize, scoreline)) siz--;
       }
     
-    if(displayButtonS(8, top_y, s, forecolor, 0, siz)) {
+    if(!hide_kills && displayButtonS(8, top_y, s, forecolor, 0, siz)) {
       instat = true;
       getcstat = SDLK_F1;
       if(long_kills) { mouseovers = " "; help = generateHelpForMonster(moMutant); }
@@ -737,7 +769,7 @@ EX void drawStats() {
     }
   else 
   #endif
-  if(displayButtonS(4, vid.yres - 4 - vid.fsize/2 - hud_margin(1), vers, 0x202020, 0, vid.fsize/2)) {
+  if(!hide_watermark && displayButtonS(4, vid.yres - 4 - vid.fsize/2 - hud_margin(1), vers, 0x202020, 0, vid.fsize/2)) {
     mouseovers = XLAT("frames per second"),
     getcstat = SDLK_F1,
     instat = true,

@@ -155,6 +155,10 @@ EX void resetmusic() {
     }
   }
 
+#if HDR
+constexpr eLand mfcode(const char* buf) { return eLand((buf[0] - '0') * 10 + buf[1] - '0'); }
+#endif
+
 EX bool loadMusicInfo(string dir) {
   DEBBI(DF_INIT, ("load music info"));
   if(dir == "") return false;
@@ -197,16 +201,10 @@ EX bool loadMusicInfo(string dir) {
 
 EX bool loadMusicInfo() {
   return
-    loadMusicInfo(musicfile)
-    || loadMusicInfo(HYPERPATH "hyperrogue-music.txt") 
-    || loadMusicInfo("./hyperrogue-music.txt") 
-    || loadMusicInfo("music/hyperrogue-music.txt")
-// Destination set by ./configure (in the GitHub repository)
-#ifdef MUSICDESTDIR
-    || loadMusicInfo(MUSICDESTDIR)
-#endif
+    loadMusicInfo(find_file(musicfile))
+    || loadMusicInfo(find_file("hyperrogue-music.txt") )
+    || loadMusicInfo(find_file("music/hyperrogue-music.txt") )
 #ifdef FHS
-    || loadMusicInfo("/usr/share/hyperrogue/hyperrogue-music.txt") 
     || (getenv("HOME") && loadMusicInfo(s0 + getenv("HOME") + "/.hyperrogue-music.txt"))
 #endif
     ;
@@ -216,7 +214,7 @@ EX void initAudio() {
   audio = loadMusicInfo();
 
   if(audio) {
-    if(Mix_OpenAudio(MIX_DEFAULT_FREQUENCY, MIX_DEFAULT_FORMAT, 2, 2048) != 0) {
+    if(SDL23(Mix_OpenAudio(MIX_DEFAULT_FREQUENCY, MIX_DEFAULT_FORMAT, 2, 2048) != 0, !Mix_OpenAudio(0, nullptr))) {
       fprintf(stderr, "Unable to initialize audio: %s\n", Mix_GetError());
       audio = false;
       }
@@ -229,13 +227,9 @@ EX void initAudio() {
 
 map<string, Mix_Chunk*> chunks;
 
-#ifdef SOUNDDESTDIR
-string wheresounds = SOUNDDESTDIR;
-#else
-string wheresounds = HYPERPATH "sounds/";
-#endif
-
 hookset<bool(const string& s, int vol)> hooks_sound;
+
+EX string wheresounds = "sounds/";
 
 EX void playSound(cell *c, const string& fname, int vol) {
   LATE( hr::playSound(c, fname, vol); )
@@ -243,7 +237,7 @@ EX void playSound(cell *c, const string& fname, int vol) {
   if(callhandlers(false, hooks_sound, fname, vol)) return;
   // printf("Play sound: %s\n", fname.c_str());
   if(!chunks.count(fname)) {
-    string s = wheresounds+fname+".ogg";
+    string s = find_file(wheresounds + fname + ".ogg");
     if(memory_issues()) return;
     memory_for_lib();
     chunks[fname] = Mix_LoadWAV(s.c_str());

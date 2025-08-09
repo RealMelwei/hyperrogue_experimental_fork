@@ -89,6 +89,8 @@ struct archimedean_tiling {
 
   bool get_step_values(int& steps, int& single_step);
 
+  ld dual_tile_area();
+
   transmatrix adjcell_matrix(heptagon *h, int d);
   
   ld scale();
@@ -109,7 +111,7 @@ EX archimedean_tiling current;
 EX archimedean_tiling fake_current;
 
 EX archimedean_tiling& current_or_fake() {
-  if(fake::in()) return fake_current;
+  if(fake::in_ext()) return fake_current;
   return current;
   }
 
@@ -435,7 +437,7 @@ void archimedean_tiling::compute_geometry() {
 
   DEBB(DF_GEOM, (hr::format("euclidean_angle_sum = %f\n", float(euclidean_angle_sum))));
 
-  bool infake = fake::in();
+  bool infake = fake::in_ext();
   
   dynamicval<eGeometry> dv(geometry, gArchimedean);
   
@@ -773,7 +775,7 @@ struct hrmap_archimedean : hrmap {
       int id = id_of(h);
       int S = isize(current.triangles[id]);
   
-      if(id < 2*current.N ? !DUAL : !hr__PURE) {
+      if(id < 2*current.N ? !DUAL : !hr_PURE) {
         if(!do_draw(h->c7, V)) continue;
         drawcell(h->c7, V);
         }
@@ -781,7 +783,7 @@ struct hrmap_archimedean : hrmap {
       for(int i=0; i<S; i++) {
         if(DUAL && (i&1)) continue;
         h->cmove(i);
-        if(hr__PURE && id >= 2*current.N && h->move(i) && id_of(h->move(i)) >= 2*current.N) continue;
+        if(hr_PURE && id >= 2*current.N && h->move(i) && id_of(h->move(i)) >= 2*current.N) continue;
         shiftmatrix V1 = V * current.adjcell_matrix(h, i);
         optimize_shift(V1);
         dq::enqueue(h->move(i), V1);
@@ -818,7 +820,7 @@ struct hrmap_archimedean : hrmap {
       
   ld spin_angle(cell *c, int d) override {
     auto &cof = current_or_fake();
-    if(hr__PURE) {
+    if(hr_PURE) {
       auto& t1 = cof.get_triangle(c->master, d-1);
       return -(t1.first + M_PI / c->type);
       }
@@ -833,7 +835,7 @@ struct hrmap_archimedean : hrmap {
     }
 
   void find_cell_connection(cell *c, int d) override {
-    if(hr__PURE) {
+    if(hr_PURE) {
       if(arcm::id_of(c->master) < arcm::current.N * 2) {
         heptspin hs = heptspin(c->master, d) + wstep + 2 + wstep + 1;
         c->c.connect(d, hs.at->c7, hs.spin, hs.mirrored);
@@ -867,7 +869,7 @@ struct hrmap_archimedean : hrmap {
 
   hyperpoint get_corner(cell *c, int cid, ld cf) override {
     auto &ac = arcm::current_or_fake();
-    if(hr__PURE) {
+    if(hr_PURE) {
       if(arcm::id_of(c->master) >= ac.N*2) return C0;
       auto& t = ac.get_triangle(c->master, cid-1);
       return xspinpush0(-t.first, t.second * 3 / cf * (ac.real_faces == 0 ? 0.999 : 1));
@@ -884,6 +886,11 @@ struct hrmap_archimedean : hrmap {
       return xspinpush0(-t0.first, t0.second * 3 / cf * (ac.real_faces == 0 ? 0.999 : 1));
       }
     return C0;
+    }
+
+  int pattern_value(cell *c) override {
+    if(sphere) return c->master->fiftyval;
+    return hrmap::pattern_value(c);
     }
 
   };
@@ -1102,7 +1109,12 @@ int readArgs() {
     shift(); load_symbol(args(), true);
     showstartmenu = false;
     }
-  else if(argis("-dual")) { PHASEFROM(2); set_variation(eVariation::dual); }
+  else if(argis("-dual")) {
+    PHASEFROM(2);
+    if(in())
+      set_variation(eVariation::dual);
+    else gp::dual_of_current();
+    }
   else if(argis("-d:arcm")) 
     launch_dialog(show);
   else return 1;
@@ -1165,7 +1177,7 @@ EX bool pseudohept(cell *c) {
   if(DUAL)
     return !(c->master->rval0 & 3);
   int id = id_of(c->master);
-  if(hr__PURE) 
+  if(hr_PURE) 
     return current.flags[id] & arcm::sfPH;
   if(BITRUNCATED)
     return id < current.N * 2;
@@ -1185,7 +1197,7 @@ EX bool linespattern(cell *c) {
 EX int threecolor(cell *c) {
   if(current.have_ph)
     return !arcm::pseudohept(c);
-  else if(hr__PURE)
+  else if(hr_PURE)
     return current.tilegroup[id_of(c->master)];
   else {
     int id = id_of(c->master);
@@ -1311,7 +1323,7 @@ bool symbol_editing;
 
 EX void next_variation() {
   set_variation(
-    hr__PURE ? eVariation::dual :
+    hr_PURE ? eVariation::dual :
     DUAL ? eVariation::bitruncated : 
     eVariation::pure);
   start_game();
@@ -1518,6 +1530,7 @@ EX void show() {
   dialog::addBack();
   dialog::display();
 
+  se.handle_textinput();
   keyhandler = [] (int sym, int uni) {
     if(symbol_editing && sym == SDLK_RETURN) sym = uni = '/';
     dialog::handleNavigation(sym, uni);
@@ -1588,6 +1601,22 @@ EX int get_graphical_id(cell *c) {
   return tid;
   }
 
+ld archimedean_tiling::dual_tile_area() {
+  /* this will work both in Euclidean and non-Euclidean cases */
+  /* (note: we cannot just check get_geometry() here because we might be fake) */
+
+  ld total_alpha = 0;
+  for(auto a: alphas) total_alpha += a;
+
+  if(abs(total_alpha - M_PI) > 1e-6) {
+    return 2 * abs(M_PI - total_alpha);
+    }
+
+  ld total = 0;
+  for(auto r: inradius) total += r;
+  return total * edgelength / 2;
+  }
+
 bool archimedean_tiling::get_step_values(int& steps, int& single_step) {
 
   int nom = -2;
@@ -1607,7 +1636,7 @@ bool archimedean_tiling::get_step_values(int& steps, int& single_step) {
   }
 
 EX int valence() {
-  if(hr__PURE) return arcm::current.N;
+  if(hr_PURE) return arcm::current.N;
   if(BITRUNCATED) return 3;
   // in DUAL, usually valence would depend on the vertex.
   // 3 is the most interesting, as it allows us to kill hedgehog warriors

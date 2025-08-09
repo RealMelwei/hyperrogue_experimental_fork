@@ -275,7 +275,8 @@ EX bool movepcto(int d, int subdir IS(1), bool checkonly IS(false)) {
   checked_move_issue.type = miVALID;
   pcmove pcm;
   pcm.checkonly = checkonly;
-  pcm.d = d; pcm.subdir = subdir;
+  pcm.d = d;
+  pcm.subdir = subdir;
   auto b = pcm.movepcto();
   global_pushto = pcm.mip.t;
   return b;
@@ -503,7 +504,7 @@ bool pcmove::swing() {
   if(checkonly) return true;
   if(changes.on) changes.commit();
 
-  animateAttack(mi, LAYER_SMALL);
+  animateCorrectAttack(mi, LAYER_SMALL, moPlayer);
   if(survivalist && isHaunted(mi.t->land))
     survivalist = false;
   lastmovetype = lmTree; lastmove = mi.t;
@@ -1152,7 +1153,7 @@ bool pcmove::attack() {
   auto& c2 = mi.t;
   if(!fmsAttack) return false;
 
-  if(items[itOrbFlash] || items[itOrbLightning])
+  if((items[itOrbFlash] || items[itOrbLightning]) && !good_tortoise)
     return false;
   
   attackflags = AF_NORMAL;
@@ -1233,7 +1234,7 @@ bool pcmove::attack() {
         produceGhost(c2, m, moPlayer);
         }
       if(mip.proper()) pushMonster(mip);
-      animateAttack(mi, LAYER_SMALL);
+      animateCorrectAttack(mi, LAYER_SMALL, moPlayer);
       }
     }
   

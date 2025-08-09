@@ -514,8 +514,10 @@ EX void killMonster(cell *c, eMonster who, flagtype deathflags IS(0)) {
     history::killhistory.push_back(make_pair(c,m));
     }
 #endif
-  
+
+#if CAP_COMPLEX2
   if(m == moHunterGuard) ambush::guard_attack();
+#endif
 
   if(m == moGolemMoved) m = moGolem;
   if(m == moKnightMoved) m = moKnight;
@@ -1277,7 +1279,7 @@ template<class T> void do_swords(movei mi, eMonster who, const T& f) {
     f(st, bb);
     if(sf != st && !isNeighbor(sf,st)) {
       // also attack the in-transit cell
-      if(hr__S3 == 3) {
+      if(hr_S3 == 3) {
         forCellEx(sb, sf) if(isNeighbor(sb, st) && sb != mi.s && sb != mi.t) f(sb, bb);
         }
       else {

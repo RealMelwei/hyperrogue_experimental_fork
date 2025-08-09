@@ -111,7 +111,7 @@ void create_data() {
     bool sign = false;
     using embeddings::signposts;
     for(cell *c: signposts) if(c == where[i]) sign = true;
-    if(signposts.empty()) sign = where[i]->type != (S3 == 3 ? 6 : 4);
+    if(signposts.empty()) sign = where[i]->type != (hr_S3 == 3 ? 6 : 4);
     is_special.push_back(sign);
     ctrdist.push_back(celldist(where[i]));
     ctrdist_max = max(ctrdist_max, ctrdist.back());
@@ -891,14 +891,14 @@ void create_index() {
     Out("closed", closed_manifold ? 1 : 0);
     Out("quotient", quotient ? 1 : 0);
     Out("dim", WDIM);
-    Out("valence", S3);
+    Out("valence", hr_S3);
     Out("tile", S7);
 
     println(hlog, "gen neuron cells");
     auto ac = gen_neuron_cells();
     int sum = 0;
     for(cell *c: ac) sum += c->type;
-    ld curvature = (S3 == 3 ? 6 : S3 >= OINF ? 2 : 4) - sum * 1. / isize(ac);
+    ld curvature = (hr_S3 == 3 ? 6 : hr_S3 >= OINF ? 2 : 4) - sum * 1. / isize(ac);
     if(GDIM == 3) curvature = hyperbolic ? -1 : sphere ? 1 : 0;
     Out("curvature", curvature);
     

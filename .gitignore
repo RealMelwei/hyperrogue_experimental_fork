@@ -1,4 +1,9 @@
 .deps/
-hyperrogue.ini
+/autohdr.h
+/langen
+/makeh
+/language-data.cpp
+/*.o
+/hyperroguehyperrogue.ini
 hyperrogue.log
 uuid

@@ -162,15 +162,19 @@ EX namespace whirlwind {
       }
     }
   
-  EX cell *jumpFromWhereTo(cell *c, bool player) {
+  EX cell *jumpFromWhereTo(cell *c, bool player, struct jumpdata& jdata) {
+    jdata.uniq = true;
     for(int i=0; i<2; i++) {
       calcdirs(c);
       if(qdirs != 1) return NULL;
+      auto mi = movei(c, dfrom[0]);
+      jdata.moves.push_back(mi.rev());
       cell *c2 = c->move(dfrom[0]);
-      if(!passable(c, c2, P_JUMP1)) return NULL;
+      if(!passable(c, c2, P_JUMP1 | P_ISPLAYER)) return NULL;
       if(player && i == 0 && !passable(c, c2, P_ISPLAYER)) return NULL;
       c = c2;
       }
+    reverse(jdata.moves.begin(), jdata.moves.end());
     calcdirs(c);
     if(qdirs != 1) return NULL;
     return c;
@@ -844,7 +848,7 @@ EX namespace clearing {
       gen_alt_around(c);
     int d = celldistAlt(c);
     
-    if(hr__PURE) {
+    if(hr_PURE) {
       forCellIdCM(c2, i, c) {
         if(!pseudohept(c2) && celldistAlt(c2) == d-1)
           return i;
@@ -1210,7 +1214,7 @@ EX namespace mirror {
         }
       return false;
       }
-    if(hr__PURE?pseudohept(c):!ishept(c)) {
+    if(hr_PURE?pseudohept(c):!ishept(c)) {
       c->wall = hrand(2) ? waMirror : waCloud;
       return true;
       }
@@ -1383,17 +1387,17 @@ EX namespace mirror {
       return;
       }
     #endif
-    if(hr__PURE && !(S7 & 1)) {
+    if(hr_PURE && !(S7 & 1)) {
       for(int i=0; i<cw.at->type; i++)
         createMirror(cw + i + wstep + 1 + wstep + 1 + (S7/2) - i, cpid);
       return;
       }
-    if(hr__PURE && (S7 & 1) && (hr__S3 == 4)) {
+    if(hr_PURE && (S7 & 1) && (hr_S3 == 4)) {
       for(int i=0; i<cw.at->type; i++) 
         createMirror(cw + i + wstep + 1 + wstep - (S7/2) + wstep - (S7/2) - i, cpid);
       return;
       }
-    if(hr__PURE && (S7 & 1)) {
+    if(hr_PURE && (S7 & 1)) {
       for(int i=0; i<cw.at->type; i++)
         createMirror(cw + i + wstep + (S7/2) + wstep - 2 + wstep + (S7/2) - i, cpid);
       return;
@@ -1468,6 +1472,7 @@ EX namespace mirror {
             }
           c->monst = moNone;
           }
+        if(!fwd) animateCorrectAttack(movei(cw2+wstep), LAYER_SMALL, moMimic);
         if(c2->wall == waBigTree)
           c2->wall = waSmallTree;
         else if(c2->wall == waSmallTree)
@@ -1590,9 +1595,9 @@ EX namespace mirror {
           v.push_back(1);
           stepcount++; if(stepcount > 10000) { printf("failhep\n"); return cw; }
           }
-        if(hr__PURE && (cw+wstep).at == cwcopy.at)
+        if(hr_PURE && (cw+wstep).at == cwcopy.at)
           v.pop_back();
-        if(hr__PURE && (cw+3+wstep).at->land == laMirrored && (cw+2+wstep).at->land == laMirrorWall) {
+        if(hr_PURE && (cw+3+wstep).at->land == laMirrored && (cw+2+wstep).at->land == laMirrorWall) {
           cw += wmirror;
           auto p = traceback(v, cw);
           if(p.first) return p.second;
@@ -2100,7 +2105,7 @@ EX namespace heat {
       cell *c = playerpos(i);
       if(!c) continue;
       double xrate = (c->land == laCocytus && shmup::on) ? rate/3 : rate;
-      if(hr__PURE) xrate *= 1.7; // todo-variation
+      if(hr_PURE) xrate *= 1.7; // todo-variation
       if(!shmup::on) xrate /= FIX94;
       if(isIcyLand(c))
         HEAT(c) += (markOrb(itOrbWinter) ? -1.2 : 1.2) * xrate;
@@ -2120,7 +2125,7 @@ EX namespace heat {
     for(int i=0; i<dcs; i++) {
       cell *c = allcells[i];
       double xrate = (c->land == laCocytus && shmup::on) ? 1/3. : 1;
-      if(hr__PURE) xrate *= 1.7; // todo-variation
+      if(hr_PURE) xrate *= 1.7; // todo-variation
       if(!shmup::on) xrate /= FIX94;
       if(c->cpdist > gr && !doallhr) break;
   
@@ -2210,7 +2215,7 @@ EX namespace heat {
         addMessage(XLAT("%The1 melts away!", c->monst));
         fallMonster(c);
         }
-      if(c->wall == waIcewall && HEAT(c) > .4) 
+      if(c->wall == waIcewall && HEAT(c) > .4)
         drawParticles(c, MELTCOLOR, 4, 60),
         c->wall = waNone, kills[0]++;
       if(c->wall == waFrozenLake && HEAT(c) > (c->land == laCocytus ? .6 : .4)) 
@@ -2240,6 +2245,7 @@ EX namespace heat {
     manual_celllister cl;
     
     vector<cell*>& allcells = currentmap->allcells();
+    int siz = isize(offscreen_fire);
 
     for(int x: {0,1}) for(cell *c: x==0 ? allcells : offscreen_fire) {
       if(!cl.add(c)) continue;
@@ -2337,10 +2343,15 @@ EX namespace heat {
       else if(cellHalfvine(c)) destroyHalfvine(c, waPartialFire, 6);
       else makeflame(c, qty, false);
       if(c->wparam < qty) c->wparam = qty;
-      offscreen2.push_back(c);
       if(c->land == laRose || c->land == laWildWest || c->land == laOvergrown || isHaunted(c->land) || c->land == laMountain || c->land == laIce) {
-        for(int j=c->mpdist-1; j>=7; j--) setdist(c, j, NULL);
+        if(randomPatternsMode || siz > 5000) {
+           /* do not add to offscreen2 so that the fire will spread later */
+          if(c->mpdist == 8) continue;
+          }
+        else
+          for(int j=c->mpdist-1; j>=7; j--) setdist(c, j, NULL);
         }
+      offscreen2.push_back(c);
       }
    
     offscreen_fire = std::move(offscreen2);
@@ -2834,13 +2845,13 @@ EX namespace sword {
     #endif
     #if CAP_ARCM
     else if(arcm::in()) {
-      if(!hr__PURE) possible_divisor((BITRUNCATED ? 2 : 1) * isize(arcm::current.faces));
+      if(!hr_PURE) possible_divisor((BITRUNCATED ? 2 : 1) * isize(arcm::current.faces));
       if(!DUAL) for(int f: arcm::current.faces) possible_divisor(f);
       }
     #endif
     else {
       possible_divisor(S7);
-      if(BITRUNCATED) possible_divisor(hr__S3);
+      if(BITRUNCATED) possible_divisor(hr_S3);
       }
     }
   
@@ -3132,7 +3143,7 @@ EX namespace prairie {
       c->LHU.fi.rval = (y&15);
       }
     else if(sphere) {
-      c->LHU.fi.rval = celldistance(c, cwt.at) + 8 - (hr__PURE ? 2 : 3);
+      c->LHU.fi.rval = celldistance(c, cwt.at) + 8 - (hr_PURE ? 2 : 3);
       }
     else if(weirdhyperbolic) {
       c->LHU.fi.rval = max(celldist(c), 15);
@@ -3194,8 +3205,8 @@ EX namespace prairie {
       }
     }
   
-  #define RLOW (sphere?(hr__PURE?7:6):hr__PURE?4:2)
-  #define RHIGH (sphere?(hr__PURE?8:9):hr__PURE?11:13)
+  #define RLOW (sphere?(hr_PURE?7:6):hr_PURE?4:2)
+  #define RHIGH (sphere?(hr_PURE?8:9):hr_PURE?11:13)
 
   EX int get_val(cell *c) {
     if(ls::hv_structure()) {
@@ -3394,7 +3405,7 @@ EX namespace prairie {
     else if(!enter && isriver(cwt.at)) enter = cwt.at;
     if(isize(tchoices)) {
       if(lasttreasure && lasttreasure->item == itGreenGrass) {
-        if(celldistance(lasttreasure, cwt.at) >= (hr__PURE ? 7 : 10)) {
+        if(celldistance(lasttreasure, cwt.at) >= (hr_PURE ? 7 : 10)) {
           lasttreasure->item = itNone;
           forCellEx(c2, lasttreasure) if(c2->item == itGreenGrass) c2->item = itNone;
           }
@@ -3539,6 +3550,7 @@ auto ccm = addHook(hooks_clearmemory, 0, [] () {
   prairie::beaststogen.clear();
   #endif
   mirror::clearcache();
+  ca::changed.clear();
   }) +
   addHook(hooks_gamedata, 0, [] (gamedata* gd) {
     gd->store(heat::offscreen_heat);
@@ -3558,6 +3570,7 @@ auto ccm = addHook(hooks_clearmemory, 0, [] () {
     gd->store(elec::lightningfast);
     gd->store(elec::havethunder);
     gd->store(elec::afterOrb);
+    gd->store(ca::changed);
     }) +
   addHook(hooks_removecells, 0, [] () {
     for(cell *c: removed_cells) clearing::score.erase(c);
@@ -3645,7 +3658,7 @@ EX namespace windmap {
       // cw.spin = 0;
       neighbors.emplace_back();
       auto &v = neighbors.back();
-      if(NONSTDVAR && !sphere && !arcm::in() && !mhybrid && !INVERSE)
+      if(NONSTDVAR && !sphere && !arcm::in() && !mhybrid && !INVERSE && WDIM == 2 && geometry != gOctTet3)
         for(int l=0; l<S7; l++) {
           v.push_back(getId(cw + cth + l + wstep + cth));
           }
@@ -3709,6 +3722,7 @@ EX namespace windmap {
       tries++;
       if(tries < maxtries) goto tryagain;
       }
+    println(hlog, "windmap: tries = ", tries, " N = ", N);
     if(tries >= maxtries && maxtries >= 20) {
       addMessage("Failed to generate an interesting wind/lava pattern.");
       }

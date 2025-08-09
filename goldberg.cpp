@@ -33,7 +33,7 @@ EX namespace gp {
     
     loc operator*(loc e2) {
       return loc(first*e2.first-second*e2.second, 
-        first*e2.second + e2.first*second + (hr__S3 == 3 ? second*e2.second : 0));
+        first*e2.second + e2.first*second + (hr_S3 == 3 ? second*e2.second : 0));
       }
   
     loc operator*(int i) {
@@ -49,7 +49,7 @@ EX namespace gp {
       }
       
     loc conj() {
-      if(hr__S3 == 4) return loc(first, -second);
+      if(hr_S3 == 4) return loc(first, -second);
       return loc(first+second, -second);
       }
 
@@ -67,7 +67,7 @@ EX namespace gp {
   EX cell *li_for;
   
   EX loc eudir(int d) {
-    if(hr__S3 == 3) {
+    if(hr_S3 == 3) {
       d %= 6; if (d < 0) d += 6;
       switch(d) {
         case 0: return loc(1, 0);
@@ -103,6 +103,7 @@ EX namespace gp {
     signed char mindir;
     loc start;
     transmatrix adjm;
+    signed char rdir1;
     };
 
   EX int fixg6(int x) { return gmod(x, SG6); }
@@ -177,6 +178,7 @@ EX namespace gp {
       goldberg_map[y][x].cw.at = NULL;
       goldberg_map[y][x].rdir = -1;
       goldberg_map[y][x].mindir = 0;
+      goldberg_map[y][x].rdir1 = -1;
       }
     }
   
@@ -312,12 +314,12 @@ EX namespace gp {
       extend_map(c, d);
       extend_map(c, c->c.fix(d-1));
       extend_map(c, c->c.fix(d+1));
-      if(hr__S3 == 4 && !c1->move(d1)) {
+      if(hr_S3 == 4 && !c1->move(d1)) {
         for(int i=0; i<S7; i++)
         for(int j=0; j<S7; j++)
           extend_map(createStep(c->master, i)->c7, j);
         }
-      if(hr__S3 == 4 && !c1->move(d1)) {
+      if(hr_S3 == 4 && !c1->move(d1)) {
         for(int i=0; i<S7; i++)
         for(int i1=0; i1<S7; i1++)
         for(int j=0; j<S7; j++)
@@ -326,7 +328,7 @@ EX namespace gp {
       return;
       }
 
-    if(hr__S3 == 4 && param.first <= param.second) { d--; if(d<0) d += S7; }
+    if(hr_S3 == 4 && param.first <= param.second) { d--; if(d<0) d += S7; }
     clear_mapping();
 
     // we generate a local map from an Euclidean grid to the
@@ -337,7 +339,7 @@ EX namespace gp {
     loc vc[4];
     vc[0] = loc(0,0);
     vc[1] = param;
-    if(hr__S3 == 3)
+    if(hr_S3 == 3)
       vc[2] = param * loc(0,1);
     else 
       vc[2] = param * loc(1,1),
@@ -349,9 +351,9 @@ EX namespace gp {
     ac0.mindir = -1;
     auto& ac1 = set_heptspin(vc[1], hs + wstep - SG3);
     ac1.mindir = 0;
-    auto& ac2 = set_heptspin(vc[hr__S3-1], hr__S3 == 3 ? hs + 1 + wstep - 4 : hs + 1 + wstep + 1);
-    ac2.mindir = hr__S3 == 3 ? 1 : -2;
-    if(hr__S3 == 4) {
+    auto& ac2 = set_heptspin(vc[hr_S3-1], hr_S3 == 3 ? hs + 1 + wstep - 4 : hs + 1 + wstep + 1);
+    ac2.mindir = hr_S3 == 3 ? 1 : -2;
+    if(hr_S3 == 4) {
       set_heptspin(vc[2], hs + wstep - 1 + wstep + 1).mindir = -3;
       }
 
@@ -360,8 +362,8 @@ EX namespace gp {
       auto m = (hrmap_standard*)currentmap;
       get_mapping(vc[0]).adjm = Id;
       get_mapping(vc[1]).adjm = m->adj(c->master, d);
-      get_mapping(vc[hr__S3-1]).adjm = m->adj(c->master, (d+1)%c->master->type);
-      if(hr__S3 == 4) {
+      get_mapping(vc[hr_S3-1]).adjm = m->adj(c->master, (d+1)%c->master->type);
+      if(hr_S3 == 4) {
         heptspin hs1 = hs + wstep - 1;
         get_mapping(vc[2]).adjm = m->adj(c->master, d) * m->adj(hs1.at, hs1.spin);
         }
@@ -370,13 +372,13 @@ EX namespace gp {
     auto fix_mirrors = [&] {
       if(ac1.cw.mirrored != hs.mirrored) ac1.cw--;
       if(ac2.cw.mirrored != hs.mirrored) ac2.cw--;
-      if(hr__S3 == 4) {
+      if(hr_S3 == 4) {
         auto& ac3 = get_mapping(vc[2]);
         if(ac3.cw.mirrored != hs.mirrored) ac3.cw--;
         }
       };
 
-    if(hr__S3 == 4 && param == loc(1,1)) {
+    if(hr_S3 == 4 && param == loc(1,1)) {
       fix_mirrors();
       conn(loc(0,0), 1);
       conn(loc(0,1), 0);
@@ -386,7 +388,7 @@ EX namespace gp {
       return;
       }
 
-    if(hr__S3 == 4 && param.first == param.second && nonorientable) {
+    if(hr_S3 == 4 && param.first == param.second && nonorientable) {
       fix_mirrors();
 
       int size = param.first;
@@ -459,20 +461,23 @@ EX namespace gp {
       }
 
     // then we set the edges of our big equilateral triangle (in a symmetric way)
-    for(int i=0; i<hr__S3; i++) {
+    // rdir describes a loop on the boundary of that triangle, and rdir1 is the same loop in reverse direction
+    for(int i=0; i<hr_S3; i++) {
       loc start = vc[i];
-      loc end = vc[(i+1)%hr__S3];
+      loc end = vc[(i+1)%hr_S3];
       DEBB(DF_GP, ("from ", start, " to ", end); )
       loc rel = param;
       auto build = [&] (loc& at, int dx, bool forward) {
-        int dx1 = dx + SG2*i;
-        DEBB(DF_GP, (at, " .. ", make_pair(at + eudir(dx1), fixg6(dx1+SG3))));
-        conn(at, dx1);        
-        if(forward) get_mapping(at).rdir = fixg6(dx1);
-        else get_mapping(at+eudir(dx1)).rdir = fixg6(dx1+SG3);
-        at = at + eudir(dx1);
+        int dx0 = fixg6(dx + SG2*i);
+        auto at1 = at + eudir(dx0);
+        auto dx1 = fixg6(dx0 + SG3);
+        DEBB(DF_GP, (at, " .. ", make_pair(at1, dx1)));
+        conn(at, dx0);
+        if(forward) { get_mapping(at).rdir = dx0; get_mapping(at1).rdir1 = dx1; }
+        else { get_mapping(at).rdir1 = dx0; get_mapping(at1).rdir = dx1; }
+        at = at + eudir(dx0);
         };
-      while(rel.first >= 2 && (hr__S3 == 3 ? rel.first >= 2 - rel.second : true)) {
+      while(rel.first >= 2 && (hr_S3 == 3 ? rel.first >= 2 - rel.second : true)) {
         build(start, 0, true);
         build(end, SG3, false);
         rel.first -= 2;
@@ -482,30 +487,22 @@ EX namespace gp {
         build(end, 1+SG3, false);
         rel.second -= 2;
         }
-      while(rel.second <= -2 && hr__S3 == 3) {
+      while(rel.second <= -2 && hr_S3 == 3) {
         build(start, 5, true);
         build(end, 2, false);
         rel.second += 2;
         rel.first -= 2;
         }
-      if(hr__S3 == 3) while((rel.first>0 && rel.second > 0) | (rel.first > 1 && rel.second < 0)) {
+      if(hr_S3 == 3) while((rel.first>0 && rel.second > 0) | (rel.first > 1 && rel.second < 0)) {
         build(start, 0, true);
         build(end, 3, false);
         rel.first -= 2;
         }
-      if(hr__S3 == 4 && rel == loc(1,1)) {
-        if(param == loc(3,1) || param == loc(5,1)) {
-          build(start, 1, true);
-          build(end, 2, false);
-          rel.first--;
-          rel.second--;
-          }
-        else {
-          build(start, 0, true);
-          build(end, 3, false);
-          rel.first--;
-          rel.second--;
-          }
+      if(hr_S3 == 4 && rel == loc(1,1)) {
+        build(start, 1, true);
+        build(end, 2, false);
+        rel.first--;
+        rel.second--;
         }
       for(int k=0; k<SG6; k++)
         if(start + eudir(k+SG2*i) == end)
@@ -514,88 +511,28 @@ EX namespace gp {
       }
 
     // now we can fill the interior of our big equilateral triangle
-    loc at = vc[0];
-    int maxstep = 3000;
-    while(true) {
-      maxstep--; if(maxstep < 0) { DEBB(DF_GP | DF_ERROR, ("maxstep exceeded")); exit(1); }
-      auto& wc = get_mapping(at);
-      int dx = wc.rdir;
-      auto at1 = at + eudir(dx);
-      auto& wc1 = get_mapping(at1);
-      DEBB(DF_GP, (make_pair(at, dx), " ", make_pair(at1, wc1.rdir)));
-      int df = wc1.rdir - dx;
-      if(df < 0) df += SG6;
-      if(df == SG3) break;
-      if(hr__S3 == 3) switch(df) {
-        case 0:
-        case 4:
-        case 5:
-          at = at1;
-          continue;
-        case 2: {
-          conn(at, dx+1);
-          wc.rdir = (dx+1) % 6;
-          break;
+    vector<loc> all_locations;
+    set<loc> visited;
+    auto visit = [&] (loc x) {
+      if(visited.count(x)) return;
+      visited.insert(x);
+      all_locations.push_back(x);
+      };
+    for(int i=0; i<hr_S3; i++) visit(vc[i]);
+
+    for(int i=0; i<isize(all_locations); i++) {
+      auto at = all_locations[i];
+      auto& m = get_mapping(at);
+      for(int j=0; j<SG6; j++) {
+        if(m.rdir >= 0) {
+          if(m.rdir1 > m.rdir && !(j >= m.rdir && j <= m.rdir1)) continue;
+          if(m.rdir1 < m.rdir && !(j >= m.rdir || j <= m.rdir1)) continue;
           }
-        case 1: {
-          auto at2 = at + eudir(dx+1);
-          auto& wc2 = get_mapping(at2);
-          if(wc2.cw.at) { at = at1; continue; }
-          wc.rdir = (dx+1) % 6;
-          conn(at, (dx+1) % 6);
-          conn(at1, (dx+2) % 6);
-          conn(at2, (dx+0) % 6);
-          wc1.rdir = -1;
-          wc2.rdir = dx; 
-          break;
-          }
-        default:
-          println(hlog, "case unhandled ", df);
-          exit(1);
-        }
-      else switch(df) {
-        case 0: 
-        case 3:
-          at = at1;
-          continue;
-        case 1:
-          auto at2 = at + eudir(dx+1);
-          auto& wc2 = get_mapping(at2);
-          if(wc2.cw.at) {
-            auto at3 = at1 + eudir(wc1.rdir);
-            auto& wc3 = get_mapping(at3);
-            auto at4 = at3 + eudir(wc3.rdir);
-            if(at4 == at2) {
-              wc.rdir = (dx+1)%4;
-              wc1.rdir = -1;
-              wc3.rdir = -1;
-              conn(at, (dx+1)%4);
-              }
-            else { 
-              at = at1;
-              }
-            }
-          else {
-            wc.rdir = (dx+1)%4;
-            wc1.rdir = -1;
-            wc2.rdir = dx%4;
-            int bdir = -1;
-            int bdist = 100;
-            for(int d=0; d<4; d++) {
-              auto &wcm = get_mapping(at2 + eudir(d));
-              if(wcm.cw.at && length(wcm.start - at2) < bdist)
-                bdist = length(wcm.start - at2), bdir = d;
-              }
-            if(bdir != -1) conn(at2 + eudir(bdir), bdir ^ 2);
-            conn(at, (dx+1)%4);
-            conn(at2, dx%4);
-            
-            at = param * loc(1,0) + at * loc(0, 1);
-            }
-          break;
+        auto at1 = at + eudir(j);
+        conn(at, j);
+        visit(at1);
         }
       }
-
     DEBB(DF_GP, ("DONE"))
     }
   
@@ -627,39 +564,63 @@ EX namespace gp {
     point3(0, 0, 0)
     };
 
-  #define corner_coords (hr__S3==3 ? corner_coords6 : corner_coords4)
+  #define corner_coords (hr_S3==3 ? corner_coords6 : corner_coords4)
+
+  EX hookset<bool(const transmatrix& corners, const hyperpoint& c, hyperpoint& h)> hooks_cornmul;
+  EX hookset<void(const transmatrix& corners)> hooks_init_cornmul;
   
-  hyperpoint cornmul(const transmatrix& corners, const hyperpoint& c) {
-    if(sphere && hr__S3 == 3) {
+  EX hyperpoint cornmul(const transmatrix& corners, const hyperpoint& c) {
+
+    hyperpoint h;
+    if(callhandlers(false, hooks_cornmul, corners, c, h)) return h;
+
+    if(sphere && hr_S3 == 3) {
       ld cmin = c[0] * c[1] * c[2] * (6 - S7);
       return corners * point3(c[0] + cmin, c[1] + cmin, c[2] + cmin);
       }
     else return corners * c;
     }
     
-  hyperpoint atz(const transmatrix& T, const transmatrix& corners, loc at, int cornerid = 6, ld cf = 3) {
+  EX bool gp_style = true; /** disable for the old implementation which did not support fake */
+
+  /** for h in corner cordinates, rotate until it is in the correct triangle, and return the number of rotations needed */
+  int rotate_to_correct(hyperpoint& h) {
     int sp = 0;
-    again:
-    auto corner = corners * (loctoh_ort(at) + (corner_coords[cornerid] / cf));
-    if(corner[1] < -1e-6 || corner[2] < -1e-6) {
-      at = at * eudir(1);
-      if(cornerid < SG6) cornerid = (1 + cornerid) % SG6;
+    while(h[1] < -1e-6 || h[2] < -1e-6) {
+      h = cgi.gpdata->rotator * h;
       sp++;
-      goto again;
       }
     if(sp>SG3) sp -= SG6;
+    return sp;
+    }
+
+  hyperpoint atz(const transmatrix& T, const transmatrix& corners, loc at, int cornerid = 6, ld cf = 3) {
+
+    auto corner = corners * (loctoh_ort(at) + (corner_coords[cornerid] / cf));
+    int sp = rotate_to_correct(corner);
+
+    if(gp_style && corner[0] < -1e-6) {
+      auto ac = corner; ac[1] = 1 - corner[1]; ac[2] = 1 - corner[2]; ac[0] = -ac[0];
+      hyperpoint ctr = normalize(cornmul(T, hyperpoint(0, 0.5, 0.5, 0)));
+      int sp2 = rotate_to_correct(ac);
+      return spin(TAU*sp/S7) *
+        rgpushxto0(ctr) * rgpushxto0(ctr) * spin(M_PI + TAU*sp2/S7) *
+        normalize(cornmul(T, ac));
+      }
 
     return normalize(spin(TAU*sp/S7) * cornmul(T, corner));
     }
-  
-  transmatrix dir_matrix(int i) {
+
+  EX transmatrix dir_matrix(int i) {
+    // println(hlog, "0.8424 = 1.8705 = ", cgi.hcrossf);
     auto ddspin = [] (int d) -> transmatrix { 
       return spin(M_PI - d * TAU / S7 - cgi.hexshift);
       };
+    auto gxpush0 = geom3::flipped ? xpush0 : lxpush0;
     return spin(-cgi.gpdata->alpha) * build_matrix(
       geom3::flipped ? C02 : tile_center(),
-      geom3::flipped ? ddspin(i) * xpush0(cgi.tessf) : ddspin(i) * lxpush0(cgi.tessf),
-      geom3::flipped ? ddspin(i+1) * xpush0(cgi.tessf) : ddspin(i+1) * lxpush0(cgi.tessf),
+      gp_style ? (ddspin(i) * spin(-M_PI/S7) * gxpush0(cgi.hcrossf)) : ddspin(i) * gxpush0(cgi.tessf),
+      gp_style ? (ddspin(i) * spin(M_PI/S7) * gxpush0(cgi.hcrossf)) : ddspin(i+1) * gxpush0(cgi.tessf),
       C03
       );
     }
@@ -667,12 +628,28 @@ EX namespace gp {
   EX void prepare_matrices(bool inv) {
     if(!(GOLDBERG_INV || inv)) return;
     if(embedded_plane) geom3::light_flip(true);
-    cgi.gpdata->corners = inverse(build_matrix(
+    cgi.gpdata->corners_for_triangle = inverse(build_matrix(
       loctoh_ort(loc(0,0)),
       loctoh_ort(param),
       loctoh_ort(param * loc(0,1)),
       C03
       ));
+    cgi.gpdata->corners = (!gp_style) ? cgi.gpdata->corners_for_triangle : inverse(build_matrix(
+      loctoh_ort(loc(0,0)),
+      hr_S3 == 4 ? (loctoh_ort(param * loc(1,1)) + C02)/2 : (loctoh_ort(loc(0,0)) + loctoh_ort(param) + loctoh_ort(param * loc(0,1))) / 3,
+      hr_S3 == 4 ? (loctoh_ort(param * loc(1,-1)) + C02)/2 : (loctoh_ort(loc(0,0)) + loctoh_ort(param) + loctoh_ort(param * loc(0,1) * loc(0,1) * loc(0,1) * loc(0,1) * loc(0,1))) / 3,
+      C03
+      ));
+    for(int i=0; i<MDIM; i++) {
+      auto ac = Hypc; ac[i] = 1;
+      auto xac = inverse(cgi.gpdata->corners) * ac;
+      xac = xac[0] * loctoh_ort(eudir(1)) + xac[1] * loctoh_ort(eudir(2)); xac[2] = 1; xac[3] = 0;
+      ac = cgi.gpdata->corners * xac;
+      set_column(cgi.gpdata->rotator, i, ac);
+      }
+
+    callhooks(hooks_init_cornmul, dir_matrix(0));
+
     cgi.gpdata->Tf.resize(S7);
 
     /* should work directly without flipping but it does not... flipping for now */
@@ -681,7 +658,7 @@ EX namespace gp {
       transmatrix T = dir_matrix(i);
       for(int x=-GOLDBERG_LIMIT_HALF; x<GOLDBERG_LIMIT_HALF; x++)
       for(int y=-GOLDBERG_LIMIT_HALF; y<GOLDBERG_LIMIT_HALF; y++)
-      for(int d=0; d<(hr__S3==3?6:4); d++) {
+      for(int d=0; d<(hr_S3==3?6:4); d++) {
         loc at = loc(x, y);
         
         hyperpoint h = atz(T, cgi.gpdata->corners, at, 6);
@@ -696,7 +673,7 @@ EX namespace gp {
     for(int i=0; i<S7; i++) {
       for(int x=-GOLDBERG_LIMIT_HALF; x<GOLDBERG_LIMIT_HALF; x++)
       for(int y=-GOLDBERG_LIMIT_HALF; y<GOLDBERG_LIMIT_HALF; y++)
-      for(int d=0; d<(hr__S3==3?6:4); d++) {
+      for(int d=0; d<(hr_S3==3?6:4); d++) {
         auto& T = cgi.gpdata->Tf[i][x&GOLDBERG_MASK][y&GOLDBERG_MASK][d];
         T = cgi.emb->base_to_actual(T);
         }
@@ -726,29 +703,22 @@ EX namespace gp {
       gp::clear_plainshapes();
       int x = param.first;
       int y = param.second;
-      if(hr__S3 == 3)
+      if(hr_S3 == 3)
         cgi.gpdata->area = ((2*x+y) * (2*x+y) + y*y*3) / 4;
       else
         cgi.gpdata->area = x * x + y * y;
       next = point3(x+y/2., -y * sqrt(3) / 2, 0);
-      ld scale = 1 / hypot_d(2, next);
+      auto& scale = cgi.gpdata->scale;
+      scale = 1 / hypot_d(2, next);
       if(!GOLDBERG) scale = 1;
+      if(special_fake()) scale = 1;
       cgi.crossf *= scale;
-      cgi.hepvdist *= scale;
       cgi.hexhexdist *= scale;
       cgi.hexvdist *= scale;
       cgi.rhexf *= scale;
 //    spin = spintox(next);
 //    ispin = rspintox(next);
       cgi.gpdata->alpha = -atan2(next[1], next[0]) * 6 / S7;
-      if(hr__S3 == 3)
-        cgi.base_distlimit = (cgi.base_distlimit + log(scale) / log(2.618)) / scale;
-      else
-        cgi.base_distlimit = 3 * max(param.first, param.second) + 2 * min(param.first, param.second);
-      if(S7 == 12)
-        cgi.base_distlimit = 2 * param.first + 2 * param.second + 1;
-      if(cgi.base_distlimit > SEE_ALL)
-        cgi.base_distlimit = SEE_ALL;
       DEBB(DF_GEOM | DF_POLY, ("scale = ", scale));
       }
     }
@@ -771,13 +741,13 @@ EX namespace gp {
     while(!rotate_and_check_limits(v)) {
       if(x > y) x--; else y--;
       }
-    if(hr__S3 == 3 && y > x) v = v * loc(1, -1);
+    if(hr_S3 == 3 && y > x) v = v * loc(1, -1);
     return v;
     }
   
   EX loc human_representation(loc v) {
     int& x = v.first, &y = v.second;
-    if(hr__S3 == 3) while(x < 0 || y < 0 || (x == 0 && y > 0))
+    if(hr_S3 == 3) while(x < 0 || y < 0 || (x == 0 && y > 0))
       v = v * loc(0, 1);
     return v;
     }
@@ -785,7 +755,7 @@ EX namespace gp {
   EX eVariation variation_for(loc xy) {
     if(xy.first == 1 && xy.second == 0) 
       return eVariation::pure;
-    if(xy.first == 1 && xy.second == 1 && hr__S3 == 3) 
+    if(xy.first == 1 && xy.second == 1 && hr_S3 == 3) 
       return eVariation::bitruncated;
     return eVariation::goldberg;
     }
@@ -804,7 +774,7 @@ EX namespace gp {
     if(xy.first == 1 && xy.second == 0) {
       set_variation(eVariation::pure);
       }
-    else if(xy.first == 1 && xy.second == 1 && hr__S3 == 3) {
+    else if(xy.first == 1 && xy.second == 1 && hr_S3 == 3) {
       set_variation(eVariation::bitruncated);
       }
     else 
@@ -832,6 +802,32 @@ EX namespace gp {
       );
     }  
 
+  EX void dual_of_current() {
+    auto p = univ_param();
+    if(hr_S3 == 3 && !UNTRUNCATED) {
+      println(hlog, "set param to ", p * loc(1,1));
+      if(!check_whirl_set(p * loc(1, 1))) return;
+      set_variation(eVariation::untruncated);
+      start_game();
+      config = human_representation(univ_param());
+      }
+    else if(hr_S3 == 4 && !UNRECTIFIED) {
+      if(!check_whirl_set(p * loc(1, 1))) return;
+      set_variation(eVariation::unrectified);
+      start_game();
+      config = human_representation(univ_param());
+      }
+    else if(hr_S3 == 3 && UNTRUNCATED) {
+      println(hlog, "whirl_set to ", (p * loc(1,1)) / 3);
+      if(!check_whirl_set((p * loc(1,1)) / 3)) return;
+      config = human_representation(univ_param());
+      }
+    else if(hr_S3 == 4 && UNRECTIFIED) {
+      if(!check_whirl_set((p * loc(1,1)) / 2)) return;
+      config = human_representation(univ_param());
+      }
+    }
+
   void show() {
     cmode = sm::SIDE | sm::MAYDARK;
     gamescreen();
@@ -845,12 +841,12 @@ EX namespace gp {
       if(texture::cgroup == cpFootball || texture::cgroup == cpThree) min_quality = 1;
       }
 
-    if((texture::config.tstate == texture::tsActive) && (S7 % 2 == 1) && (hr__S3 == 4)) {
+    if((texture::config.tstate == texture::tsActive) && (S7 % 2 == 1) && (hr_S3 == 4)) {
       if(texture::cgroup == cpChess) min_quality = 1;
       }
 #endif    
     if(min_quality == 0 && min_quality_chess == 0) {
-      dialog::addBoolItem(XLAT("pure"), hr__PURE || (GOLDBERG && univ_param() == loc(1,0)), 'a');
+      dialog::addBoolItem(XLAT("pure"), hr_PURE || (GOLDBERG && univ_param() == loc(1,0)), 'a');
       dialog::lastItem().value = "GP(1,0)";
       dialog::add_action_confirmed([] { whirl_set(loc(1, 0)); });
       }
@@ -858,7 +854,7 @@ EX namespace gp {
     if(min_quality_chess == 0) {
       dialog::addBoolItem(XLAT("bitruncated"), BITRUNCATED, 'b');  
       dialog::add_action_confirmed([] { 
-        if(hr__S3 == 4) {
+        if(hr_S3 == 4) {
           if(!BITRUNCATED) {
             stop_game();
             set_variation(eVariation::bitruncated);
@@ -870,17 +866,17 @@ EX namespace gp {
         });
       }
 
-    dialog::lastItem().value = hr__S3 == 3 ? "GP(1,1)" : ONOFF(BITRUNCATED);
+    dialog::lastItem().value = hr_S3 == 3 ? "GP(1,1)" : ONOFF(BITRUNCATED);
 
     if(min_quality == 0 || min_quality_chess) {
-      dialog::addBoolItem(hr__S3 == 3 ? XLAT("chamfered") : XLAT("expanded"), univ_param() == loc(2,0) && GOLDBERG, 'c');
+      dialog::addBoolItem(hr_S3 == 3 ? XLAT("chamfered") : XLAT("expanded"), univ_param() == loc(2,0) && GOLDBERG, 'c');
       dialog::lastItem().value = "GP(2,0)";
       dialog::add_action_confirmed([] { 
         whirl_set(loc(2, 0));
         });
       }
 
-    if(hr__S3 == 3) {
+    if(hr_S3 == 3) {
       dialog::addBoolItem(XLAT("2x bitruncated"), GOLDBERG && univ_param() == loc(3,0), 'd');
       dialog::lastItem().value = "GP(3,0)";
       dialog::add_action_confirmed([] { 
@@ -936,7 +932,7 @@ EX namespace gp {
     dialog::addBreak(100);
     int style = 0;
     auto v0 = variation_for(param);
-    bool bad_bi = BITRUNCATED && hr__a4;
+    bool bad_bi = BITRUNCATED && hr_a4;
     if(!bad_bi) {
       dynamicval<eVariation> v(variation, v0);
       if(geosupport_football() == 2) style = 3;
@@ -974,37 +970,16 @@ EX namespace gp {
     dialog::add_action([] { swap(config.first, config.second); });
 
     bool have_dual = !bad_bi && !IRREGULAR && !WARPED;
-    if(hr__S3 == 3 && UNTRUNCATED && (univ_param()*loc(1,1)) % 3) have_dual = false;
-    if(hr__S3 == 4 && UNRECTIFIED && (univ_param()*loc(1,1)) % 2) have_dual = false;
+    if(hr_S3 == 3 && UNTRUNCATED && (univ_param()*loc(1,1)) % 3) have_dual = false;
+    if(hr_S3 == 4 && UNRECTIFIED && (univ_param()*loc(1,1)) % 2) have_dual = false;
     
     if(have_dual) {
       dialog::addItem(XLAT("dual of current"), 'D');
-      dialog::add_action([] { 
-        auto p = univ_param();
-        if(hr__S3 == 3 && !UNTRUNCATED) {
-          println(hlog, "set param to ", p * loc(1,1));
-          if(!check_whirl_set(p * loc(1, 1))) return;
-          set_variation(eVariation::untruncated);
-          start_game();
-          config = human_representation(univ_param());
-          }
-        else if(hr__S3 == 4 && !UNRECTIFIED) {
-          if(!check_whirl_set(p * loc(1, 1))) return;
-          set_variation(eVariation::unrectified);
-          start_game();
-          config = human_representation(univ_param());
-          }
-        else if(hr__S3 == 3 && UNTRUNCATED) {
-          println(hlog, "whirl_set to ", (p * loc(1,1)) / 3);
-          if(!check_whirl_set((p * loc(1,1)) / 3)) return;
-          config = human_representation(univ_param());
-          }
-        else if(hr__S3 == 4 && UNRECTIFIED) {
-          if(!check_whirl_set((p * loc(1,1)) / 2)) return;
-          config = human_representation(univ_param());
-          }
-        });
+      dialog::add_action(dual_of_current);
       }
+
+    if(GOLDBERG_INV) add_edit(gp::su);
+    else dialog::addBreak(100);
     
     dialog::addBreak(100);
     dialog::addHelp();
@@ -1015,7 +990,7 @@ EX namespace gp {
   
   EX loc univ_param() {
     if(GOLDBERG_INV) return param;
-    else if(hr__PURE) return loc(1,0);
+    else if(hr_PURE) return loc(1,0);
     else return loc(1,1);
     }
   
@@ -1030,7 +1005,7 @@ EX namespace gp {
     int sp = 0;
     auto& at = li.relative;
     again:
-    auto corner = cgi.gpdata->corners * loctoh_ort(at);
+    auto corner = cgi.gpdata->corners_for_triangle * loctoh_ort(at);
     if(corner[1] < -1e-6 || corner[2] < -1e-6) {
       at = at * eudir(1);
       sp++;
@@ -1114,7 +1089,7 @@ EX namespace gp {
     auto d0 = master_function(createStep(cm->master, i)->c7);
     auto d1 = master_function(createStep(cm->master, cm->c.fix(i+1))->c7);
     
-    if(hr__S3 == 4) {
+    if(hr_S3 == 4) {
       heptspin hs(cm->master, i);
       hs += wstep; hs+=-1; hs += wstep;
       auto d2 = master_function(hs.at->c7);
@@ -1172,24 +1147,24 @@ EX namespace gp {
     #endif
     else if(DUAL)
       return XLAT("dual");
-    else if(hr__PURE)
+    else if(hr_PURE)
       return XLAT("pure");
     else if(BITRUNCATED)
       return XLAT("bitruncated");
     #if CAP_GP
     else if(GOLDBERG && param == loc(1, 0))
       return XLAT("pure");
-    else if(GOLDBERG && param == loc(1, 1) && hr__S3 == 3)
+    else if(GOLDBERG && param == loc(1, 1) && hr_S3 == 3)
       return XLAT("bitruncated");
-    else if(GOLDBERG && param == loc(1, 1) && hr__S3 == 4)
+    else if(GOLDBERG && param == loc(1, 1) && hr_S3 == 4)
       return XLAT("rectified");
-    else if(UNRECTIFIED && param == loc(1, 1) && hr__S3 == 4)
+    else if(UNRECTIFIED && param == loc(1, 1) && hr_S3 == 4)
       return XLAT("dual");
-    else if(UNTRUNCATED && param == loc(1, 1) && hr__S3 == 3)
+    else if(UNTRUNCATED && param == loc(1, 1) && hr_S3 == 3)
       return XLAT("dual");
     else if(GOLDBERG && param == loc(2, 0))
-      return hr__S3 == 3 ? XLAT("chamfered") : XLAT("expanded");
-    else if(GOLDBERG && param == loc(3, 0) && hr__S3 == 3)
+      return hr_S3 == 3 ? XLAT("chamfered") : XLAT("expanded");
+    else if(GOLDBERG && param == loc(3, 0) && hr_S3 == 3)
       return XLAT("2x bitruncated");
     #if MAXMDIM >= 4
     else if(variation == eVariation::subcubes)
@@ -1383,7 +1358,7 @@ EX namespace gp {
             gp::current_li = gp::get_local_info(c1);
             }
           else {
-            gp::current_li.relative.first = shvid(c1);
+            gp::current_li.relative.first = currentmap->shvid(c1);
             gp::current_li.relative.second = shift[c];
             }
           });
@@ -1441,11 +1416,16 @@ EX namespace gp {
         }
       return C0;
       }
+
+    int pattern_value(cell *c) override {
+      auto c1 = get_mapped(c, 0);
+      return UIU(currentmap->pattern_value(c1));
+      }
     };
 
   EX hrmap* new_inverse() { return new hrmap_inverse; }
   
-  hrmap_inverse* inv_map() { return (hrmap_inverse*)currentmap; }
+  hrmap_inverse* inv_map() { if(fake::in()) return FPIU(inv_map()); return (hrmap_inverse*)currentmap; }
 
   EX bool inverse_pseudohept(cell *c) {
     cell *c1 = inv_map()->mapping[c];

@@ -513,7 +513,7 @@ EX int treasureForLocal() {
   }
 
 EX bool extra_safety_for_memory(cell *c) {
-  if(hyperbolic && (arcm::in() || hr__S3 > 3) && !quotient && !tactic::on && in_full_game()) {
+  if(hyperbolic && (arcm::in() || hr_S3 > 3) && !quotient && !tactic::on && in_full_game()) {
     if(hrand(1000) < 1) {
       c->item = itOrbSafety;
       return true;
@@ -603,8 +603,10 @@ EX void placeCrossroadOrbs(cell *c) {
     int mul = c->land == laCrossroads5 ? 10 : 1;
     int gch = oi.gchance;
     if(!inv::on) gch /= orbcrossfun(treas); else gch /= 2;
+
     if(hrand(gch) >= mul) continue;
     if(hrand(50+items[itHyperstone]) >= 50) continue;
+
     c->item = oi.orb;
     if(oi.orb == itOrbWater && c->land != laOcean) c->wall = waStrandedBoat;
     }

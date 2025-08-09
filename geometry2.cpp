@@ -201,8 +201,10 @@ transmatrix hrmap_standard::relative_matrixh(heptagon *h2, heptagon *h1, const h
   }
 
 EX shiftmatrix &ggmatrix(cell *c) {
-  shiftmatrix& t = gmatrix[c];
-  if(t[LDIM][LDIM] == 0) {
+  auto& t = gmatrix[c];
+  if(t.is_null) {
+    if(sl2) return t = twist::nmul(shiftless(actual_view_transform * View), twist::relative_shiftmatrix(c, centerover));
+    t.is_null = false;
     t.T = actual_view_transform * View * calc_relative_matrix(c, centerover, C0);
     t.shift = 0;
     }
@@ -321,7 +323,8 @@ void virtualRebase_cell(cell*& base, T& at, const U& check) {
 template<class T, class U> 
 void virtualRebase(cell*& base, T& at, const U& check) {
 
-  if(nil && WDIM == 3) {
+  if(nil && WDIM == 3 && nilv::nil_structure_index != 2 && !mhybrid) {
+    /** todo: implement for hex nil too */
     hyperpoint h = check(at);
     auto step = [&] (int i) {
       at = currentmap->adj(base, (i+S7/2) % S7) * at;
@@ -453,7 +456,7 @@ EX bool no_easy_spin() {
 
 EX bool never_invert;
 
-EX bool dont_inverse() { return never_invert || (hr__PURE && cgi.emb->is_euc_in_noniso()); }
+EX bool dont_inverse() { return never_invert || (hr_PURE && cgi.emb->is_euc_in_noniso()); }
 
 ld hrmap_standard::spin_angle(cell *c, int d) {
   if(WDIM == 3) return SPIN_NOT_AVAILABLE;
@@ -535,7 +538,7 @@ transmatrix hrmap_standard::adj(cell *c, int i) {
     static bool first = true;
     if(h == h1)
       return T * U;
-    else if(gp::do_adjm) {
+    else if(gp::do_adjm && !fake::in()) {
       if(gp::gp_adj.count(make_pair(c,i))) {
         return T * gp::get_adj(c,i) * U;
         }
@@ -570,7 +573,7 @@ EX hyperpoint randomPointIn(int t) {
   while(true) {
     hyperpoint h = xspinpush0(TAU * (randd()-.5)/t, asinh(randd()));
     double d =
-      hr__PURE ? cgi.tessf : t == 6 ? cgi.hexhexdist : cgi.crossf;
+      hr_PURE ? cgi.tessf : t == 6 ? cgi.hexhexdist : cgi.crossf;
     if(hdist0(h) < hdist0(xpush(-d) * h))
       return spin(TAU / t * (rand() % t)) * h;
     }
@@ -595,7 +598,7 @@ hyperpoint hrmap_standard::get_corner(cell *c, int cid, ld cf) {
     return mid_at_actual(vs.vertices[cid], 3/cf);
     }
   #endif
-  if(hr__PURE) {
+  if(hr_PURE) {
     if(cgi.emb->is_euc_in_noniso()) {
       return lspinpush0(spin_angle(c, cid) + M_PI/S7, cgi.hcrossf * 3 / cf);
       }
@@ -632,7 +635,7 @@ EX hyperpoint nearcorner(cell *c, int i) {
   #endif
   #if CAP_ARCM
   if(arcm::in()) {
-    if(hr__PURE) { 
+    if(hr_PURE) { 
       auto &ac = arcm::current;
       auto& t = ac.get_triangle(c->master, i-1);
       int id = arcm::id_of(c->master);
@@ -747,7 +750,7 @@ EX hyperpoint farcorner(cell *c, int i, int which) {
   #endif
   #if CAP_ARCM
   if(arcm::in()) {
-    if(hr__PURE) {
+    if(hr_PURE) {
       auto &ac = arcm::current;
       auto& t = ac.get_triangle(c->master, i-1);
       int id = arcm::id_of(c->master);
@@ -1049,8 +1052,8 @@ EX pathgen generate_random_path(cellwalker start, int length, bool for_yendor, b
         stupid:
         // stupid
         ycw += rev;
-        // well, make it a bit more clever on bitruncated hr__a4 grids
-        if(hr__a4 && BITRUNCATED && S7 <= 5) {
+        // well, make it a bit more clever on bitruncated hr_a4 grids
+        if(hr_a4 && BITRUNCATED && S7 <= 5) {
           if(ycw.at->type == 8 && ycw.cpeek()->type != 8)
             ycw++;
           if(hrand(100) < 10) {

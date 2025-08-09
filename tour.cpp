@@ -25,6 +25,9 @@ EX bool on;
 /** \brief should the presentation texts be shown */
 EX bool texts = true;
 
+/** \brief helps to automatize interactive presentations */
+EX int tour_value;
+
 EX string tourhelp;
 
 /** \brief index of the current slide */
@@ -35,7 +38,7 @@ EX int currentslide;
 enum presmode { 
   pmStartAll = 0,
   pmStart = 1, pmFrame = 2, pmStop = 3, pmKey = 4, pmRestart = 5,
-  pmAfterFrame = 6, pmHelpEx = 7,
+  pmAfterFrame = 6, pmHelpEx = 7, pmKeyAlt = 8, pmKeyAlt2 = 9,
   pmGeometry = 11, pmGeometryReset = 13, pmGeometryStart = 15,
   pmGeometrySpecial = 16
   };
@@ -120,10 +123,11 @@ EX void enable_canvas_backup(ccolor::data *canv) {
   }
 
 /** \brief an auxiliary function to enable a visualization in the Canvas land */
-EX void setCanvas(presmode mode, ccolor::data *canv) {
+EX void setCanvas(presmode mode, ccolor::data *canv, reaction_t f) {
   if(mode == pmStart) {
     gamestack::push();
     enable_canvas_backup(canv);
+    f();
     start_game();
     resetview();
     }
@@ -133,9 +137,22 @@ EX void setCanvas(presmode mode, ccolor::data *canv) {
     }
   }
 
-EX void setCanvas(presmode mode, char c) {
-  setCanvas(mode, ccolor::legacy(c));
+EX void setCanvas(presmode mode, ccolor::data *canv) { setCanvas(mode, canv, [] {}); }
+
+EX void setCanvasColor(presmode mode, color_t col, reaction_t f) {
+  setCanvas(mode, &ccolor::plain, [f, col] { slide_backup(ccolor::rwalls, 0); slide_backup(ccolor::plain.ctab, colortable{col}); f(); });
   }
+
+EX void setWhiteCanvas(presmode mode, reaction_t f) {
+  setCanvasColor(mode, 0xFFFFFF, f);
+  }
+
+EX void setWhiteCanvas(presmode mode) { setWhiteCanvas(mode, [] {}); }
+
+EX void setPlainCanvas(presmode mode, reaction_t f) { setCanvas(mode, &ccolor::plain, [f] {slide_backup(ccolor::rwalls, 0); f(); }); }
+
+EX void setPlainCanvas(presmode mode) { setCanvas(mode, &ccolor::plain, [] {slide_backup(ccolor::rwalls, 0); }); }
+
 
 /** \brief static mode: we get Orbs of Teleport to use them instead of movement */
 bool sickmode;
@@ -220,6 +237,18 @@ void return_geometry() {
   addMessage(XLAT("Returned to your game."));
   }
 
+EX void return_geometries() {
+  while(gamestack::pushed()) return_geometry();
+  }
+
+EX void stop_tour() {
+  if(!tour::on) return;
+  while(gamestack::pushed()) return_geometry();
+  presentation(pmStop);
+  slide_restore_all();
+  tour::on = false;
+  }
+
 EX bool next_slide() {
   flagtype flags = slides[currentslide].flags;
   popScreenAll();
@@ -241,6 +270,10 @@ bool handleKeyTour(int sym, int uni) {
   if(!(cmode & sm::DOTOUR)) return false;
   bool inhelp = cmode & sm::HELP;
   flagtype flags = slides[currentslide].flags;
+  if(dialog::key_actions.count(sym)) {
+    dialog::key_actions[sym]();
+    return true;
+    }
   if((sym == SDLK_RETURN || sym == SDLK_KP_ENTER) && (!inhelp || (flags & QUICKSKIP)))
     return next_slide();
   if(sym == SDLK_BACKSPACE) {
@@ -556,11 +589,6 @@ EX void start() {
   pmodel = mdDisk;
   if(!tour::on) {
     initialize_slides();
-    }
-  else {
-    presentation(pmStop);
-    stop_game();
-    firstland = specialland = laIce;
     }
   restart_game(rg::tour);
   if(tour::on) {
@@ -1050,5 +1078,50 @@ auto a2 = addHook(hooks_handleKey, 100, handleKeyTour);
 auto a3 = addHook(hooks_nextland, 100, [] (eLand l) { return tour::on ? getNext(l) : laNone; });
 
 EX }
+
+/* these were originally in RogueViz, but useful enough to be moved to main */
+
+EX vector<reaction_t> cleanup;
+
+EX void do_cleanup() {
+  while(!cleanup.empty()) {
+    cleanup.back()();
+    cleanup.pop_back();
+    }
+  }
+
+EX void on_cleanup_or_next(const reaction_t& del) {
+  #if CAP_TOUR
+  if(tour::on) tour::on_restore(del);
+  else
+  #endif
+  cleanup.push_back(del);
+  }
+
+#if HDR
+template<class T> void rv_change(T& variable, const T& value) {
+  T backup = variable;
+  variable = value;
+  on_cleanup_or_next([backup, &variable] { variable = backup; });
+  }
+
+template<class T> void rv_keep(T& variable) {
+  T backup = variable;
+  on_cleanup_or_next([backup, &variable] { variable = backup; });
+  }
+
+template<class T, class U> reaction_t autoclear_hook(hookset<T>& m, int prio, U&& hook) {
+  int p = addHook(m, prio, hook);
+  return [&m, p] { delHook(m, p); };
+  }
+
+template<class T, class U> void rv_hook(hookset<T>& m, int prio, U&& hook) {
+  on_cleanup_or_next(autoclear_hook(m, prio, hook));
+  }
 #endif
+
+int ah_cleanup = addHook(hooks_clearmemory, 500, [] { do_cleanup(); });
+
+#endif
+
 }

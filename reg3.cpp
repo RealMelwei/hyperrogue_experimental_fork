@@ -133,7 +133,7 @@ EX namespace reg3 {
 
   EX bool in() {
     if(fake::in()) return FPIU(in());
-    if(geometry == gCubeTiling && (cubes_reg3 || !hr__PURE)) return true;
+    if(geometry == gCubeTiling && (cubes_reg3 || !hr_PURE)) return true;
     return WDIM == 3 && !euclid && !bt::in() && !nonisotropic && !mhybrid && !kite::in();
     }
 
@@ -195,6 +195,56 @@ EX namespace reg3 {
       }    
     }
 
+  EX void build_regular_spins(ld between_centers, ld angle_between_faces) {
+    auto& spins = cgi.spins;
+    int& face = cgi.face;
+
+    if(S7 == 20) {
+      spins[0] = Id;
+      spins[1] = cspin(0, 1, angle_between_faces) * cspin180(1, 2);
+      spins[2] = spins[1] * cspin(1, 2, -TAU/face) * spins[1];
+      spins[3] = spins[1] * cspin(1, 2, +TAU/face) * spins[1];
+      for(int a=4; a<10; a++) spins[a] = cspin(1, 2, TAU/face) * spins[a-3];
+      for(int a=S7/2; a<S7; a++) spins[a] = spins[a-S7/2] * spin180();
+      }
+
+    if(S7 == 12 || S7 == 8) {
+      spins[0] = Id;
+      spins[1] = cspin(0, 1, angle_between_faces) * cspin180(1, 2);
+      for(int a=2; a<face+1; a++) spins[a] = cspin(1, 2, TAU*(a-1)/face) * spins[1];
+      for(int a=S7/2; a<S7; a++) spins[a] = cspin180(0, 1) * spins[a-S7/2];
+      if(S7 == 8) swap(spins[6], spins[7]);
+      if(S7 == 12) swap(spins[8], spins[11]);
+      if(S7 == 12) swap(spins[9], spins[10]);
+      }
+
+    if(S7 == 6) {
+      spins[0] = Id;
+      spins[1] = cspin(0, 1, angle_between_faces) * cspin180(1, 2);
+      spins[2] = cspin90(1, 2) * spins[1];
+      for(int a=S7/2; a<S7; a++) spins[a] = spins[a-S7/2] * cspin180(0, 1);
+      }
+
+    if(S7 == 4) {
+      spins[0] = Id;
+      spins[1] = cspin(0, 1, angle_between_faces) * cspin180(1, 2);
+      for(int a=2; a<face+1; a++) spins[a] = cspin(1, 2, TAU*(a-1)/face) * spins[1];
+      }
+
+    cgi.adjmoves[0] = cpush(0, between_centers) * cspin180(0, 2);
+    for(int i=1; i<S7; i++) cgi.adjmoves[i] = spins[i] * cgi.adjmoves[0];
+
+    for(int a=0; a<S7; a++)
+      DEBB(DF_GEOM, ("center of ", a, " is ", kz(tC0(cgi.adjmoves[a]))));
+
+    DEBB(DF_GEOM, ("doublemove = ", kz(tC0(cgi.adjmoves[0] * cgi.adjmoves[0]))));
+
+    cgi.adjcheck = hdist(tC0(cgi.adjmoves[0]), tC0(cgi.adjmoves[1])) * 1.0001;
+
+    if(cgi.loop == 4) cgi.strafedist = cgi.adjcheck;
+    else cgi.strafedist = hdist(cgi.adjmoves[0] * C0, cgi.adjmoves[1] * C0);
+    }
+
   EX void generate() {
 
     if(fake::in()) {
@@ -208,7 +258,6 @@ EX namespace reg3 {
     int& face = cgi.face;
     auto& spins = cgi.spins;
     auto& cellshape = hsh.faces;
-    auto& adjcheck = cgi.adjcheck;
   
     int& mid = cgi.schmid;
     mid = 3;
@@ -293,38 +342,8 @@ EX namespace reg3 {
     midface = normalize(midface);
     ld between_centers = 2 * hdist0(midface);
     DEBB(DF_GEOM, ("between_centers = ", between_centers));
-    
-    if(S7 == 20) {
-      spins[0] = Id;
-      spins[1] = cspin(0, 1, angle_between_faces) * cspin180(1, 2);
-      spins[2] = spins[1] * cspin(1, 2, -TAU/face) * spins[1];
-      spins[3] = spins[1] * cspin(1, 2, +TAU/face) * spins[1];
-      for(int a=4; a<10; a++) spins[a] = cspin(1, 2, TAU/face) * spins[a-3];
-      for(int a=S7/2; a<S7; a++) spins[a] = spins[a-S7/2] * spin180();
-      }
 
-    if(S7 == 12 || S7 == 8) {
-      spins[0] = Id;
-      spins[1] = cspin(0, 1, angle_between_faces) * cspin180(1, 2);
-      for(int a=2; a<face+1; a++) spins[a] = cspin(1, 2, TAU*(a-1)/face) * spins[1];
-      for(int a=S7/2; a<S7; a++) spins[a] = cspin180(0, 1) * spins[a-S7/2];
-      if(S7 == 8) swap(spins[6], spins[7]);
-      if(S7 == 12) swap(spins[8], spins[11]);
-      if(S7 == 12) swap(spins[9], spins[10]);
-      }
-    
-    if(S7 == 6) {
-      spins[0] = Id;
-      spins[1] = cspin(0, 1, angle_between_faces) * cspin180(1, 2);
-      spins[2] = cspin90(1, 2) * spins[1];
-      for(int a=S7/2; a<S7; a++) spins[a] = spins[a-S7/2] * cspin180(0, 1);
-      }
-    
-    if(S7 == 4) {
-      spins[0] = Id;
-      spins[1] = cspin(0, 1, angle_between_faces) * cspin180(1, 2);
-      for(int a=2; a<face+1; a++) spins[a] = cspin(1, 2, TAU*(a-1)/face) * spins[1];      
-      }
+    build_regular_spins(between_centers, angle_between_faces);
     
     cellshape.clear();
     cellshape.resize(S7);
@@ -332,19 +351,6 @@ EX namespace reg3 {
       for(int b=0; b<face; b++)
         cellshape[a].push_back(spins[a] * cspin(1, 2, TAU*b/face) * v2);
       }
-    
-    cgi.adjmoves[0] = cpush(0, between_centers) * cspin180(0, 2);
-    for(int i=1; i<S7; i++) cgi.adjmoves[i] = spins[i] * cgi.adjmoves[0];
-
-    for(int a=0; a<S7; a++)
-      DEBB(DF_GEOM, ("center of ", a, " is ", kz(tC0(cgi.adjmoves[a]))));
-    
-    DEBB(DF_GEOM, ("doublemove = ", kz(tC0(cgi.adjmoves[0] * cgi.adjmoves[0]))));
-
-    adjcheck = hdist(tC0(cgi.adjmoves[0]), tC0(cgi.adjmoves[1])) * 1.0001;
-
-    if(loop == 4) cgi.strafedist = adjcheck;
-    else cgi.strafedist = hdist(cgi.adjmoves[0] * C0, cgi.adjmoves[1] * C0);
     
     if(stretch::applicable()) {
       transmatrix T = cspin90(0, 2);
@@ -766,7 +772,7 @@ EX namespace reg3 {
       }
 
     subcellshape& get_cellshape(cell *c) override {
-      if(hr__PURE) return *cgi.heptshape ;
+      if(hr_PURE) return *cgi.heptshape ;
       int id = local_id.at(c).second;
       return cgi.subshapes[id];
       }
@@ -793,13 +799,17 @@ EX namespace reg3 {
       int id = local_id.at(c).first;
       return move_sequences[id][i];
       }
+
+    int pattern_value(cell *c) override {
+      return local_id[c].first;
+      }
     };
 
   struct hrmap_quotient3 : hrmap_closed3 { };
   #endif
 
   transmatrix hrmap_closed3::ray_iadj(cell *c, int i) {
-    if(hr__PURE) return iadj(c, i);
+    if(hr_PURE) return iadj(c, i);
     auto& v = get_face_vertices(c, i); 
     hyperpoint h = 
       project_on_triangle(v[0], v[1], v[2]);
@@ -808,7 +818,7 @@ EX namespace reg3 {
     }
   
   int hrmap_closed3::wall_offset(cell *c) {
-    if(hr__PURE) return 0;
+    if(hr_PURE) return 0;
     auto& wo = cgi.walloffsets[ local_id.at(c).second ];
     if(wo.second == nullptr)
       wo.second = c;
@@ -1127,7 +1137,7 @@ EX namespace reg3 {
     void create_patterns() {
       DEBB(DF_GEOM, ("creating pattern = ", isize(allh)));
       
-      if(!hr__PURE) {
+      if(!hr_PURE) {
          println(hlog, "create_patterns not implemented");
          return;
          }
@@ -1345,39 +1355,39 @@ EX namespace reg3 {
       }
 
     transmatrix relative_matrixc(cell *c2, cell *c1, const hyperpoint& hint) override {
-      if(hr__PURE) return relative_matrix(c2->master, c1->master, hint);
+      if(hr_PURE) return relative_matrix(c2->master, c1->master, hint);
       return relative_matrix_via_masters(c2, c1, hint);
       }
 
     transmatrix master_relative(cell *c, bool get_inverse) override {
-      if(hr__PURE) return Id;
+      if(hr_PURE) return Id;
       int aid = cell_id.at(c);
       return quotient_map->master_relative(quotient_map->acells[aid], get_inverse);
       }
 
     int shvid(cell *c) override {
-      if(hr__PURE) return 0;
+      if(hr_PURE) return 0;
       if(!cell_id.count(c)) return quotient_map->shvid(c);
       int aid = cell_id.at(c);
       return quotient_map->shvid(quotient_map->acells[aid]);
       }
 
     int wall_offset(cell *c) override {
-      if(hr__PURE) return 0;
+      if(hr_PURE) return 0;
       if(!cell_id.count(c)) return quotient_map->wall_offset(c); /* necessary because ray samples are from quotient_map */
       int aid = cell_id.at(c);
       return quotient_map->wall_offset(quotient_map->acells[aid]);
       }
 
     transmatrix adj(cell *c, int d) override {
-      if(hr__PURE) return adj(c->master, d);
+      if(hr_PURE) return adj(c->master, d);
       if(!cell_id.count(c)) return quotient_map->adj(c, d); /* necessary because ray samples are from quotient_map */
       int aid = cell_id.at(c);
       return quotient_map->tmatrices_cell[aid][d];
       }
 
     subcellshape& get_cellshape(cell *c) override {
-      if(hr__PURE) return *cgi.heptshape;
+      if(hr_PURE) return *cgi.heptshape;
       int aid = cell_id.at(c);
       return quotient_map->get_cellshape(quotient_map->acells[aid]);
       }
@@ -1397,7 +1407,7 @@ EX namespace reg3 {
       }
 
     void find_cell_connection(cell *c, int d) override {
-      if(hr__PURE) {
+      if(hr_PURE) {
         auto h = c->master->cmove(d);
         c->c.connect(d, h->c7, c->master->c.spin(d), false);
         return;
@@ -1412,7 +1422,7 @@ EX namespace reg3 {
       }
 
     transmatrix ray_iadj(cell *c, int i) override {
-      if(hr__PURE) return iadj(c, i);
+      if(hr_PURE) return iadj(c, i);
       if(!cell_id.count(c)) return quotient_map->ray_iadj(c, i); /* necessary because ray samples are from quotient_map */
       int aid = cell_id.at(c);
       return quotient_map->ray_iadj(quotient_map->acells[aid], i);
@@ -1425,11 +1435,11 @@ EX namespace reg3 {
 
     cellwalker strafe(cellwalker cw, int j) override {
 
-      int aid = hr__PURE ? cw.at->master->fieldval : cell_id.at(cw.at);
+      int aid = hr_PURE ? cw.at->master->fieldval : cell_id.at(cw.at);
       auto ress = quotient_map->strafe(cellwalker(quotient_map->acells[aid], cw.spin), j);
       cellwalker res = cellwalker(cw.at->cmove(j), ress.spin);
 
-      if(hr__PURE && strafe_test) {
+      if(hr_PURE && strafe_test) {
         hyperpoint hfront = tC0(cgi.adjmoves[cw.spin]);
         cw.at->cmove(j);
         transmatrix T = currentmap->adj(cw.at, j);
@@ -1437,7 +1447,7 @@ EX namespace reg3 {
           if(hdist(hfront, T * tC0(cgi.adjmoves[i])) < cgi.strafedist + .01) {
             auto resx = cellwalker(cw.at->cmove(j), i);
             if(res == resx) return res;
-            if(hr__PURE && res != resx) println(hlog, "h3: ", res, " vs ", resx);
+            if(hr_PURE && res != resx) println(hlog, "h3: ", res, " vs ", resx);
             }
         throw hr_exception("incorrect strafe");
         }
@@ -1464,7 +1474,7 @@ EX namespace reg3 {
       origin = init_heptagon(S7);
       heptagon& h = *origin;
       h.s = hsOrigin;
-      if(hr__PURE) h.c7 = newCell(S7, origin);
+      if(hr_PURE) h.c7 = newCell(S7, origin);
       worst_error1 = 0, worst_error2 = 0;
       
       dynamicval<hrmap*> cr(currentmap, this);
@@ -1492,7 +1502,7 @@ EX namespace reg3 {
       reg_gmatrix[origin] = make_pair(alt, T);
       altmap[alt].emplace_back(origin, T);
 
-      if(hr__PURE) {
+      if(hr_PURE) {
         celllister cl(origin->c7, 4, 100000, NULL);
         for(cell *c: cl.lst) {
           hyperpoint h = tC0(relative_matrix(c->master, origin, C0));
@@ -1500,7 +1510,7 @@ EX namespace reg3 {
           }
         }
 
-      if(!hr__PURE) get_cell_at(origin, 0);
+      if(!hr_PURE) get_cell_at(origin, 0);
       }
     
     ld worst_error1, worst_error2;
@@ -1638,7 +1648,7 @@ EX namespace reg3 {
         }
       #endif
       heptagon *created = init_heptagon(S7);
-      if(hr__PURE && parent->c7) created->c7 = newCell(S7, created);
+      if(hr_PURE && parent->c7) created->c7 = newCell(S7, created);
       #if CAP_FIELD
       if(quotient_map) {
         created->emeraldval = fv;
@@ -1752,12 +1762,16 @@ EX namespace reg3 {
       extra_origins.push_back(created);
       return get_cell_at(created, fv);
       }
+
+    int pattern_value(cell *c) override {
+      return c->master->fieldval;
+      }
     };
 
   EX int get_aid(cell *c) {
     auto m = dynamic_cast<hrmap_h3*> (currentmap);
     if(!m) throw hr_exception("get_aid incorrect");
-    if(hr__PURE) return c->master->fieldval;
+    if(hr_PURE) return c->master->fieldval;
     return m->cell_id[c];
     }
 
@@ -2034,54 +2048,19 @@ EX namespace reg3 {
       }
     };
 
-  struct hrmap_h3_rule : hrmap_h3_abstract, ruleset {
-
-    heptagon *origin;
+  struct emerald_matcher {
     reg3::hrmap_quotient3 *emerald_map;
 
-    hrmap_quotient3 *qmap() override { return quotient_map; }
-
-    hrmap_h3_rule() {
-
-      println(hlog, "generating hrmap_h3_rule");
-
-      load_ruleset_new(get_rule_filename(false));
-      quotient_map = gen_quotient_map(minimize_quotient_maps, fp);
-      find_mappings();
-      
-      origin = init_heptagon(S7);
-      heptagon& h = *origin;
-      h.s = hsOrigin;
-      h.fiftyval = root[0];
-      if(hr__PURE) h.c7 = newCell(S7, origin);
-      
-      emerald_map = gen_quotient_map(false, currfp);
-
-      h.emeraldval = 0;
-      
-      if(!hr__PURE) get_cell_at(origin, 0);
-      }
-    
-    int connection(int fv, int d) override {
-      return qmap()->allh[fv]->move(d)->fieldval;
-      }
-
-    heptagon *getOrigin() override {
-      return origin;
-      }
-    
-    #define DEB 0
-    
-    heptagon *counterpart(heptagon *h) {
-      return quotient_map->allh[h->fieldval];
-      }
-    
+    int crsize;
     vector<short> evmemo;
     
-    void find_emeraldval(heptagon *target, heptagon *parent, int d) {
+    emerald_matcher() { crsize = 1; }
+
+    void find_emeraldval(heptagon *target, heptagon *parent, int d, hrmap_quotient3* qmap, int parent_fieldval) {
       generate_cellrotations();
       auto& cr = cgi.cellrotations;
       if(evmemo.empty()) {
+        crsize = isize(cr);
         println(hlog, "starting");
         map<int, int> matrix_hashtable;
         auto matrix_hash = [] (const transmatrix& M) {
@@ -2100,13 +2079,13 @@ EX namespace reg3 {
         
         for(int eid=0; eid<isize(emerald_map->allh); eid++)
         for(int k0=0; k0<isize(cr); k0++)
-        for(int fv=0; fv<isize(quotient_map->allh); fv++) {
+        for(int fv=0; fv<isize(qmap->allh); fv++) {
           for(int d=0; d<S7; d++) {
             int ed = cr[k0].mapping[d];
             auto cpart = emerald_map->allh[eid];
             int eid1 = emerald_map->allh[eid]->move(ed)->fieldval;
             const transmatrix& X = cr[cr[k0].inverse_id].M;
-            transmatrix U = quotient_map->iadj(quotient_map->allh[fv], d) * X * emerald_map->adj(cpart, ed);
+            transmatrix U = qmap->iadj(qmap->allh[fv], d) * X * emerald_map->adj(cpart, ed);
             int k1 = matrix_hashtable[matrix_hash(U)];
             /* for(int ik1=0; ik1<isize(cr); ik1++)  {
               auto& mX1 = cr[ik1].M;
@@ -2118,10 +2097,53 @@ EX namespace reg3 {
         println(hlog, "generated ", isize(evmemo));
         }
       int memo_id = parent->emeraldval;
-      memo_id = memo_id * isize(quotient_map->allh) + parent->fieldval;
+      memo_id = memo_id * isize(qmap->allh) + parent_fieldval;
       memo_id = memo_id * S7 + d;
       target->emeraldval = evmemo[memo_id];
-      target->zebraval = emerald_map->allh[target->emeraldval / isize(cr)]->zebraval;
+      target->zebraval = emerald_map->allh[target->emeraldval / crsize]->zebraval;
+      }
+
+    };
+
+  struct hrmap_h3_rule : hrmap_h3_abstract, ruleset, emerald_matcher {
+
+    heptagon *origin;
+
+    hrmap_quotient3 *qmap() override { return quotient_map; }
+
+    hrmap_h3_rule() {
+
+      println(hlog, "generating hrmap_h3_rule");
+
+      load_ruleset_new(get_rule_filename(false));
+      quotient_map = gen_quotient_map(minimize_quotient_maps, fp);
+      find_mappings();
+
+      origin = init_heptagon(S7);
+      heptagon& h = *origin;
+      h.s = hsOrigin;
+      h.fiftyval = root[0];
+      if(hr_PURE) h.c7 = newCell(S7, origin);
+
+      emerald_map = gen_quotient_map(false, currfp);
+
+      h.emeraldval = 0;
+
+      if(!hr_PURE) get_cell_at(origin, 0);
+      }
+
+    int connection(int fv, int d) override {
+      return qmap()->allh[fv]->move(d)->fieldval;
+      }
+
+    heptagon *getOrigin() override {
+      return origin;
+      }
+
+    #define DEB 0
+
+    heptagon *counterpart(heptagon *h) {
+      return quotient_map->allh[h->fieldval];
       }
 
     heptagon *create_step(heptagon *parent, int d) override {
@@ -2149,12 +2171,12 @@ EX namespace reg3 {
         
       if(id1 != -1) {
         res = init_heptagon(S7);
-        if(hr__PURE && parent->c7)
+        if(hr_PURE && parent->c7)
           res->c7 = newCell(S7, res);
         res->fieldval = fv;
         res->distance = parent->distance + 1;
         res->fiftyval = id1;
-        find_emeraldval(res, parent, d);
+        find_emeraldval(res, parent, d, quotient_map, parent->fieldval);
         // res->c.connect(d2, parent, d, false);
         }
       
@@ -2168,7 +2190,7 @@ EX namespace reg3 {
         for(auto s: nonlooping_earlier_states[address{pfv, id}]) possible.push_back(s.second);
         id1 = hrand_elt(possible, 0);
         res->fiftyval = id1;
-        find_emeraldval(res, parent, d);
+        find_emeraldval(res, parent, d, quotient_map, parent->fieldval);
         }
 
       else {
@@ -2205,11 +2227,20 @@ EX namespace reg3 {
     bool link_alt(heptagon *h, heptagon *alt, hstate firststate, int dir) override {
       return ruleset_link_alt(h, alt, firststate, dir);
       }
+
+    int pattern_value(cell *c) override {
+      int id = c->master->emeraldval / crsize;
+      if(!hr_PURE) {
+        id <<= 16;
+        id |= cell_id[c];
+        }
+      return id;
+      }
     };
 
   vector<heptspin> starts = {nullptr};
 
-  struct hrmap_h3_subrule : hrmap, ruleset {
+  struct hrmap_h3_subrule : hrmap, ruleset, emerald_matcher {
 
     heptagon *origin;
     hrmap_quotient3 *quotient_map;
@@ -2274,10 +2305,31 @@ EX namespace reg3 {
       h.fieldval = 0;
       h.fiftyval = root[0];
       h.c7 = newCell(t, origin);      
+
+      if(1) {
+        dynamicval<eVariation> dv(variation, eVariation::pure);
+        dynamicval<geometry_information*> dc(cgip, cgip);
+        check_cgi(); cgi.require_basics();
+        emerald_map = gen_quotient_map(false, currfp);
+        h.emeraldval = 0;
+        }
       }
 
     heptagon *getOrigin() override {
       return origin;
+      }
+
+    void find_emeraldval_path(heptagon *res, heptagon *parent, int d, cell *cpart) {
+      auto& mseq = quotient_map->get_move_seq(cpart, d);
+      res->emeraldval = parent->emeraldval;
+      res->zebraval = parent->zebraval;
+      heptagon *h = cpart->master;
+      for(auto m: mseq) {
+        find_emeraldval(res, res, m, quotient_map, h->fieldval);
+        h = h->move(m);
+        }
+
+      hassert(h == quotient_map->acells[res->fieldval]->master);
       }
 
     heptagon *create_step(heptagon *parent, int d) override {
@@ -2298,8 +2350,9 @@ EX namespace reg3 {
 
       int qid = parent->fieldval;
 
-      int d2 = quotient_map->acells[qid]->c.spin(d);
-      int qid2 = quotient_map->local_id[quotient_map->acells[qid]->move(d)].first;
+      auto cpart = quotient_map->acells[qid];
+      int d2 = cpart->c.spin(d);
+      int qid2 = quotient_map->local_id[cpart->move(d)].first;
 
       heptagon *res = nullptr;
 
@@ -2314,6 +2367,7 @@ EX namespace reg3 {
         res->fieldval = qid2;
         res->distance = parent->distance + 1;
         res->fiftyval = id1;
+        find_emeraldval_path(res, parent, d, cpart);
         }
 
       else if(other[pos] == ('A' + d) && other[pos+1] == ',') {
@@ -2328,6 +2382,7 @@ EX namespace reg3 {
         res->fieldval = qid2;
         res->distance = parent->distance - 1;
         res->fiftyval = id1;
+        find_emeraldval_path(res, parent, d, cpart);
         }
 
       else {
@@ -2464,6 +2519,15 @@ EX namespace reg3 {
         println(f);
         }
       }
+
+    int pattern_value(cell *c) override {
+      int id = c->master->emeraldval / crsize;
+      if(!hr_PURE) {
+        id <<= 16;
+        id |= quotient_map->local_id[quotient_map->acells[c->master->fieldval]].second;
+        }
+      return id;
+      }
     };
 
   struct hrmap_h3_rule_alt : hrmap {
@@ -2562,7 +2626,7 @@ EX bool in_hrmap_rule_or_subrule() {
   }
 
 EX bool exact_rules() {
-  if(hr__PURE) return in_hrmap_rule_or_subrule();
+  if(hr_PURE) return in_hrmap_rule_or_subrule();
   return dynamic_cast<hrmap_h3_subrule*> (currentmap);
   }
 
@@ -2623,7 +2687,7 @@ EX int celldistance(cell *c1, cell *c2) {
   if(c1 == currentmap->gamestart()) return c2->master->distance;
   if(c2 == currentmap->gamestart()) return c1->master->distance;
   
-  if(geometry == gSpace534 && hr__PURE) return celldistance_534(c1, c2);
+  if(geometry == gSpace534 && hr_PURE) return celldistance_534(c1, c2);
 
   auto r = hypmap();
 
@@ -2819,6 +2883,7 @@ EX int matrix_order(const transmatrix A) {
   transmatrix T = A;
   int res = 1;
   while(!eqmatrix(T, Id)) {
+    if(res >= 1000) throw hr_exception("matrix_order failed");
     res++; T = T * A;
     }
   return res;

@@ -16,7 +16,7 @@ EX int hiitemsMax(eItem it) {
   return mx;
   }
 
-/** 1 - just return UNKNOWN if id not assigned; 2 - assign without writing to file; 3 - assign with writing to file */
+/** 1 - just return UNKNOWNHR if id not assigned; 2 - assign without writing to file; 3 - assign with writing to file */
 EX modecode_t modecode(int mode IS(3));
 
 typedef vector<pair<int, string> > subscoreboard;
@@ -336,7 +336,7 @@ EX namespace yendor {
         bool onlychild = true;
 
         cellwalker ycw = p.start;
-        ycw--; if(hr__S3 == 3) ycw--;
+        ycw--; if(hr_S3 == 3) ycw--;
 
         for(int i=0; i<YDIST-1; i++) {          
         
@@ -501,6 +501,7 @@ EX namespace yendor {
     }
   
   bool levelUnlocked(int i) {
+    if(unlock_all) return true;
     yendorlevel& ylev(levels[i]);
 
     eItem t = treasureType(ylev.l);
@@ -734,8 +735,18 @@ EX namespace tactic {
     };
   map<modecode_t, vector<scoredata>> scoreboard;
   
+  EX int default_runs(eLand l) {
+    return l == laCamelot ? 1 : 3;
+    }
+
+  EX int default_mult(eLand l) {
+    return l == laCamelot ? 3 : 1;
+    }
+
+  /** also called 'runs' */
   EX int chances(eLand l, modecode_t xc IS(modecode())) {
-    if(xc != 0 && l != laCamelot) return 3;
+    if(use_custom_land_list) return max(min(custom_land_ptm_runs[l], 10), 1);
+    if(xc != 0) return default_runs(l);
     for(auto& ti: land_tac)
       if(ti.l == l) 
         return ti.tries;
@@ -743,8 +754,8 @@ EX namespace tactic {
     }
   
   int tacmultiplier(eLand l) {
-    if(modecode() != 0 && l != laCamelot) return 1;
-    if(modecode() != 0 && l == laCamelot) return 3;
+    if(use_custom_land_list) return custom_land_ptm_mult[l];
+    if(modecode() != 0) return default_mult(l);
     for(auto& ti: land_tac)
       if(ti.l == l)
         return ti.multiplier;
@@ -753,6 +764,7 @@ EX namespace tactic {
   
   bool tacticUnlocked(eLand l) {
     if(autocheat) return true;
+    if(unlock_all) return true;
     if(l == laWildWest || l == laDual) return true;
     return hiitemsMax(treasureType(l)) * landMultiplier(l) >= 20;
     }
@@ -832,6 +844,7 @@ EX namespace tactic {
     dynamicval<bool> t(tactic::on, true);
     generateLandList([] (eLand l) { 
       if(dialog::infix != "" && !dialog::hasInfix(linf[l].name)) return false;
+      if(use_custom_land_list) return custom_land_list[l] && custom_land_ptm_runs[l] > 0;
       return !!(land_validity(l).flags & lv::appears_in_ptm);
       });
     }
@@ -841,7 +854,7 @@ EX namespace tactic {
     int nlm = nl;
     int ofs = dialog::infix != "" ? 0 : dialog::handlePage(nl, nlm, (nl+1)/2);
             
-    int vf = nlm ? min((vid.yres-64-vid.fsize) / nlm, vid.xres/40) : vid.xres/40;
+    int vf = nlm ? min((vid.yres-4*vid.fsize) / (nlm+1), vid.xres/40) : vid.xres/40;
     
     int xr = vid.xres / 64;
     
@@ -855,7 +868,7 @@ EX namespace tactic {
       int i1 = i + ofs;
       eLand l = landlist[i1];
 
-      int i0 = 56 + i * vf;
+      int i0 = 2 * vid.fsize + (i+1) * vf;
       color_t col;
       
       int ch = chances(l);
@@ -1026,6 +1039,21 @@ EX void save_mode_data(hstream& f) {
     f.write<char>(7);
     f.write<ld>(vid.creature_scale);
     }
+  if(use_custom_land_list) {
+    bool ptm_modified = false;
+    for(int i=0; i<landtypes; i++) if(custom_land_list[i]) {
+      if(custom_land_ptm_runs[i] != tactic::default_runs(eLand(i))) ptm_modified = true;
+      if(custom_land_ptm_mult[i] != tactic::default_mult(eLand(i))) ptm_modified = true;
+      }
+    if(ptm_modified) {
+      f.write<char>(8);
+      f.write<int>(landtypes);
+      for(int i=0; i<landtypes; i++) {
+        f.write<char>(custom_land_ptm_runs[i]);
+        f.write<char>(custom_land_ptm_mult[i]);
+        }
+      }
+    }
   }
 
 EX eLandStructure get_default_land_structure() {
@@ -1101,6 +1129,8 @@ EX void load_mode_data_with_zero(hstream& f) {
           custom_land_treasure[i] = f.get<int>();
           custom_land_difficulty[i] = f.get<int>();
           custom_land_wandering[i] = f.get<int>();
+          custom_land_ptm_runs[i] = tactic::default_runs(eLand(i));
+          custom_land_ptm_mult[i] = tactic::default_mult(eLand(i));
           }
         break;
         }
@@ -1120,6 +1150,16 @@ EX void load_mode_data_with_zero(hstream& f) {
       case 7:
         vid.creature_scale = f.get<ld>();
 
+      case 8: {
+        if(!use_custom_land_list) throw hstream_exception("PTM defined in a non-custom mode");
+        int lt = f.get<int>();
+        for(int i=0; i<lt; i++) {
+          custom_land_ptm_runs[i] = f.get<char>();
+          custom_land_ptm_mult[i] = f.get<char>();
+          }
+        break;
+        }
+
       default:
         throw hstream_exception("wrong option");
       }
@@ -1133,6 +1173,7 @@ constexpr int FIRST_MODECODE = 100000;
 EX modecode_t get_identify(modecode_t xc) {
   if(xc < FIRST_MODECODE && !meaning.count(xc)) {
     meaning[xc] = "LEGACY";
+    identify_modes[xc] = xc;
     return xc;
     }
   return identify_modes[xc];
@@ -1156,7 +1197,7 @@ EX modecode_t modecode(int mode) {
   
   if(code_for.count(nover)) return code_for[nover];
 
-  if(mode == 1) return UNKNOWNHR;
+  if(mode == 1) return current_modecode = UNKNOWNHR;
   
   modecode_t next = FIRST_MODECODE;
   while(meaning.count(next)) next++;
@@ -1211,6 +1252,7 @@ EX void load_modename_line(string s) {
   }
 
 EX void update_modename(string newname) {
+  modecode();
   string old = modename.count(current_modecode) ? modename[current_modecode] : "";
   if(old == newname) return;
   if(newname == "") modename.erase(current_modecode);
@@ -1352,7 +1394,7 @@ EX namespace peace {
 
     if(true) {
       dialog::addBreak(100);
-      dialog::addBoolItem(XLAT("puzzles"), otherpuzzles, '1');
+      dialog::addBoolItem(XLAT("puzzles"), otherpuzzles && !explore_other, '1');
       dialog::add_action([] { otherpuzzles = true; explore_other = false; });
       dialog::addBoolItem(XLAT("exploration"), explore_other, '2');
       dialog::add_action([] { otherpuzzles = true; explore_other = true; });
@@ -1425,8 +1467,11 @@ EX namespace peace {
       });
     dialog::addItem(XLAT("Return to the normal game"), '0');
     dialog::add_action([] {
-      stop_game();
-      if(peace::on) stop_game_and_switch_mode(rg::peace);
+      if(peace::on) {
+        stop_game();
+        if(peace::on) stop_game_and_switch_mode(rg::peace);
+        start_game();
+        }
       });
 
     dialog::addBack();    
@@ -1442,7 +1487,7 @@ void mode_screen_for_current() {
   cmode = sm::SIDE | sm::MAYDARK;
   gamescreen();
 
-  modecode();
+  modecode(1);
   auto& mc = current_modecode;
   dialog::init(XLAT("recorded mode %1", its(mc)), iinf[itOrbYendor].color, 150, 100);
   dialog::addInfo(mode_description1());
@@ -1450,7 +1495,7 @@ void mode_screen_for_current() {
   dialog::addBreak(100);
 
   dialog::addSelItem(XLAT("scores recorded"), its(qty_scores_for[mc]), 's');
-  dialog::add_action([] { scores::load(); scores::which_mode = current_modecode; });
+  dialog::add_action([] { modecode(); scores::load(); scores::which_mode = current_modecode; });
 
   dialog::addSelItem(XLAT("Yendor Challenge"), its(yendor::compute_tscore(mc)), 'y');
   dialog::add_action([] {
@@ -1460,7 +1505,7 @@ void mode_screen_for_current() {
     else gotoHelp(yendor::chelp);
     });
 
-  dialog::addSelItem(XLAT("Pure Tactics Mode"), its(tactic::compute_tscore(mc)), 't');
+  dialog::addSelItem(XLAT("pure tactics mode"), its(tactic::compute_tscore(mc)), 't');
   dialog::add_action(tactic::start);
 
   dialog::addBreak(100);
@@ -1523,6 +1568,7 @@ EX vector<modecode_t> mode_list;
 EX map<modecode_t, string> modename;
 
 EX void prepare_custom() {
+  modecode();
   scores::load_only();
   gen_mode_list();
   pushScreen(show_custom);

@@ -9,37 +9,38 @@
 namespace hr {
 
 #if HDR
-static constexpr int POLY_DRAWLINES = 1;            // draw the lines
-static constexpr int POLY_DRAWAREA = 2;             // draw the area
-static constexpr int POLY_INVERSE = 4;              // draw the inverse -- useful in stereographic projection
-static constexpr int POLY_ISSIDE = 8;               // never draw in inverse
-static constexpr int POLY_BEHIND = 16;              // there are points behind the camera
-static constexpr int POLY_TOOLARGE = 32;            // some coordinates are too large -- best not to draw to avoid glitches
-static constexpr int POLY_INFRONT = 64;             // on the sphere (orthogonal projection), do not draw without any points in front
-static constexpr int POLY_HASWALLS = 128;           // floor shapes which have their sidewalls
-static constexpr int POLY_PLAIN = 256;              // plain floors
-static constexpr int POLY_FULL = 512;               // full floors
-static constexpr int POLY_HASSHADOW = 1024;         // floor shapes which have their shadows, or can use shFloorShadow
-static constexpr int POLY_GP = 2048;                // Goldberg shapes
-static constexpr int POLY_VCONVEX = 4096;           // Convex shape (vertex)
-static constexpr int POLY_CCONVEX = 8192;           // Convex shape (central)
-static constexpr int POLY_CENTERIN = 16384;         // new system of side checking 
-static constexpr int POLY_FORCEWIDE = (1<<15);      // force wide lines
-static constexpr int POLY_NOTINFRONT = (1<<16);     // points not in front
-static constexpr int POLY_NIF_ERROR = (1<<17);      // points moved to the outline cross the image, disable
-static constexpr int POLY_BADCENTERIN = (1<<18);    // new system of side checking 
-static constexpr int POLY_PRECISE_WIDE = (1<<19);   // precise width calculation
-static constexpr int POLY_FORCE_INVERTED = (1<<20); // force inverted
-static constexpr int POLY_ALWAYS_IN = (1<<21);      // always draw this
-static constexpr int POLY_TRIANGLES = (1<<22);      // made of TRIANGLES, not TRIANGLE_FAN
-static constexpr int POLY_INTENSE = (1<<23);        // extra intense colors
-static constexpr int POLY_DEBUG = (1<<24);          // debug this shape
-static constexpr int POLY_PRINTABLE = (1<<25);      // these walls are printable
-static constexpr int POLY_FAT = (1<<26);            // fatten this model in WRL export (used for Rug)
-static constexpr int POLY_SHADE_TEXTURE = (1<<27);  // texture has 'z' coordinate for shading
-static constexpr int POLY_ONE_LEVEL = (1<<28);      // only one level of the universal cover in SL(2,R)
-static constexpr int POLY_APEIROGONAL = (1<<29);    // only vertices indexed up to she are drawn as the boundary
-static constexpr int POLY_NO_FOG = (1<<30);         // disable fog for this
+static constexpr flagtype POLY_DRAWLINES = 1;            // draw the lines
+static constexpr flagtype POLY_DRAWAREA = 2;             // draw the area
+static constexpr flagtype POLY_INVERSE = 4;              // draw the inverse -- useful in stereographic projection
+static constexpr flagtype POLY_ISSIDE = 8;               // never draw in inverse
+static constexpr flagtype POLY_BEHIND = 16;              // there are points behind the camera
+static constexpr flagtype POLY_TOOLARGE = 32;            // some coordinates are too large -- best not to draw to avoid glitches
+static constexpr flagtype POLY_INFRONT = 64;             // on the sphere (orthogonal projection), do not draw without any points in front
+static constexpr flagtype POLY_HASWALLS = 128;           // floor shapes which have their sidewalls
+static constexpr flagtype POLY_PLAIN = 256;              // plain floors
+static constexpr flagtype POLY_FULL = 512;               // full floors
+static constexpr flagtype POLY_HASSHADOW = 1024;         // floor shapes which have their shadows, or can use shFloorShadow
+static constexpr flagtype POLY_GP = 2048;                // Goldberg shapes
+static constexpr flagtype POLY_VCONVEX = 4096;           // Convex shape (vertex)
+static constexpr flagtype POLY_CCONVEX = 8192;           // Convex shape (central)
+static constexpr flagtype POLY_CENTERIN = 16384;         // new system of side checking
+static constexpr flagtype POLY_FORCEWIDE = Flag(15);      // force wide lines
+static constexpr flagtype POLY_NOTINFRONT = Flag(16);     // points not in front
+static constexpr flagtype POLY_NIF_ERROR = Flag(17);      // points moved to the outline cross the image, disable
+static constexpr flagtype POLY_BADCENTERIN = Flag(18);    // new system of side checking
+static constexpr flagtype POLY_PRECISE_WIDE = Flag(19);   // precise width calculation
+static constexpr flagtype POLY_FORCE_INVERTED = Flag(20); // force inverted
+static constexpr flagtype POLY_ALWAYS_IN = Flag(21);      // always draw this
+static constexpr flagtype POLY_TRIANGLES = Flag(22);      // made of TRIANGLES, not TRIANGLE_FAN
+static constexpr flagtype POLY_INTENSE = Flag(23);        // extra intense colors
+static constexpr flagtype POLY_DEBUG = Flag(24);          // debug this shape
+static constexpr flagtype POLY_PRINTABLE = Flag(25);      // these walls are printable
+static constexpr flagtype POLY_FAT = Flag(26);            // fatten this model in WRL export (used for Rug)
+static constexpr flagtype POLY_SHADE_TEXTURE = Flag(27);  // texture has 'z' coordinate for shading
+static constexpr flagtype POLY_ONE_LEVEL = Flag(28);      // only one level of the universal cover in SL(2,R)
+static constexpr flagtype POLY_APEIROGONAL = Flag(29);    // only vertices indexed up to she are drawn as the boundary
+static constexpr flagtype POLY_NO_FOG = Flag(30);         // disable fog for this
+static constexpr flagtype POLY_FORCE_DEPTH = Flag(31);    // always depth test
 
 /** \brief A graphical element that can be drawn. Objects are not drawn immediately but rather queued.
  *
@@ -61,6 +62,7 @@ struct drawqueueitem {
   virtual ~drawqueueitem() = default;
   /** \brief When minimizing OpenGL calls, we need to group items of the same color, etc. together. This value is used as an extra sorting key. */
   virtual color_t outline_group() = 0;
+  virtual dqi_poly* as_poly() { return nullptr; }
   };
 
 /** \brief Drawqueueitem used to draw polygons. The majority of drawqueueitems fall here. */
@@ -82,10 +84,10 @@ struct dqi_poly : drawqueueitem {
   /** \brief width of boundary lines */
   double linewidth;
   /** \brief various flags */
-  int flags;
+  flagtype flags;
   /** \brief Texture data for textured polygons. Requires POLY_TRIANGLES flag */
   struct basic_textureinfo *tinf;
-  /** \brief used to find the correct side to draw in spherical geometries */
+  /** \brief used to find the correct side to draw in spherical geometries, and also to sort sidewalls */
   hyperpoint intester;
   /** \brief temporarily cached data */
   float cache;
@@ -95,6 +97,7 @@ struct dqi_poly : drawqueueitem {
   #endif
   void draw_back() override;
   color_t outline_group() override { return outline; }
+  virtual dqi_poly* as_poly() override { return this; }
   };
 
 /** \brief Drawqueueitem used to draw lines */
@@ -124,6 +127,8 @@ struct dqi_string : drawqueueitem {
   int frame;
   /** alignment (0-8-16) */
   int align;
+  /** current font */
+  fontdata *font;
   void draw() override;
   color_t outline_group() override { return 1; }
   };
@@ -248,7 +253,7 @@ EX void glflush() {
 #if CAP_SDL && !ISMOBILE
 
 SDL_Surface *aux;
-#if CAP_SDL2
+#if SDLVER >= 2
 SDL_Renderer *auxrend;
 #else
 #define auxrend aux
@@ -353,17 +358,19 @@ EX int get_side(const hyperpoint& H) {
   if(pmodel == mdRotatedHyperboles)
     return H[1] > 0 ? -1 : 1;
   if(pmodel == mdHyperboloid) {
-    return det2(pconf.ball() * cspin90(2, 1) * rgpushxto0(H)) > 0 ? 1 : -1;
+    auto H1 = H; if(sphere && pconf.small_hyperboloid) H1 = mid(H, C0);
+    return det2(pconf.ball() * cspin90(2, 1) * rgpushxto0(H1)) > 0 ? 1 : -1;
     }
   if(pmodel == mdHyperboloidFlat && sphere)
     return H[2] >= 0 ? 1 : -1;
   if(pmodel == mdHemisphere && !sphere) {
     hyperpoint res;
     applymodel(shiftless(H), res);
-    return res[2] < 0 ? -1 : 1;
+    return res[2] < 0 ? 1 : -1;
     }
   if(pmodel == mdHemisphere && sphere) {
     auto H1 = H;
+    if(pconf.small_hyperboloid) H1 = mid(H, C0);
     int s = H1[2] > 0 ? 1 : -1;
     if(hemi_side && s != hemi_side) return -spherespecial;
     H1[0] /= H1[2]; H1[1] /= H1[2];
@@ -570,6 +577,16 @@ void addpoly(const shiftmatrix& V, const vector<glvertex> &tab, int ofs, int cnt
     
     for(auto& p: tofix)
       fixpoint(glcoords[p.first], p.second);
+
+    if(sphere && among(pmodel, mdHemisphere, mdHyperboloid) && pconf.small_hyperboloid) {
+      bool left = false, right = false;
+      for(auto h: glcoords) { hyperpoint h1; applymodel(shiftless(glhr::gltopoint(h)), h1);
+        if(h1[0] < -0) left = true;
+        if(h1[0] > +0) right = true;
+        }
+      if(left && right) poly_flags |= POLY_NIF_ERROR;
+      }
+
     /*
     hyperpoint Hscr;
     applymodel(goodpoint, Hscr); 
@@ -744,8 +761,14 @@ void dqi_poly::gldraw() {
     if(draw) {
       if(flags & POLY_TRIANGLES) {
         glhr::color2(color, (flags & POLY_INTENSE) ? 2 : 1);
-        glhr::set_depthtest(model_needs_depth() && prio < PPR::SUPERLINE);
-        glhr::set_depthwrite(model_needs_depth() && prio != PPR::TRANSPARENT_SHADOW && prio != PPR::EUCLIDEAN_SKY);
+        if(flags & POLY_FORCE_DEPTH) {
+          glhr::set_depthtest(true);
+          glhr::set_depthwrite(true);
+          }
+        else {
+          glhr::set_depthtest(model_needs_depth() && prio < PPR::SUPERLINE);
+          glhr::set_depthwrite(model_needs_depth() && prio != PPR::TRANSPARENT_SHADOW && prio != PPR::EUCLIDEAN_SKY);
+          }
         glhr::set_fogbase(prio == PPR::SKY ? 1.0 + ((abs(cgi.SKY - cgi.LOWSKY)) / sightranges[geometry]) : 1.0);
         glDrawArrays(GL_TRIANGLES, ioffset, cnt);
         }
@@ -1798,7 +1821,7 @@ void dqi_poly::draw() {
   if(flags & POLY_DEBUG) debug_this();
 
   if(debugflags & DF_VERTEX) {
-    println(hlog, int(prio), ": V=", V, " o=", offset, " c=", cnt, " ot=", offset_texture, " ol=", outline, " lw=", linewidth, " f=", flags, " i=", intester, " c=", cache, " ti=", (cell*) tinf);
+    println(hlog, int(prio), ": V=", V, " o=", offset, " c=", cnt, " ot=", offset_texture, " ol=", outline, " lw=", linewidth, " f=", (color_t) flags, " i=", intester, " c=", cache, " ti=", (cell*) tinf);
     for(int i=0; i<cnt; i++) print(hlog, (*tab)[offset+i]);
     println(hlog);
     }
@@ -2016,6 +2039,9 @@ void dqi_poly::draw() {
   if(pmodel == mdDisk && hyperbolic && pconf.alpha <= -1) can_have_inverse = true;
   if(pmodel == mdSpiral && pconf.skiprope) can_have_inverse = true;
   if(pmodel == mdCentralInversion) can_have_inverse = true;
+
+  if(among(pmodel, mdHemisphere, mdHyperboloid) && sphere && pconf.small_hyperboloid) can_have_inverse = true;
+  if(GDIM == 3) can_have_inverse = false;
     
   if(can_have_inverse && !(poly_flags & POLY_ISSIDE)) {
   
@@ -2035,6 +2061,8 @@ void dqi_poly::draw() {
     
     }
   else poly_flags &=~ POLY_INVERSE;
+
+  if(among(pmodel, mdHemisphere, mdHyperboloid) && sphere && pconf.small_hyperboloid && (poly_flags & POLY_INVERSE)) return;
   
   if(spherespecial) {
     if(!(poly_flags & POLY_INFRONT)) return;
@@ -2222,6 +2250,7 @@ void dqi_line::draw() {
   }
 
 void dqi_string::draw() {
+  dynamicval<fontdata*> df(cfont, font);
   #if CAP_SVG
   if(svg::in) {
     svg::text(x, y, size, str, frame, color, align);
@@ -2260,6 +2289,13 @@ EX void sortquickqueue() {
     else i++;
   }
 
+EX void clear_curvedata() {
+  if(keep_curvedata) return;
+  curvedata.clear();
+  for(auto& d: fontdatas) if(d.second.finf) d.second.finf->tvertices.clear();
+  curvestart = 0;
+  }
+
 EX void quickqueue() {
   current_display->next_shader_flags = 0;
   spherespecial = 0; 
@@ -2267,17 +2303,14 @@ EX void quickqueue() {
   int siz = isize(ptds);
   for(int i=0; i<siz; i++) ptds[i]->draw();
   ptds.clear();
-  if(!keep_curvedata) {
-    curvedata.clear();
-    finf.tvertices.clear();
-    curvestart = 0;
-    }
+  clear_curvedata();
   }
 
 /* todo */
 ld xintval(const shiftpoint& h) {
   if(sphere_flipped) return -h.h[2];
   if(hyperbolic) return -h.h[2];
+  if(euclid) return -hypot(h.h[0], h.h[1]);
   return -intval(h.h, C0);
   }
 
@@ -2355,9 +2388,12 @@ EX void reverse_priority(PPR p) {
   reverse(ptds.begin()+qp0[int(p)], ptds.begin()+qp[int(p)]);
   }
 
+constexpr PPR all_side_prios[] = {
+  PPR::DEEP_SIDE, PPR::SHALLOW_SIDE, PPR::WATERLEVEL_SIDE, PPR::FLOOR_SIDE, PPR::RED1_SIDE, PPR::RED2_SIDE, PPR::RED3_SIDE, PPR::WALL_SIDE
+  };
+
 EX void reverse_side_priorities() {
-  for(PPR p: {PPR::REDWALLs, PPR::REDWALLs2, PPR::REDWALLs3, PPR::WALL3s,
-    PPR::LAKEWALL, PPR::INLAKEWALL, PPR::BELOWBOTTOM, PPR::BSHALLOW, PPR::ASHALLOW})
+  for(PPR p: all_side_prios)
       reverse_priority(p);
   }
 
@@ -2433,7 +2469,7 @@ EX void draw_main() {
     return;
     }
 
-  if(pmodel == mdHemisphere && sphere && hemi_side == 0 && !vrhr::rendering()) {
+  if(pmodel == mdHemisphere && sphere && hemi_side == 0 && !vrhr::rendering() && !pconf.small_hyperboloid) {
     hemi_side = (pconf.ball() * hyperpoint(0,1,0,1)) [2] < 0 ? 1 : -1;
     draw_main();
 
@@ -2446,7 +2482,7 @@ EX void draw_main() {
       }
 
     for(auto& ptd: ptds) if(ptd->prio == PPR::OUTCIRCLE) {
-      auto c = dynamic_cast<dqi_poly*> (&*ptd);
+      auto c = ptd->as_poly();
       if(c) { c->color = 0; c->outline = 0; }
       }
 
@@ -2577,27 +2613,25 @@ EX void drawqueue() {
 
   DEBB(DF_GRAPH, ("sort walls"));
   
-  if(GDIM == 2) 
-  for(PPR p: {PPR::REDWALLs, PPR::REDWALLs2, PPR::REDWALLs3, PPR::WALL3s,
-    PPR::LAKEWALL, PPR::INLAKEWALL, PPR::BELOWBOTTOM, PPR::ASHALLOW, PPR::BSHALLOW}) {
+  if(GDIM == 2)
+  for(PPR p: all_side_prios) {
     int pp = int(p);
     if(qp0[pp] == qp[pp]) continue;
     for(int i=qp0[pp]; i<qp[pp]; i++) {
-      auto ap = (dqi_poly&) *ptds[i];
-      ap.cache = xintval(ap.V * xpush0(.1));
+      auto& ap = (dqi_poly&) *ptds[i];
+      ap.cache = xintval(ap.V * ap.intester);
       }
     sort(&ptds[qp0[pp]], &ptds[qp[pp]], 
       [] (const unique_ptr<drawqueueitem>& p1, const unique_ptr<drawqueueitem>& p2) {
-        auto ap1 = (dqi_poly&) *p1;
-        auto ap2 = (dqi_poly&) *p2;
+        auto& ap1 = (dqi_poly&) *p1;
+        auto& ap2 = (dqi_poly&) *p2;
         return ap1.cache < ap2.cache;
         });
     }
 
   for(PPR p: {PPR::TRANSPARENT_WALL}) {
     int pp = int(p);
-    if(qp0[pp] == qp[pp]) continue;
-    sort(&ptds[qp0[int(p)]], &ptds[qp[int(p)]], 
+    sort(ptds.data() + qp0[pp], ptds.data() + qp[pp],
       [] (const unique_ptr<drawqueueitem>& p1, const unique_ptr<drawqueueitem>& p2) {
         return p1->subprio > p2->subprio;
         });
@@ -2607,7 +2641,7 @@ EX void drawqueue() {
     int pp = int(p);
     if(qp0[pp] == qp[pp]) continue;
     auto get_z = [&] (const unique_ptr<drawqueueitem>& p) -> ld {
-      auto d = dynamic_cast<dqi_poly*> (&*p);
+      auto d = p->as_poly();
       if(!d) return 0;
       hyperpoint h = Hypc;
 
@@ -2616,7 +2650,7 @@ EX void drawqueue() {
       h = unshift(d->V) * h;
       return h[2];
       };
-    sort(&ptds[qp0[int(p)]], &ptds[qp[int(p)]],
+    sort(ptds.data() + qp0[pp], ptds.data() + qp[pp],
       [&] (const unique_ptr<drawqueueitem>& p1, const unique_ptr<drawqueueitem>& p2) {
         return get_z(p1) > get_z(p2);
         });
@@ -2626,15 +2660,15 @@ EX void drawqueue() {
   if(current_display->separate_eyes() && !vid.usingGL) {
 
     if(aux && (aux->w != s->w || aux->h != s->h)) {
-      SDL_FreeSurface(aux);
-      #if CAP_SDL2
+      SDL_DestroySurface(aux);
+      #if SDLVER >= 2
       SDL_DestroyRenderer(auxrend);
       #endif
       }
   
     if(!aux) {
       aux = SDL_CreateRGBSurface(SDL_SWSURFACE,s->w,s->h,32,0,0,0,0);
-      #if CAP_SDL2
+      #if SDLVER >= 2
       auxrend = SDL_CreateSoftwareRenderer(aux);
       #endif
       }
@@ -2689,11 +2723,7 @@ EX void drawqueue() {
     }
 #endif
 
-  if(!keep_curvedata) {
-    curvedata.clear();
-    finf.tvertices.clear();
-    curvestart = 0;
-    }
+  clear_curvedata();
   
   #if CAP_GL
   GLERR("drawqueue");
@@ -2701,8 +2731,8 @@ EX void drawqueue() {
   }
 
 #if HDR
-template<class T, class... U> T& queuea(PPR prio, U... u) {
-  ptds.push_back(unique_ptr<T>(new T (u...)));
+template<class T, class... U> T& queuea(PPR prio, U&&... u) {
+  ptds.push_back(unique_ptr<T>(new T (std::forward<U>(u)...)));
   ptds.back()->prio = prio;  
   return (T&) *ptds.back();
   }
@@ -2762,6 +2792,16 @@ EX void curvepoint(const hyperpoint& H1) {
   curvedata.push_back(glhr::pointtogl(H1));
   }
 
+EX void curvepoint_pretty(const hyperpoint& h1, const hyperpoint& h2, int lev) {
+  if(lev >= 0 && pmodel != mdPixel) {
+    hyperpoint h3 = midz(h1, h2);
+    curvepoint_pretty(h1, h3, lev-1);
+    curvepoint_pretty(h3, h2, lev-1);
+    }
+  else curvepoint(h2);
+  }
+
+
 EX void curvepoint_first() {
   curvedata.push_back(curvedata[curvestart]);
   }
@@ -2804,6 +2844,7 @@ EX void queuestr(int x, int y, int shift, int size, string str, color_t col, int
   ptd.size = size;
   ptd.color = darkened(col);
   ptd.frame = frame ? ((poly_outline & ~ 255)+frame) : 0;
+  ptd.font = cfont;
   }
 
 EX void queuecircle(int x, int y, int size, color_t color, PPR prio IS(PPR::CIRCLE), color_t fillcolor IS(0)) {
@@ -2842,8 +2883,6 @@ EX void queuestr(const shiftpoint& h, int size, const string& chr, color_t col, 
     queuestr(xc, yc, sc, size, chr, col, frame);
   }
 
-EX basic_textureinfo finf;
-
 #if CAP_GL
 #if HDR
 using pointfunction = function<hyperpoint(ld, ld)>;
@@ -2855,8 +2894,11 @@ EX hyperpoint default_pointfunction(ld x, ld y) {
 
 #if !CAP_EXTFONT
 EX void write_in_space(const shiftmatrix& V, int fsize, double size, const string& s, color_t col, int frame IS(0), int align IS(8), PPR prio IS(PPR::TEXT), pointfunction pf IS(default_pointfunction)) {
+  if(!cfont->finf) cfont->finf = new basic_textureinfo;
+  auto& finf = *cfont->finf;
+
   init_glfont(fsize);
-  glfont_t& f(*(glfont[fsize]));
+  glfont_t& f(*(cfont->glfont[fsize]));
   finf.texture_id = f.texture;
   
   int fstart = isize(finf.tvertices);

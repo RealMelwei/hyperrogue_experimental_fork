@@ -8,6 +8,10 @@
 #include "hyper.h"
 namespace hr {
 
+#if HDR
+struct local_parameter_set;
+#endif
+
 EX namespace multi {
 
   #if HDR
@@ -109,6 +113,15 @@ EX namespace multi {
     "world overview", "review your quest", "inventory", "main menu"
     };
 
+  enum pancmds {
+    // 0..3
+    panUp, panRight, panDown, panLeft,
+    // 4..10
+    panRotateLeft, panRotateRight, panHome, panWorldOverview, panReviewQuest, panInventory, panMenu,
+    // 11..12
+    panScrollForward, panScrollBackward
+    };
+
   vector<string> pancmds3 = {
     "look up", "look right", "look down", "look left",
     "rotate left", "rotate right", "home",
@@ -118,8 +131,9 @@ EX namespace multi {
 
 #if HDR
 #define SHMUPAXES_BASE 4
-#define SHMUPAXES ((SHMUPAXES_BASE) + 4 * (MAXPLAYER))
-#define SHMUPAXES_CUR ((SHMUPAXES_BASE) + 4 * playercfg)
+#define SHMUPAXES_PER_PLAYER 4
+#define SHMUPAXES ((SHMUPAXES_BASE) + SHMUPAXES_PER_PLAYER * (MAXPLAYER))
+#define SHMUPAXES_CUR ((SHMUPAXES_BASE) + SHMUPAXES_PER_PLAYER * playercfg)
 #endif
 
 EX const char* axemodes[SHMUPAXES] = {
@@ -174,17 +188,17 @@ string listkeys(config& scfg, int id) {
   string lk = "";
   for(int i=0; i<SCANCODES; i++)
     if(scfg.keyaction[i] == id)
-      #if CAP_SDL2
+      #if SDLVER >= 2
       lk = lk + " " + SDL_GetScancodeName(SDL_Scancode(i));
       #else
       lk = lk + " " + SDL_GetKeyName(SDLKey(i));
       #endif
 #if CAP_SDLJOY
-  for(int i=0; i<numsticks; i++) for(int k=0; k<SDL_JoystickNumButtons(sticks[i]) && k<MAXBUTTON; k++)
+  for(int i=0; i<numsticks; i++) for(int k=0; k<SDL_GetNumJoystickButtons(sticks[i]) && k<MAXBUTTON; k++)
     if(scfg.joyaction[i][k] == id) {
       lk = lk + " " + cts('A'+i)+"-B"+its(k);
       }
-  for(int i=0; i<numsticks; i++) for(int k=0; k<SDL_JoystickNumHats(sticks[i]) && k<MAXHAT; k++)
+  for(int i=0; i<numsticks; i++) for(int k=0; k<SDL_GetNumJoystickHats(sticks[i]) && k<MAXHAT; k++)
     for(int d=0; d<4; d++)
       if(scfg.hataction[i][k][d] == id) {
         lk = lk + " " + cts('A'+i)+"-"+"URDL"[d];
@@ -218,8 +232,6 @@ EX void resetScores() {
  
 bool configdead;
 
-void handleConfig(int sym, int uni);
-
 EX string player_count_name(int p) {
   return 
     p == 2 ? XLAT("two players") : 
@@ -248,7 +260,7 @@ struct key_configurer {
   
     getcstat = ' ';
     
-    for(int i=0; i<isize(shmupcmdtable); i++) if(shmupcmdtable[i][0])
+    for(int i=0; i<isize(shmupcmdtable); i++) if(shmupcmdtable[i].size())
       dialog::addSelItem(XLAT(shmupcmdtable[i]), listkeys(*which_config, 16*sc+i),
         setwhat ? (setwhat>1 && i == (setwhat&15) ? '?' : 0) : 'a'+i);
       else dialog::addBreak(100);
@@ -281,7 +293,7 @@ struct key_configurer {
 
 #if CAP_SDLJOY    
     joyhandler = [this] (SDL_Event& ev) { 
-      if(ev.type == SDL_JOYBUTTONDOWN && setwhat) {
+      if(ev.type == SDL_EVENT_JOYSTICK_BUTTON_DOWN && setwhat) {
         int joyid = ev.jbutton.which;
         int button = ev.jbutton.button;
         if(joyid < 8 && button < 32)
@@ -290,7 +302,7 @@ struct key_configurer {
         return true;
         }
   
-      else if(ev.type == SDL_JOYHATMOTION && setwhat) {
+      else if(ev.type == SDL_EVENT_JOYSTICK_HAT_MOTION && setwhat) {
         int joyid = ev.jhat.which;
         int hat = ev.jhat.hat;
         int dir = 4;
@@ -345,8 +357,8 @@ struct joy_configurer {
     getcstat = ' ';
     numaxeconfigs = 0;
     for(int j=0; j<numsticks; j++) {
-      for(int ax=0; ax<SDL_JoystickNumAxes(sticks[j]) && ax < MAXAXE; ax++) if(numaxeconfigs<24) {
-        int y = SDL_JoystickGetAxis(sticks[j], ax);
+      for(int ax=0; ax<SDL_GetNumJoystickAxes(sticks[j]) && ax < MAXAXE; ax++) if(numaxeconfigs<24) {
+        int y = SDL_GetJoystickAxis(sticks[j], ax);
         string buf = " ";
         if(configdead)
           buf += its(y);
@@ -405,37 +417,52 @@ struct shmup_configurer {
     cmode = sm::SHMUPCONFIG | sm::SIDE | sm::DARKEN;
     gamescreen();
     dialog::init(XLAT("keyboard & joysticks"));
+    auto& cmdlist = shmup::on ? (WDIM == 3 ? playercmds_shmup3 : playercmds_shmup) : playercmds_turn;
     
     bool haveconfig = shmup::on || players > 1 || multi::alwaysuse;
   
-    if(haveconfig)
+    if(haveconfig) {
       dialog::addItem(XLAT("configure player 1"), '1');
+      dialog::add_action_push(get_key_configurer(1, cmdlist));
+      }
     else
       dialog::addBreak(100);
-    if(players > 1)
+    if(players > 1) {
       dialog::addItem(XLAT("configure player 2"), '2');
-    else if(players == 1 && !shmup::on)
+      dialog::add_action_push(get_key_configurer(2, cmdlist));
+      }
+    else if(players == 1 && !shmup::on) {
       dialog::addSelItem(XLAT("input"), multi::alwaysuse ? XLAT("config") : XLAT("default"), 'a');
+      dialog::add_action([] { multi::alwaysuse = !multi::alwaysuse; });
+      }
     else
       dialog::addBreak(100);
-    if(players > 2)
+    if(players > 2) {
       dialog::addItem(XLAT("configure player 3"), '3');
+      dialog::add_action_push(get_key_configurer(3, cmdlist));
+      }
   #if CAP_SDLJOY
-    else if(!haveconfig)
+    else if(!haveconfig) {
       dialog::addItem(XLAT("old style joystick configuration"), 'b');
+      dialog::add_action_push(showJoyConfig);
+      }
   #endif
     else dialog::addBreak(100);
-    if(players > 3)
+    if(players > 3) {
       dialog::addItem(XLAT("configure player 4"), '4');
+      dialog::add_action_push(get_key_configurer(4, cmdlist));
+      }
     else if(!shmup::on && !multi::alwaysuse) {
-      dialog::addBoolItem(XLAT("smooth scrolling"), smooth_scrolling, 'c');
+      dialog::addBoolItem_action(XLAT("smooth scrolling"), smooth_scrolling, 'c');
       }
     else if(alwaysuse)
       dialog::addInfo(XLAT("note: configured input is designed for"));
     else dialog::addBreak(100);
       
-    if(players > 4)
+    if(players > 4) {
       dialog::addItem(XLAT("configure player 5"), '5');
+      dialog::add_action_push(get_key_configurer(5, cmdlist));
+      }
     else if(!shmup::on && !multi::alwaysuse) {
       if(GDIM == 2) {
         dialog::addSelItem(XLAT("help for keyboard users"), XLAT(axmodes[vid.axes]), 'h');
@@ -447,63 +474,45 @@ struct shmup_configurer {
       dialog::addInfo(XLAT("multiplayer and shmup mode; some features"));
     else dialog::addBreak(100);
   
-    if(players > 5)
+    if(players > 5) {
       dialog::addItem(XLAT("configure player 6"), '6');
+      dialog::add_action_push(get_key_configurer(6, cmdlist));
+      }
     else if(alwaysuse)
       dialog::addInfo(XLAT("work worse if you use it."));
     else dialog::addBreak(100);
   
-    if(players > 6)
+    if(players > 6) {
       dialog::addItem(XLAT("configure player 7"), '7');
+      dialog::add_action_push(get_key_configurer(7, cmdlist));
+      }
     else dialog::addBreak(100);
       
-    if(shmup::on || multi::alwaysuse || players > 1)
+    if(shmup::on || multi::alwaysuse || players > 1) {
       dialog::addItem(XLAT("configure panning and general keys"), 'p');
+      dialog::add_action_push(get_key_configurer(3, GDIM == 3 ? pancmds3 : pancmds));
+      }
     else dialog::addBreak(100);
   
   #if CAP_SDLJOY
     if(numsticks > 0) {
-      if(shmup::on || multi::alwaysuse || players > 1) 
-        dialog::addItem(XLAT("configure joystick axes"), 'j');
+      if(shmup::on || multi::alwaysuse || players > 1)  {
+        dialog::addItem(XLAT("configure joystick axes"), 'x');
+        dialog::add_action_push(joy_configurer(players, scfg_default));
+        }
       else dialog::addBreak(100);
       }
   #endif
   
+    add_edit(joy_init);
+
     dialog::addBreak(50);
   
     dialog::addHelp();
   
     dialog::addBack();
     dialog::display();
-    
-    keyhandler = [this] (int sym, int uni) { return handleConfig(sym, uni); };
   #endif
-    }
-
-  void handleConfig(int sym, int uni) {
-    auto& cmdlist = shmup::on ? (WDIM == 3 ? playercmds_shmup3 : playercmds_shmup) : playercmds_turn;
-    dialog::handleNavigation(sym, uni);
-    
-    if(0) ;
-    #if CAP_SDL
-    else if(uni == '1') pushScreen(get_key_configurer(1, cmdlist));
-    else if(uni == '2') pushScreen(get_key_configurer(2, cmdlist));
-    else if(uni == 'p') pushScreen(get_key_configurer(3, GDIM == 3 ? pancmds3 : pancmds));
-    else if(uni == '3') pushScreen(get_key_configurer(4, cmdlist));
-    else if(uni == '4') pushScreen(get_key_configurer(5, cmdlist));
-    else if(uni == '5') pushScreen(get_key_configurer(6, cmdlist));
-    else if(uni == '6') pushScreen(get_key_configurer(7, cmdlist));
-    else if(uni == '7') pushScreen(get_key_configurer(8, cmdlist));
-  #if CAP_SDLJOY
-    else if(uni == 'j') pushScreen(joy_configurer(players, scfg_default));
-  #endif
-    else if(uni == 'a') multi::alwaysuse = !multi::alwaysuse;
-  #if CAP_SDLJOY
-    else if(uni == 'b') pushScreen(showJoyConfig);
-  #endif
-    else if(uni == 'c') smooth_scrolling = !smooth_scrolling;
-    #endif
-    else if(doexiton(sym, uni)) popScreen();
     }
   };
 
@@ -578,16 +587,34 @@ enum pcmds {
   pcDrop, pcCenter, pcOrbPower, pcOrbKey
   };
 #endif
-  
-EX int actionspressed[NUMACT], axespressed[SHMUPAXES], lactionpressed[NUMACT];
+
+EX array<int, SHMUPAXES> axe_states;
+
+EX array<int,SHMUPAXES_PER_PLAYER>& axes_for(int pid) {
+  return * (array<int,SHMUPAXES_PER_PLAYER>*) (&axe_states[SHMUPAXES_BASE + pid*SHMUPAXES_PER_PLAYER]);
+  }
+
+#if HDR
+struct action_state {
+  int held, last;
+  bool pressed() { return held > last; }
+  operator bool() { return held; }
+  operator int() { return held; }
+  };
+#endif
+
+EX array<action_state, NUMACT> action_states_flat;
+
+#if HDR
+static array<array<action_state, 16>, 8>& action_states = reinterpret_cast<array<array<action_state, 16>, 8>&> (action_states_flat);
+#endif
 
 void pressaction(int id) {
-  if(id >= 0 && id < NUMACT)
-    actionspressed[id]++;
+  if(id >= 0 && id < NUMACT) action_states_flat[id].held++;
   }
 
 EX int key_to_scan(int sym) {
-  #if CAP_SDL2
+  #if SDLVER >= 2
   return SDL_GetScancodeFromKey(sym);
   #else
   return sym;
@@ -628,12 +655,21 @@ EX void clear_config(config& scfg) {
   for(int i=0; i<SCANCODES; i++) scfg.keyaction[i] = 0;
   }
 
+EX void change_default_key(struct local_parameter_set& lps, int key, int val) {
+  int* t = multi::scfg_default.keyaction;
+
+  for(int i=0; i<multi::SCANCODES; i++)
+    if(t[i] == val) lps_add(lps, t[i], 0);
+
+  lps_add(lps, t[key], val);
+  }
+
 EX void initConfig() {
   auto& scfg = scfg_default;
   
   int* t = scfg.keyaction;
   
-  #if CAP_SDL2
+  #if SDLVER >= 2
 
   t[SDL_SCANCODE_W] = 16 + 4;
   t[SDL_SCANCODE_D] = 16 + 5;
@@ -750,7 +786,7 @@ EX void initConfig() {
   scfg.hataction[1][1][2] = 32 + 5;
   scfg.hataction[1][1][3] = 32 + 6;
 
-  int charidtable[MAXPLAYER] = {0, 1, 4, 6, 2, 3, 0};
+  int charidtable[MAXPLAYER] = {0, 1, 4, 6, 2, 3, 8};
     
   for(int i=0; i<MAXPLAYER; i++) {
     initcs(multi::scs[i]); 
@@ -764,6 +800,12 @@ EX void initConfig() {
   multi::scs[4].uicolor = 0xC000C0FF;
   multi::scs[5].uicolor = 0x00C0C0FF;
   multi::scs[6].uicolor = 0xC0C0C0FF;
+
+  set_char_by_name(multi::scs[2], "rudy");
+  set_char_by_name(multi::scs[5], "princess");
+  set_char_by_name(multi::scs[4], "worker");
+  multi::scs[4].skincolor = 0x303030FF;
+  multi::scs[1].haircolor = 0x40FF40FF;
   
   #if CAP_CONFIG
   param_i(multi::players, "mode-number of players")->be_non_editable();
@@ -788,13 +830,11 @@ EX void initConfig() {
 EX void get_actions(config& scfg) {
 
   #if !ISMOBILE
-  const Uint8 *keystate = SDL12_GetKeyState(NULL);
+  const sdl_keystate_type *keystate = SDL12_GetKeyState(NULL);
 
-  for(int i=0; i<NUMACT; i++) 
-    lactionpressed[i] = actionspressed[i],
-    actionspressed[i] = 0;
+  for(auto& a: action_states_flat) a.last = a.held, a.held = 0;
 
-  for(int i=0; i<SHMUPAXES; i++) axespressed[i] = 0;
+  for(int i=0; i<SHMUPAXES; i++) axe_states[i] = 0;
   
   for(int i=0; i<KEYSTATES; i++) if(keystate[i]) 
     pressaction(scfg.keyaction[i]);
@@ -802,68 +842,75 @@ EX void get_actions(config& scfg) {
 #if CAP_SDLJOY  
   for(int j=0; j<numsticks; j++) {
 
-    for(int b=0; b<SDL_JoystickNumButtons(sticks[j]) && b<MAXBUTTON; b++)
-      if(SDL_JoystickGetButton(sticks[j], b))
+    for(int b=0; b<SDL_GetNumJoystickButtons(sticks[j]) && b<MAXBUTTON; b++)
+      if(SDL_GetJoystickButton(sticks[j], b))
         pressaction(scfg.joyaction[j][b]);
 
-    for(int b=0; b<SDL_JoystickNumHats(sticks[j]) && b<MAXHAT; b++) {
-      int stat = SDL_JoystickGetHat(sticks[j], b);
+    for(int b=0; b<SDL_GetNumJoystickHats(sticks[j]) && b<MAXHAT; b++) {
+      int stat = SDL_GetJoystickHat(sticks[j], b);
       if(stat & SDL_HAT_UP) pressaction(scfg.hataction[j][b][0]);
       if(stat & SDL_HAT_RIGHT) pressaction(scfg.hataction[j][b][1]);
       if(stat & SDL_HAT_DOWN) pressaction(scfg.hataction[j][b][2]);
       if(stat & SDL_HAT_LEFT) pressaction(scfg.hataction[j][b][3]);
       }
     
-    for(int b=0; b<SDL_JoystickNumAxes(sticks[j]) && b<MAXAXE; b++) {
-      int value = SDL_JoystickGetAxis(sticks[j], b);
+    for(int b=0; b<SDL_GetNumJoystickAxes(sticks[j]) && b<MAXAXE; b++) {
+      int value = SDL_GetJoystickAxis(sticks[j], b);
       int dz = scfg.deadzoneval[j][b];
       if(value > dz) value -= dz; else if(value < -dz) value += dz;
       else value = 0;
-      axespressed[scfg.axeaction[j][b] % SHMUPAXES] += value;
+      axe_states[scfg.axeaction[j][b] % SHMUPAXES] += value;
       }
     }
 #endif
 #endif
   }
 
+#if HDR
+static constexpr int pantable = 3;
+#endif
+
+EX purehookset hooks_handleInput;
+
 EX void handleInput(int delta, config &scfg) {
 #if CAP_SDL
   double d = delta / 500.;
 
   get_actions(scfg);
+  callhooks(hooks_handleInput);
 
-  const Uint8 *keystate = SDL12_GetKeyState(NULL);
+  const sdl_keystate_type *keystate = SDL12_GetKeyState(NULL);
 
   if(keystate[SDL12(SDLK_LCTRL, SDL_SCANCODE_LCTRL)] || keystate[SDL12(SDLK_RCTRL, SDL_SCANCODE_RCTRL)]) d /= 5;
   
-  double panx = 
-    actionspressed[49] - actionspressed[51] + axespressed[2] / 32000.0;
-  double pany = 
-    actionspressed[50] - actionspressed[48] + axespressed[3] / 32000.0;
+  auto& act = action_states[pantable];
+
+  double panx = act[panRight].held - act[panLeft].held  + axe_states[2] / 32000.0;
+  double pany = act[panDown].held - act[panUp].held + axe_states[3] / 32000.0;
     
-  double panspin = actionspressed[52] - actionspressed[53];
+  double panspin = act[panRotateLeft].held - act[panRotateRight].held;
   
-  double panmove = actionspressed[59] - actionspressed[60];
+  double panmove = act[panScrollForward].held - act[panScrollBackward].held;
   
   if(GDIM == 3)
-    panmove += axespressed[1] / 32000.0;
+    panmove += axe_states[1] / 32000.0;
   else
-    panspin += axespressed[1] / 32000.0;
-  
-  if(actionspressed[54]) { centerplayer = -1, playermoved = true; centerpc(100); }
+    panspin += axe_states[1] / 32000.0;
 
-  if(actionspressed[55] && !lactionpressed[55]) 
+  if(act[panHome]) { centerplayer = -1, playermoved = true; centerpc(100); }
+
+  if(act[panWorldOverview].pressed())
     get_o_key().second();
   
-  if(actionspressed[56] && !lactionpressed[56]) 
+  if(act[panReviewQuest].pressed())
     showMissionScreen();
   
 #if CAP_INV
-  if(actionspressed[57] && !lactionpressed[57] && inv::on) 
+  if(act[panInventory].pressed() && inv::on)
     pushScreen(inv::show);
 #endif
   
-  if(actionspressed[58] && !lactionpressed[58]) 
+  if(act[panMenu].pressed())
     pushScreen(showGameMenu);
     
   panx *= d;
@@ -961,27 +1008,30 @@ EX void handleInput(int delta, config &scfg) {
   
       cpid = i;
       
-      int b = 16*tableid[cpid];
-      for(int ik=0; ik<8; ik++) if(actionspressed[b+ik]) playermoved = true;
-      for(int ik=0; ik<16; ik++) if(actionspressed[b+ik] && !lactionpressed[b+ik]) 
+      int id = tableid[cpid];
+      auto& act = action_states[id];
+
+      for(int ik=0; ik<8; ik++) if(act[ik]) playermoved = true;
+      for(int ik=0; ik<16; ik++) if(act[ik].pressed())
         multi::combo[i] = false;
           
       bool anypressed = false;
       
-      int jb = 4*tableid[cpid];
-      for(int ik=0; ik<4; ik++) 
-        if(axespressed[jb+ik]) 
+      auto &axes = axes_for(cpid);
+
+      for(int ik=0; ik<4; ik++)
+        if(axes[ik])
           anypressed = true, playermoved = true, multi::combo[i] = false;
       
       double mdx = 
-        (actionspressed[b+0] + actionspressed[b+2] - actionspressed[b+1] - actionspressed[b+3]) * .7 +
-        actionspressed[b+pcMoveRight] - actionspressed[b+pcMoveLeft] + axespressed[jb]/30000.;
+        (act[0].held + act[2].held - act[1].held - act[3].held) * .7 +
+        act[pcMoveRight].held - act[pcMoveLeft].held + axes[0]/30000.;
       double mdy = 
-        (actionspressed[b+3] + actionspressed[b+2] - actionspressed[b+1] - actionspressed[b+0]) * .7 +
-        actionspressed[b+pcMoveDown] - actionspressed[b+pcMoveUp] + axespressed[jb+1]/30000.;
+        (act[3].held + act[2].held - act[1].held - act[0].held) * .7 +
+        act[pcMoveDown].held - act[pcMoveUp].held + axes[1]/30000.;
       
-      if((actionspressed[b+pcMoveRight] && actionspressed[b+pcMoveLeft]) ||
-        (actionspressed[b+pcMoveUp] && actionspressed[b+pcMoveDown]))
+      if((act[pcMoveRight] && act[pcMoveLeft]) ||
+        (act[pcMoveUp] && act[pcMoveDown]))
           multi::mdx[i] = multi::mdy[i] = 0;
         
       multi::mdx[i] = multi::mdx[i] * (1 - delta / 1000.) + mdx * delta / 2000.;
@@ -995,11 +1045,10 @@ EX void handleInput(int delta, config &scfg) {
           }
         }
       
-      if(multi::actionspressed[b+pcFire] || 
-        (multi::actionspressed[b+pcMoveLeft] && multi::actionspressed[b+pcMoveRight]))
+      if(act[pcFire] ||(act[pcMoveLeft] && act[pcMoveRight]))
         multi::combo[i] = true, multi::whereto[i].d = MD_WAIT;
   
-      if(multi::actionspressed[b+pcFace])
+      if(act[pcFace])
         multi::whereto[i].d = MD_UNDECIDED;
       
       cwt.at = multi::player[i].at;      
@@ -1008,22 +1057,21 @@ EX void handleInput(int delta, config &scfg) {
         multi::whereto[i].tgt = multi::ccat[i];
         }
 
-      if(multi::actionspressed[b+pcFaceFire] && activePlayers() > 1) {
+      if(act[pcFaceFire] && activePlayers() > 1) {
         addMessage(XLAT("Left the game."));
         multi::leaveGame(i);
         }
   
-      if(actionspressed[b+pcDrop] || 
-        (multi::actionspressed[b+pcMoveUp] && multi::actionspressed[b+pcMoveDown]))
+      if(act[pcDrop] || (act[pcMoveUp] && act[pcMoveDown]))
         multi::combo[i] = true, multi::whereto[i].d = MD_DROP;
   
-      if(actionspressed[b+pcCenter]) {
+      if(act[pcCenter]) {
         centerplayer = cpid; centerpc(100); playermoved = true; 
         }
   
       if(multi::whereto[i].d == MD_UNDECIDED) alldecided = false;
       
-      for(int ik=0; ik<16; ik++) if(actionspressed[b+ik]) anypressed = true;
+      for(int ik=0; ik<16; ik++) if(act[ik]) anypressed = true;
 
       if(anypressed) alldecided = false, needinput = false;
       else multi::mdx[i] = multi::mdy[i] = 0;
@@ -1098,7 +1146,7 @@ EX void handleInput(int delta, config &scfg) {
         if(countplayers_undecided > 0 && ! isUndecided) continue;
         if(playerpos(i) == c)
           multi::whereto[i].d = MD_WAIT;
-        else {
+        else if(!mouseout()) {
           for(int d=0; d<playerpos(i)->type; d++) {
             cdir = d;
             if(multi::multiPlayerTarget(i) == c) break;

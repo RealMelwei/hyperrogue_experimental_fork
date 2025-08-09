@@ -1130,20 +1130,20 @@ void test_all_regular(vector<eGeometry> glist) {
     for(int a=1; a<5; a++)
     for(int b=0; b<=a; b++) {
       if(a==1 && b == 0) continue;
-      if(a==1 && b == 1 && S3 == 3) continue;
+      if(a==1 && b == 1 && hr_S3 == 3) continue;
       stop_game();
       set_geometry(g);
       gp::param = {a, b};    
       set_variation(eVariation::goldberg);
       out_reg();
       
-      if(S3 == 4 && (geometry == g46 || ((a+b)%2 == 0))) {
+      if(hr_S3 == 4 && (geometry == g46 || ((a+b)%2 == 0))) {
         stop_game();
         set_variation(eVariation::unrectified);
         out_reg();
         }
 
-      if(S3 == 3 && (geometry == gOctagon || (a-b)%3 == 0)) {
+      if(hr_S3 == 3 && (geometry == gOctagon || (a-b)%3 == 0)) {
         stop_game();
         set_variation(eVariation::untruncated);
         out_reg();

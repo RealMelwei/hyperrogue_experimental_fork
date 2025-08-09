@@ -143,6 +143,10 @@ EX cpatterntype cgroup;
 
 #if CAP_PNG
 SDL_Surface *convertSurface(SDL_Surface* s) {
+  #if SDLVER >= 3
+  return SDL_ConvertSurface(s, SDL_PIXELFORMAT_BGRA8888);
+
+#else
   SDL_PixelFormat fmt;
   // fmt.format = SDL_PIXELFORMAT_BGRA8888;
   fmt.BitsPerPixel = 32;
@@ -159,12 +163,13 @@ SDL_Surface *convertSurface(SDL_Surface* s) {
   fmt.Aloss = fmt.Rloss = fmt.Gloss = fmt.Bloss = 0;
   fmt.palette = NULL;
 
-#if !CAP_SDL2
+#if SDLVER <= 1
   fmt.alpha = 0;
   fmt.colorkey = 0x1ffffff;
 #endif
   
   return SDL_ConvertSurface(s, &fmt, SDL_SWSURFACE);
+#endif
   }
 #endif
 
@@ -244,7 +249,7 @@ bool texture_data::readtexture(string tn) {
     return false;
     }
   auto txt2 = convertSurface(txt);
-  SDL_FreeSurface(txt);
+  SDL_DestroySurface(txt);
 
   tx = txt2->w, ty = txt2->h;
   
@@ -367,7 +372,7 @@ bool texture_data::readtexture(string tn) {
     }
 
 #if CAP_SDL_IMG
-  SDL_FreeSurface(txt2);
+  SDL_DestroySurface(txt2);
 #endif
   
   return true;
@@ -382,7 +387,7 @@ void texture_data::saveRawTexture(string tn) {
   for(int x=0; x<twidth; x++)
     qpixel(sraw,x,y) = get_texture_pixel(x, y);
   IMAGESAVE(sraw, tn.c_str());
-  SDL_FreeSurface(sraw);
+  SDL_DestroySurface(sraw);
   addMessage(XLAT("Saved the raw texture to %1", tn));
   }
 
@@ -686,12 +691,14 @@ bool newmove = false;
 
 vector<glhr::textured_vertex> rtver(4);
 
+EX int raw_texture_opacity = 32;
+
 void texture_config::drawRawTexture() {
   glflush();
   current_display->next_shader_flags = GF_TEXTURE;
   dynamicval<eModel> m(pmodel, mdPixel);
   current_display->set_all(0, 0);
-  glhr::color2(0xFFFFFF20);
+  glhr::color2(0xFFFFFF00 + raw_texture_opacity);
   glBindTexture(GL_TEXTURE_2D, config.data.textureid);
   for(int i=0; i<4; i++) {
     int cx[4] = {2, -2, -2, 2};
@@ -1025,7 +1032,7 @@ void init_textureconfig() {
   
   param_str(csymbol, "symbol", "");
   
-  swap(texturesavers, params); texturesavers.clear();
+  swap(texturesavers, params);
 #endif
   }
 
@@ -1102,11 +1109,12 @@ bool texture_config::load() {
         stop_game();
         }
       set_geometry(targetgeometry);
+      set_variation(targetvariation);
       start_game();
       return config.load();
       }
-    
-    if(variation != targetvariation) {
+    else if(variation != targetvariation) {
+      stop_game();
       set_variation(targetvariation);
       start_game();
       return config.load();
@@ -1335,7 +1343,7 @@ EX void showMenu() {
       else {
         stop_game();
         enable_canvas();
-        ccolor::set_plain(0xFFFFFF);
+        ccolor::set_plain_nowall(0xFFFFFF);
         start_game();
         }
       });
@@ -1376,6 +1384,9 @@ EX void showMenu() {
     dialog::add_action([] { dialog::openColorDialog(config.slave_color, NULL); });    
 
     dialog::addBreak(50);
+
+    if(texture::config.tstate == texture::tsAdjusting)
+      add_edit(raw_texture_opacity);
     
 #if CAP_SHOT
     dialog::addItem(XLAT("save the raw texture"), 'S');
@@ -1735,10 +1746,6 @@ int textureArgs() {
     shift(); config.configname = args();
     }
 
-  else if(argis("-txc")) {
-    shift(); config.configname = args();
-    }
-
   else if(argis("-txpsize")) {
     shift(); txp.twidth = argi();
     }
@@ -1748,7 +1755,7 @@ int textureArgs() {
     }
 
   else if(argis("-txcl")) {
-    PHASE(3); drawscreen();
+    PHASE(3);
     config.load();
     }
 

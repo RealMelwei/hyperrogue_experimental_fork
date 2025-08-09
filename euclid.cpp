@@ -33,6 +33,18 @@ EX namespace euc {
   EX intmatrix euzeroall = make_array<coord>(euzero, euzero, euzero);
 
   static constexpr intmatrix main_axes = make_array<coord>(coord(1,0,0), coord(0,1,0), coord(0,0,1));
+
+  EX int octtet_shvid(coord at) {
+    if(at[0] % 2 == 0) return 0;
+    return ((at[0] + at[1] + at[2]) & 2) ? 2 : 1;
+    }
+
+  EX bool octtet_valid(coord at) {
+    bool b = (at[0] & 1) == (at[1] & 1) && (at[0] & 1) == (at[2] & 1);
+    if(!b) return false;
+    if((at[0] & 1) == 0) return ((at[0] + at[1] + at[2]) & 2) == 0;
+    return true;
+    }
   
   EX vector<coord> get_shifttable() {
     static const coord D0 = main_axes[0];
@@ -68,6 +80,13 @@ EX namespace euc {
       case gEuclidSquare:
       case gSierpinski4:
         shifttable = { D0, D1, -D0, -D1 };
+        break;
+
+      case gOctTet3:
+        shifttable = {
+          D0+D1+D2, D0-D1-D2, -D0+D1-D2, -D0-D1+D2,
+         -D0-D1-D2,-D0+D1+D2, +D0-D1+D2, +D0+D1-D2
+          };
         break;
       
       default:
@@ -184,9 +203,11 @@ EX namespace euc {
       if(spacemap.count(at)) 
         return spacemap[at];
       else {
-        auto h = init_heptagon(S7);
+        int type = S7;
+        if(geometry == gOctTet3 && octtet_shvid(at)) type = 4;
+        auto h = init_heptagon(type);
         if(!IRREGULAR) 
-          h->c7 = newCell(S7, h);
+          h->c7 = newCell(type, h);
         #if CAP_IRR
         else {
           coord m0 = shifttable[0];
@@ -216,8 +237,16 @@ EX namespace euc {
       int d1 = (d+S7/2)%S7;
       bool mirr = false;
       transmatrix I;
-      auto v = ispacemap[parent] + shifttable[d];
-      auto st = shifttable[d1];
+      auto dx = d;
+      auto at = ispacemap[parent];
+      auto d2 = d1;
+      if(geometry == gOctTet3) {
+        auto id = octtet_shvid(at);
+        if(id == 2) { dx += 4; d1 &= 3; }
+        if(id == 0) { d1 &= 3; }
+        }
+      auto v = at + shifttable[dx];
+      auto st = shifttable[d2];
       eu.canonicalize(v, st, I, mirr);
       if(eu.twisted)
         for(int i=0; i<S7; i++) if(shifttable[i] == st) d1 = i;
@@ -228,6 +257,7 @@ EX namespace euc {
       }  
 
     transmatrix adj(heptagon *h, int i) override {
+      if(geometry == gOctTet3 && octtet_shvid(ispacemap[h]) == 2) i += 4;
       if(!eu.twisted) return tmatrix[i];
       transmatrix res = tmatrix[i];
       coord id = ispacemap[h];
@@ -260,7 +290,7 @@ EX namespace euc {
         bool draw = drawcell_subs(c, V * spin(master_to_c7_angle()));
         if(in_wallopt() && isWall3(c) && isize(dq::drawqueue) > 1000 && !hybrid::pmap) continue;
   
-        if(draw) for(int i=0; i<S7; i++) {
+        if(draw) for(int i=0; i<h->type; i++) {
           auto V1 = V * adj(h, i);
           if(geom3::apply_break_cylinder && cgi.emb->break_cylinder(V, V1)) continue;
           dq::enqueue_by_matrix(h->move(i), optimized_shift(V1));
@@ -301,8 +331,37 @@ EX namespace euc {
       }
     
     subcellshape& get_cellshape(cell* c) override {
-      return *cgi.heptshape;
+      if(geometry != gOctTet3) return *cgi.heptshape;
+      return cgi.subshapes[shvid(c)];
       }
+
+    int pattern_value(cell *c) override {
+      if(WDIM == 2) {
+        auto p = euc2_coordinates(c);
+        if(closed_manifold) return p.first + p.second * (1 << 16);
+        return gmod(p.first - 22 * p.second, 3*127);
+        }
+      else {
+        auto co = ispacemap[c->master];
+        if(closed_manifold) return co[0] + (co[1] << 10) + (co[2] << 20);
+        return gmod(co[0] + 3 * co[1] + 9 * co[2], 3*127);
+        }
+      }
+
+    int shvid(cell *c) override {
+      if(geometry == gOctTet3)
+        return octtet_shvid(ispacemap[c->master]);
+      return hrmap_standard::shvid(c);
+      }
+
+    transmatrix ray_iadj(cell *c, int i) override {
+      if(geometry != gOctTet3) return hrmap_standard::ray_iadj(c, i);
+      auto& v = get_cellshape(c).faces_local[i];
+      hyperpoint h = project_on_triangle(v[0], v[1], v[2]);
+      transmatrix T = rspintox(h);
+      return T * xpush(-2*hdist0(h)) * spintox(h);
+      }
+
     };
   
   hrmap_euclidean* cubemap() {
@@ -530,7 +589,7 @@ EX namespace euc {
     auto cat = compute_cat(x);
     auto& st = cubemap()->shifttable;
     while(!hash.count(cat)) {
-      if(index == isize(seq)) throw hr_exception();
+      if(index == isize(seq)) throw hr_exception("no cat in hash");
       auto v = seq[index++];
       for(auto s: st) add(v + s);
       }
@@ -611,6 +670,11 @@ EX namespace euc {
     eu.twisted = eu_input.twisted;
     if(dim == 3) {
       auto &T0 = eu.user_axes;
+      // for OctTet3 just force all divisible by 4, for simplicity
+      if(g == gOctTet3)
+        for(int a=0; a<3; a++) for(int b=0; b<3; b++)
+          if(T0[a][b] & 3)
+            eu.twisted = 0;
       if(valid_third_turn(eu.user_axes)) {
         eu.twisted &= 16;
         if(g == gRhombic3 && (T0[2][2]&1)) eu.twisted = 0;
@@ -653,7 +717,7 @@ EX namespace euc {
     }
 
   EX void build_torus3() {
-    for(eGeometry g: { gEuclid, gEuclidSquare, gCubeTiling, gRhombic3, gBitrunc3}) 
+    for(eGeometry g: { gEuclid, gEuclidSquare, gCubeTiling, gRhombic3, gBitrunc3, gOctTet3})
       build_torus3(g);
     }
   
@@ -661,7 +725,7 @@ EX namespace euc {
     for(int i=0; i<4; i++) swap(M[i][0], M[i][1]);
     }
   
-  gp::loc ort1() { return (hr__S3 == 3 ? gp::loc(1, -2) : gp::loc(0, 1)); }
+  gp::loc ort1() { return (hr_S3 == 3 ? gp::loc(1, -2) : gp::loc(0, 1)); }
 
   int diagonal_cross(const coord& a, const coord& b) {
     return a[0]*b[1] + a[1]*b[2] + a[2]*b[0]
@@ -785,7 +849,7 @@ EX namespace euc {
         if(dsx >= dsc) coo = coo - twisted_vec;
         else if (dsx < 0) coo = coo + twisted_vec;
         else break;
-        M = M * spintox(h) * MirrorY * rspintox(h);
+        M = M * rspintox(h) * MirrorY * spintox(h);
         auto s = ort * dscalar(d0, ort) * 2;
         auto v = dscalar(ort, ort);
         s.first /= v;
@@ -869,12 +933,12 @@ EX namespace euc {
     }
   
   EX torus_config rectangular_torus(int x, int y, bool klein) { 
-    if(hr__S3 == 3) y /= 2;
+    if(hr_S3 == 3) y /= 2;
     return { on_periods(ort1() * gp::loc(y,0), gp::loc(x,0)), klein?8:0 };
     }
   
   void torus_config_option(string name, char key, torus_config tc) {
-    dialog::addBoolItem(name, eu_edit.user_axes == tc.user_axes && eu_edit.twisted == tc.twisted && hr__PURE, key);
+    dialog::addBoolItem(name, eu_edit.user_axes == tc.user_axes && eu_edit.twisted == tc.twisted && hr_PURE, key);
     dialog::add_action([tc] {
       stop_game();
       eu_input = eu_edit = tc;
@@ -988,8 +1052,8 @@ EX namespace euc {
       torus_config_option(XLAT("Klein bottle"), 'C', rectangular_torus(12, 6, true));
       torus_config_option(XLAT("cylinder"), 'D', rectangular_torus(6, 0, false));
       torus_config_option(XLAT("Möbius band"), 'E', rectangular_torus(6, 0, true));
-      if(hr__S3 == 3) torus_config_option(XLAT("seven-colorable torus"), 'F', regular_torus(gp::loc{1,2}));
-      if(hr__S3 == 3) torus_config_option(XLAT("HyperRogue classic torus"), 'G', single_row_torus(381, -22));
+      if(hr_S3 == 3) torus_config_option(XLAT("seven-colorable torus"), 'F', regular_torus(gp::loc{1,2}));
+      if(hr_S3 == 3) torus_config_option(XLAT("HyperRogue classic torus"), 'G', single_row_torus(381, -22));
       torus_config_option(XLAT("no quotient"), 'H', rectangular_torus(0, 0, false));
       }
       
@@ -1007,7 +1071,7 @@ EX namespace euc {
     dialog::addBreak(50);
     
     char xch = 'p';
-    for(eGeometry g: {gCubeTiling, gRhombic3, gBitrunc3}) {
+    for(eGeometry g: {gCubeTiling, gRhombic3, gBitrunc3, gOctTet3}) {
       if(dim == 2) g = geometry;
       dialog::addItem(XLAT(ginf[g].menu_displayed_name), xch++);
       dialog::add_action([g] {
@@ -1136,7 +1200,7 @@ EX namespace euc {
   #endif
 
 EX int dscalar(gp::loc e1, gp::loc e2) {
-  return 2 * (e1.first * e2.first + e1.second*e2.second) + (hr__S3 == 3 ? e1.first*e2.second + e2.first * e1.second : 0);
+  return 2 * (e1.first * e2.first + e1.second*e2.second) + (hr_S3 == 3 ? e1.first*e2.second + e2.first * e1.second : 0);
   }
 
 EX int dsquare(gp::loc e) { return dscalar(e, e)/2; }
@@ -1207,7 +1271,7 @@ EX transmatrix eumove(coord co) {
     return eupush3(co[0], co[1], co[2]);
     }
   transmatrix Mat = Id;
-  if(hr__a4) {
+  if(hr_a4) {
     Mat[0][2] += co[0] * cgi.tessf;
     Mat[1][2] += co[1] * cgi.tessf;
     }
@@ -1228,8 +1292,8 @@ EX bool chiral(gp::loc g) {
   if(y == 0) return false;
   if(x+y == 0) return false;
   if(x==y) return false;
-  if(hr__S3 == 3 && y == -2*x) return false;
-  if(hr__S3 == 3 && x == -2*y) return false;
+  if(hr_S3 == 3 && y == -2*x) return false;
+  if(hr_S3 == 3 && x == -2*y) return false;
   return true;
   }
 
@@ -1248,9 +1312,9 @@ EX void twist_once(gp::loc coo) {
 EX int dist(int sx, int sy, bool reduce IS(true)) {
   int z0 = abs(sx);
   int z1 = abs(sy);
-  if(hr__a4 && BITRUNCATED)
+  if(hr_a4 && BITRUNCATED)
     return (z0 == z1 && z0 > 0 && !reduce) ? z0+1: max(z0, z1);
-  if(hr__a4) return z0 + z1;
+  if(hr_a4) return z0 + z1;
   int z2 = abs(sx+sy);
   return max(max(z0,z1), z2);
   }
@@ -1356,7 +1420,30 @@ EX void generate() {
       }
     }
   
+  if(S7 == 8) {
+    cgi.subshapes.resize(3);
+    for(int id=0; id<3; id++) {
+      auto& s = cgi.subshapes[id];
+      auto& cs = s.faces;
+      cs.clear(); cs.resize(id == 0 ? 8 : 4);
+      for(int w=0; w<isize(cs); w++) for(int i=0; i<3; i++) {
+        auto t = v[w + (id == 2 ? 4 : 0)];
+        if(id == 0)
+          cs[w].push_back(hpxy3(i==0?2*t[0]:0, i==1?2*t[1]:0, i==2?2*t[2]:0));
+        else
+          cs[w].push_back(hpxy3((i==0?-1:1)*t[0], (i==1?-1:1)*t[1], (i==2?-1:1)*t[2]));
+        }
+      s.compute_sub();
+      }
+    cs = cgi.subshapes[0].faces;
+    }
+
   hsh.compute_hept();
+
+  if(geometry == gCubeTiling) {
+    cgi.loop = 4;
+    reg3::build_regular_spins(1, 90._deg);
+    }
   #endif
   }
 
@@ -1365,7 +1452,7 @@ EX void generate() {
  */
 EX bool in() { 
   if(fake::in()) return FPIU(in()); 
-  if(geometry == gCubeTiling && (reg3::cubes_reg3 || !hr__PURE)) return false;
+  if(geometry == gCubeTiling && (reg3::cubes_reg3 || !hr_PURE)) return false;
   if(cgflags & qEXPERIMENTAL) return false;
   return meuclid && standard_tiling();
   }

@@ -16,6 +16,8 @@ EX string rsrcdir = RESOURCEDESTDIR;
 EX string rsrcdir = "";
 #endif
 
+EX bool delayed_start;
+
 #if CAP_COMMANDLINE
 EX string scorefile = "hyperrogue.log";
 
@@ -171,15 +173,8 @@ int arg::readCommon() {
   else if(argis("-rsrc")) { PHASE(1); shift(); rsrcdir = args(); }
   else if(argis("-nogui")) { PHASE(1); noGUI = true; }
 #ifndef EMSCRIPTEN
-#if CAP_SDL
-  else if(argis("-font")) { PHASE(1); shift(); fontpath = args();
-    #ifdef FONTCONFIG
-    font_to_find = "";
-    #endif
-    }
-#ifdef FONTCONFIG
-  else if(argis("-find-font")) { PHASE(1); shift(); font_to_find = args(); }
-#endif
+#if CAP_SDLTTF
+  else if(argis("-font")) { PHASE(1); shift(); font_id = isize(font_filenames); font_filenames.push_back(args()); font_names.push_back({args(), "commandline"}); }
 #endif
 #endif
 
@@ -440,8 +435,6 @@ EX purehookset hooks_config;
 EX hookset<int()> hooks_args;
 
 EX map<string, pair<int, reaction_t>> *added_commands;
-
-EX bool delayed_start;
 
 EX namespace arg {
 

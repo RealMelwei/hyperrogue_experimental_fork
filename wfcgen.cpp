@@ -170,8 +170,8 @@ wfc_data renumerate(const wfc_data& d, int sides) {
 
 wfc_data& eclectic_data() {
   static wfc_data d = gen_decompressed(deserialize<wfc_data>(decompress_string(eclectic_c)));
-  if(geometry == gNormal && !hr__PURE) return d;
-  if(geometry == gNormal && hr__PURE) {
+  if(geometry == gNormal && !hr_PURE) return d;
+  if(geometry == gNormal && hr_PURE) {
     static wfc_data dpure = renumerate(d, 7);
     return dpure;
     }

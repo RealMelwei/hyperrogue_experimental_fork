@@ -557,7 +557,7 @@ pair<int, int> get_cellcrawler_id(cell *c) {
     return make_pair(neuronId(*getNeuronSlow(c)), 0);
     // not yet implemented for cylinder
     }
-  if(euclid && closed_manifold && PURE && nonorientable)
+  if(euclid && closed_manifold && hr_PURE && nonorientable)
     return make_pair(euc2_coordinates(c).second * 2 + ctof(c), 0);
   int id = 0, dir = 0;
 #if CAP_GP
@@ -1401,17 +1401,17 @@ bool draw_heatmap() {
     int pixstep = 4;
     int width = heatmap_width;
     for(int y=width; y<vid.yres-width; y+=pixstep) {
-      curvepoint(atscreenpos(width, y, 1) * C0);
-      curvepoint(atscreenpos(width*2, y, 1) * C0);
-      curvepoint(atscreenpos(width*2, y+pixstep, 1) * C0);
-      curvepoint(atscreenpos(width, y+pixstep, 1) * C0);
-      queuecurve(shiftless(Id), 0, darkena(heatmap(ilerp(width, vid.yres-width, y+pixstep/2.)), 0, 0xFF), PPR::LINE);
+      curvepoint(eupoint(width, y));
+      curvepoint(eupoint(width*2, y));
+      curvepoint(eupoint(width*2, y+pixstep));
+      curvepoint(eupoint(width, y+pixstep));
+      queuecurve(atscreenpos(0,0), 0, darkena(heatmap(ilerp(width, vid.yres-width, y+pixstep/2.)), 0, 0xFF), PPR::LINE);
       }
     for(int p=0; p<=10; p++) {
       ld y = lerp(width, vid.yres-width, p / 10.);
-      curvepoint(atscreenpos(width*2, y, 1) * C0);
-      curvepoint(atscreenpos(width*3, y, 1) * C0);
-      queuecurve(shiftless(Id), 0xFFFFFFFF, 0, PPR::LINE);
+      curvepoint(eupoint(width*2, y));
+      curvepoint(eupoint(width*3, y));
+      queuecurve(atscreenpos(0,0), 0xFFFFFFFF, 0, PPR::LINE);
       }
     quickqueue();
     return true;

@@ -99,10 +99,7 @@ EX const char* leadernames[NUMLEADER] = {
 #define LB_RACING 81
 #endif
 
-EX void achievement_init();
 EX string myname();
-EX void achievement_close();
-EX void achievement_pump();
 
 /** gain the given achievement.
  * @param s name of the achievement, e.g., DIAMOND1
@@ -193,12 +190,18 @@ namespace rg {
 EX char specgeom_zebra() { return rg::check(geometry == gZebraQuotient && !disksize && BITRUNCATED && firstland == laDesert); }
 EX char specgeom_lovasz() { return rg::check(geometry == gKleinQuartic && variation == eVariation::untruncated && gp::param == gp::loc(1,1) && !disksize && in_lovasz()); }
 EX char specgeom_halloween() { return rg::check((geometry == gSphere || geometry == gElliptic) && BITRUNCATED && !disksize && firstland == laHalloween); }
-EX char specgeom_heptagonal() { return rg::check(hr__PURE && geometry == gNormal && !disksize, rg::special_geometry_nicewalls); }
+EX char specgeom_heptagonal() { return rg::check(hr_PURE && geometry == gNormal && !disksize, rg::special_geometry_nicewalls); }
 EX char specgeom_euclid_gen() { return rg::check(geometry == gEuclid && !disksize && firstland == laMirrorOld); }
-EX char specgeom_crystal1() { return rg::check(hr__PURE && cryst && ginf[gCrystal].sides == 8 && ginf[gCrystal].vertex == 4 && !crystal::used_compass_inside && !disksize && firstland == laCamelot); }
+#if CAP_CRYSTAL
+EX char specgeom_crystal1() { return rg::check(hr_PURE && cryst && ginf[gCrystal].sides == 8 && ginf[gCrystal].vertex == 4 && !crystal::used_compass_inside && !disksize && firstland == laCamelot); }
 EX char specgeom_crystal2() { return rg::check(BITRUNCATED && cryst && ginf[gCrystal].sides == 8 && ginf[gCrystal].vertex == 3 && !crystal::used_compass_inside && !disksize && firstland == laCamelot); }
+#endif
 
-EX vector<std::function<char()>> all_specgeom_checks = { specgeom_zebra, specgeom_lovasz, specgeom_halloween, specgeom_heptagonal, specgeom_crystal1, specgeom_crystal2, specgeom_euclid_gen };
+EX vector<std::function<char()>> all_specgeom_checks = { specgeom_zebra, specgeom_lovasz, specgeom_halloween, specgeom_heptagonal,
+  #if CAP_CRYSTAL
+  specgeom_crystal1, specgeom_crystal2,
+  #endif
+  specgeom_euclid_gen };
 
 EX char any_specgeom() {
   for(auto chk: all_specgeom_checks) if(chk() != rg::fail) return chk();
@@ -245,16 +248,13 @@ EX void achievement_log(const char* s, char flags) {
 #endif
 
 #if !CAP_ACHIEVE
-void achievement_init() {}
 string myname() { return "Rogue"; }
-void achievement_close() {}
 // gain the achievement with the given name.
 // flags: 'e' - for Euclidean, 's' - for Shmup, '7' - for heptagonal
 // Only awarded if special modes are matched exactly.
 void achievement_gain(const char* s, char flags) {
   achievement_log(s, flags);
   }
-void achievement_pump() {}
 EX int get_sync_status() { return 0; }
 EX void set_priority_board(int) { }
 #endif
@@ -816,7 +816,7 @@ EX void achievement_final(bool really_final) {
   if(shmup::on) specialcode++;
   if(ls::std_chaos()) specialcode+=2;
   else if(!ls::nice_walls()) return;
-  if(hr__PURE) specialcode+=4;
+  if(hr_PURE) specialcode+=4;
   if(numplayers() > 1) specialcode+=8;
   if(inv::on) specialcode+=16;
   if(bow::crossbow_mode() && bow::style == bow::cbBull) specialcode += 32;
@@ -988,10 +988,12 @@ EX void achievement_victory(bool bHyper) {
 #endif
   }
 
-/** call the achievement callbacks */
-EX void achievement_pump();
+EX hookset<string()> hooks_rich_presence;
 
 EX string get_rich_presence_text() {
+
+  string s = callhandlers(string(""), hooks_rich_presence);
+  if(s != "") return s;
 
   #if CAP_DAILY
   if(daily::on)

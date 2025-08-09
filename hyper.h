@@ -13,8 +13,8 @@
 #define _HYPER_H_
 
 // version numbers
-#define VER "13.0o"
-#define VERNUM_HEX 0xAA0F
+#define VER "13.1"
+#define VERNUM_HEX 0xAA20
 
 #include "sysconfig.h"
 
@@ -125,11 +125,11 @@ void addMessage(string s, char spamtype = 0);
 #define cginf ginf[geometry]
 
 #define S7 cginf.sides
-#define hr__S3 cginf.vertex
-#define hyperbolic_37 (S7 == 7 && hr__S3 == 3 && !bt::in() && !arcm::in())
-#define hyperbolic_not37 ((S7 > 7 || hr__S3 > 3 || bt::in() || arcm::in()) && hyperbolic)
-#define weirdhyperbolic ((S7 > 7 || hr__S3 > 3 || !STDVAR || bt::in() || arcm::in() || arb::in()) && hyperbolic)
-#define stdhyperbolic (S7 == 7 && hr__S3 == 3 && STDVAR && !bt::in() && !arcm::in() && !arb::in())
+#define hr_S3 cginf.vertex
+#define hyperbolic_37 (S7 == 7 && hr_S3 == 3 && !bt::in() && !arcm::in())
+#define hyperbolic_not37 ((S7 > 7 || hr_S3 > 3 || bt::in() || arcm::in()) && hyperbolic)
+#define weirdhyperbolic ((S7 > 7 || hr_S3 > 3 || !STDVAR || bt::in() || arcm::in() || arb::in()) && hyperbolic)
+#define stdhyperbolic (S7 == 7 && hr_S3 == 3 && STDVAR && !bt::in() && !arcm::in() && !arb::in())
 
 #define cgflags cginf.flags 
 
@@ -148,7 +148,7 @@ void addMessage(string s, char spamtype = 0);
 #define nih (among(cgclass, gcNIH, gcSolN))
 #define nil (cgclass == gcNil)
 #define sl2 (cgclass == gcSL2)
-#define rotspace (geometry == gRotSpace)
+#define gtwisted (geometry == gTwistedProduct)
 #define hyperbolic (cgclass == gcHyperbolic)
 #define nonisotropic (among(cgclass, gcSol, gcSolN, gcNIH, gcSL2, gcNil))
 #define translatable (euclid || nonisotropic)
@@ -167,6 +167,8 @@ void addMessage(string s, char spamtype = 0);
 #define embedded_plane (WDIM == 2 && GDIM == 3)
 /** the actual map is product, not just the graphics */
 #define mproduct (gproduct && !embedded_plane)
+/** the actual map is twisted, not just the graphics */
+#define mtwisted (gtwisted && !embedded_plane)
 /** the actual map is product, not just the graphics */
 #define meuclid (geom3::mgclass() == gcEuclid)
 #define msphere (geom3::mgclass() == gcSphere)
@@ -177,24 +179,24 @@ void addMessage(string s, char spamtype = 0);
 
 #define sphere_narcm (sphere && !arcm::in())
 
-#define hr__a4 (hr__S3 == 4)
-#define a45 (hr__S3 == 4 && S7 == 5)
-#define a46 (hr__S3 == 4 && S7 == 6)
-#define a47 (hr__S3 == 4 && S7 == 7)
-#define a457 (hr__S3 == 4 && S7 != 6)
-#define a467 (hr__S3 == 4 && S7 >= 6)
-#define a38 (hr__S3 == 3 && S7 == 8)
+#define hr_a4 (hr_S3 == 4)
+#define a45 (hr_S3 == 4 && S7 == 5)
+#define a46 (hr_S3 == 4 && S7 == 6)
+#define a47 (hr_S3 == 4 && S7 == 7)
+#define a457 (hr_S3 == 4 && S7 != 6)
+#define a467 (hr_S3 == 4 && S7 >= 6)
+#define a38 (hr_S3 == 3 && S7 == 8)
 #define sphere4 (sphere && S7 == 4)
 #define stdeuc (geometry == gNormal || geometry == gEuclid || geometry == gEuclidSquare)
 #define smallsphere (sphere_narcm && S7 < 5)
 #define bigsphere (sphere_narcm && S7 == 5)
 
-#define S6 (hr__S3*2)
+#define S6 (hr_S3*2)
 #define MAX_S3 4
 
-#define SG6 (hr__S3==3?6:4)
-#define SG3 (hr__S3==3?3:2)
-#define SG2 (hr__S3==3?2:1)
+#define SG6 (hr_S3==3?6:4)
+#define SG3 (hr_S3==3?3:2)
+#define SG2 (hr_S3==3?2:1)
 
 #define GOLDBERG_INV (GOLDBERG || INVERSE)
 
@@ -207,14 +209,14 @@ void addMessage(string s, char spamtype = 0);
 
 #define GOLDBERG (variation == eVariation::goldberg)
 #define IRREGULAR (variation == eVariation::irregular)
-#define hr__PURE (variation == eVariation::pure)
+#define hr_PURE (variation == eVariation::pure)
 #define BITRUNCATED (variation == eVariation::bitruncated)
 #define DUAL (variation == eVariation::dual)
 #define DUALMUL (DUAL ? 2 : 1)
 
 #define CHANGED_VARIATION (variation != cginf.default_variation)
 
-#define STDVAR (hr__PURE || BITRUNCATED)
+#define STDVAR (hr_PURE || BITRUNCATED)
 #define NONSTDVAR (!STDVAR)
 
 #define VALENCE current_valence()
@@ -256,6 +258,7 @@ struct projection_configuration {
   ld offside, offside2;
   ld aitoff_parameter, miller_parameter, loximuthal_parameter, winkel_parameter;
   bool show_hyperboloid_flat;
+  bool small_hyperboloid;
   bool collignon_reflected;
   string formula;
   eModel basic_model;
@@ -466,6 +469,10 @@ extern videopar vid;
 #define R200 (big_unlock ? 800 : 200)
 // Crossroads V
 #define R300 (big_unlock ? 1200 : 300)
+// Thematic Crossroads
+#define R400 (big_unlock ? 1600 : 400)
+// Master Crossroads
+#define R500 (big_unlock ? 2000 : 500)
 // kill types for Dragon Chasms
 #define R20 (big_unlock ? 30 : 20)
 // kill count for Graveyard/Hive
@@ -684,20 +691,10 @@ static constexpr int MAXPLAYER = 7;
 enum class PPR {
   ZERO, EUCLIDEAN_SKY, OUTCIRCLE, MOVESTAR,
   MINUSINF,
-  BELOWBOTTOMm,
-  BELOWBOTTOM,
-  BELOWBOTTOMp,
-  BELOWBOTTOM_FALLANIM,
-  LAKEBOTTOM, HELLSPIKE,
-  INLAKEWALLm, INLAKEWALL, INLAKEWALLp,
-  INLAKEWALL_FALLANIM,
-  BSHALLOW, SHALLOW, ASHALLOW,
-  SUBLAKELEV, LAKELEV, BOATLEV, BOATLEV2, BOATLEV3,
-  LAKEWALLm, LAKEWALL, LAKEWALLp,
-  LAKEWALL_FALLANIM,
-  FLOOR_TOWER,
-  FLOOR,
-  FLOOR_DRAGON,
+  DEEP_ESCHER, DEEP_SIDE, DEEP_FALLANIM, DEEP_TOP, HELLSPIKE,
+  SHALLOW_ESCHER, SHALLOW_SIDE, SHALLOW_FALLANIM, SHALLOW_TOP,
+  WATERLEVEL_ESCHER, WATERLEVEL_SIDE, WATERLEVEL_TOP, BOATLEV, BOATLEV2, BOATLEV3,
+  FLOOR_ESCHER, FLOOR_SIDE, FLOOR_FALLANIM, FLOOR_TOWER, FLOOR, FLOOR_DRAGON,
   FLOORa, FLOORb, FLOORc, FLOORd,
   LIZEYE,
   BFLOOR,
@@ -705,17 +702,16 @@ enum class PPR {
   WALLSHADOW,
   STRUCT0, STRUCT1, STRUCT2, STRUCT3,
   THORNS, WALL,
-  REDWALLm, REDWALLs, REDWALLp, REDWALL,
-  REDWALLm2, REDWALLs2, REDWALLp2, REDWALLt2,
-  REDWALLm3, REDWALLs3, REDWALLp3, REDWALLt3,
+  RED1_ESCHER, RED1_SIDE, RED1_TOP,
+  RED2_ESCHER, RED2_SIDE, RED2_TOP,
+  RED3_ESCHER, RED3_SIDE, RED3_TOP,
   HEPTAMARK,
   ITEM_BELOW,
   ITEM, ITEMa, ITEMb,
   BIGSTATUE,
 
-  WALL3m, WALL3s, WALL3p, WALL3, WALL3A,
+  WALL_ESCHER, WALL_SIDE, WALL_TOP, WALL_DECO,
 
-// WALL3m, WALL3s, WALL3p, WALL3, WALL3A,
   HIDDEN, GIANTSHADOW,
   TENTACLE0, TENTACLE1,
   ONTENTACLE, ONTENTACLE_EYES, ONTENTACLE_EYES2,
@@ -787,6 +783,16 @@ template<class T, class... U> void callhooks(const hookset<T>& h, U&&... args) {
 
 template<class T, class V, class... U> V callhandlers(V zero, const hookset<T>& h, U&&... args) {
   return h.callhandlers(zero, static_cast<U&&>(args)...);
+  }
+
+void popScreen();
+
+template<class T, class U> void hook_in_subscreen(hookset<T>& m, int prio, U&& hook) {
+  int v = m.add(prio, static_cast<U&&>(hook));
+  pushScreen([&m, v] {
+    delHook(m, v);
+    popScreen();
+    });
   }
 
 string XLAT(string);
@@ -930,8 +936,8 @@ template<class T> ld binsearch(ld dmin, ld dmax, const T& f, int iterations = 20
   return dmin;
   } 
 
-  static constexpr int max_vec = (1<<14);
-  extern bool needConfirmationEvenIfSaved();
+static constexpr int max_vec = (1<<14);
+extern bool needConfirmationEvenIfSaved();
 
 typedef unsigned long long flagtype;
 #define Flag(i) (flagtype(1ull<<i))

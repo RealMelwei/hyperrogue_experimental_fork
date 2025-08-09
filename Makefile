@@ -51,7 +51,7 @@ endif
 
 
 ifeq (${OS},linux)
-  CXXFLAGS_EARLY += -DLINUX -I${CURDIR}/submodules/apclientpp -I${CURDIR}/submodules/json/include -I${CURDIR}/submodules/valijson/include -I${CURDIR}/submodules/websocketpp -I${CURDIR}/submodules/wswrap/include
+  CXXFLAGS_EARLY += -DLINUX -I /usr/include/SDL -I${CURDIR}/submodules/apclientpp -I${CURDIR}/submodules/json/include -I${CURDIR}/submodules/valijson/include -I${CURDIR}/submodules/websocketpp -I${CURDIR}/submodules/wswrap/include
   EXE_EXTENSION :=
   LDFLAGS_SSL := -lcrypto -lssl
   LDFLAGS_GL := -lGL
@@ -96,7 +96,7 @@ ifeq (${TOOLCHAIN},clang)
   CXXFLAGS_STD = -std=c++14
   CXXFLAGS_EARLY += -fPIC
   CXXFLAGS_EARLY += -W -Wall -Wextra -Wsuggest-override -pedantic
-  CXXFLAGS_EARLY += -Wno-unused-parameter -Wno-implicit-fallthrough -Wno-maybe-uninitialized -Wno-char-subscripts -Wno-unknown-warning-option
+  CXXFLAGS_EARLY += -Wno-unused-parameter -Wno-implicit-fallthrough -Wno-maybe-uninitialized -Wno-char-subscripts -Wno-unknown-warning-option -Wno-unused-but-set-variable
   CXXFLAGS_EARLY += -Wno-invalid-offsetof
 endif
 
@@ -145,7 +145,7 @@ endif
 ifeq (${HYPERROGUE_USE_ROGUEVIZ},1)
   # Enable RogueViz. RogueViz requires C++17.
   CXXFLAGS_STD = -std=c++17
-  CXXFLAGS_EARLY += -DCAP_ROGUEVIZ=1
+  CXXFLAGS_EARLY += -DCAP_ROGUEVIZ=1 -DCAP_TEXTURE=1
 endif
 
 
@@ -175,7 +175,7 @@ autohdr.h: makeh$(EXE_EXTENSION) language-data.cpp *.cpp
 	./makeh classes.cpp locations.cpp colors.cpp hyperpoint.cpp geometry.cpp embeddings.cpp goldberg.cpp init.cpp floorshapes.cpp cell.cpp multi.cpp shmup.cpp pattern2.cpp mapeditor.cpp graph.cpp textures.cpp hprint.cpp language.cpp util.cpp complex.cpp multigame.cpp arbitrile.cpp rulegen.cpp *.cpp > autohdr.h
 
 language-data.cpp: langen$(EXE_EXTENSION)
-	./langen > language-data.cpp
+	./langen -o language-data.cpp
 
 savepng$(OBJ_EXTENSION): savepng.cpp
 	$(CXX) -O2 $(CXXFLAGS) -c savepng.cpp -o $@

@@ -23,7 +23,7 @@ EX namespace dialog {
     tDialogItem type;
     string body;
     string value;
-    int key;
+    key_type key;
     color_t color, colorv, colork, colors, colorc;
     int scale;
     double param;
@@ -55,7 +55,8 @@ EX namespace dialog {
     reaction_t reaction_final;
     reaction_t extra_options;
     virtual void draw() = 0;
-    void operator() () { draw(); }
+    bool closed;
+    void operator() () { if(closed) popfinal(); else draw(); }
     virtual ~extdialog() {};
     extdialog();
     /** Pop screen, then call the final reaction. A bit more complex because it eeds to backup reaction_final due to popScreen */
@@ -180,13 +181,13 @@ EX namespace dialog {
 
   EX item& titleItem() { return items[0]; }
   
-  EX map<int, reaction_t> key_actions;
+  EX map<key_type, reaction_t> key_actions;
   
-  EX void add_key_action(int key, const reaction_t& action) {
+  EX void add_key_action(key_type key, const reaction_t& action) {
     key_actions[key] = action;
     }
   
-  EX void add_key_action_adjust(int& key, const reaction_t& action) {
+  EX void add_key_action_adjust(key_type& key, const reaction_t& action) {
     while(key_actions.count(key)) key++;
     add_key_action(key, action);
     }
@@ -220,7 +221,7 @@ EX namespace dialog {
     keyhandler = dialog::handler;
     }
   
-  EX string keyname(int k) {
+  EX string keyname(key_type k) {
     if(k == 0) return "";
     if(k == SDLK_ESCAPE) return "Esc";
     if(k == SDLK_F1) return "F1";
@@ -254,14 +255,14 @@ EX namespace dialog {
     scale = 100;
     }
 
-  EX void addSlider(double d1, double d2, double d3, int key) {
+  EX void addSlider(double d1, double d2, double d3, key_type key) {
     item it(diSlider);
     it.key = key;
     it.param = (d2-d1) / (d3-d1);
     items.push_back(it);
     }
   
-  EX void addIntSlider(int d1, int d2, int d3, int key) {
+  EX void addIntSlider(int d1, int d2, int d3, key_type key) {
     item it(diIntSlider);
     it.key = key;
     it.p1 = (d2-d1);
@@ -269,7 +270,7 @@ EX namespace dialog {
     items.push_back(it);
     }
   
-  EX void addSelItem(string body, string value, int key) {
+  EX void addSelItem(string body, string value, key_type key) {
     item it(diItem);
     it.body = body;
     it.value = value;
@@ -279,7 +280,7 @@ EX namespace dialog {
     items.push_back(it);
     }
 
-  EX void addBoolItem(string body, bool value, int key) {
+  EX void addBoolItem(string body, bool value, key_type key) {
     addSelItem(body, ONOFF(value), key);
     }
   
@@ -303,7 +304,7 @@ EX namespace dialog {
     items.push_back(it);
     }
 
-  EX void addColorItem(string body, int value, int key) {
+  EX void addColorItem(string body, int value, key_type key) {
     addSelItem(body, COLORBAR, key);
     auto& it = items.back();
     it.type = diColorItem;
@@ -318,7 +319,7 @@ EX namespace dialog {
      return alpha / degree;
      }
 
-  EX void addMatrixItem(string body, transmatrix& value, int key, int dim IS(GDIM)) {
+  EX void addMatrixItem(string body, transmatrix& value, key_type key, int dim IS(GDIM)) {
     addSelItem(body, COLORBAR, key);
     auto& it = items.back();
     it.type = diMatrixItem;
@@ -360,14 +361,14 @@ EX namespace dialog {
     items.push_back(it);
     }
 
-  EX void addItem(string body, int key) {
+  EX void addItem(string body, key_type key) {
     item it(diItem);
     it.body = body;
     it.key = key;
     items.push_back(it);
     }
 
-  EX void addBigItem(string body, int key) {
+  EX void addBigItem(string body, key_type key) {
     item it(diBigItem);
     it.body = body;
     it.key = key;
@@ -426,12 +427,25 @@ EX namespace dialog {
     else
       xs = vid.xres * 618/1000, xo = vid.xres * 186/1000;
     
+    int last_i = 0;
     for(int i=0; i<=isize(str); i++) {
       int ls = 0;
       int prev = last;
       if(str[i] == ' ') lastspace = i;
+      unsigned char ch = str[i];
+      if(ch >= 128 && ch < 192) continue;
+      if(i < isize(str)) {
+        char *ch = &str[i];
+        if(*ch == ')') continue;
+        if(starts_with(ch, "）")) continue;
+        }
+      if(i > 0) {
+        char *ch = &str[i - utfsize_before(str,i)];
+        if(*ch == '(') continue;
+        if(starts_with(ch, "（")) continue;
+        }
       if(textwidth(siz, str.substr(last, i-last)) > xs) {
-        if(lastspace == last) ls = i-1, last = i-1;
+        if(lastspace == last) ls = last_i, last = last_i;
         else ls = lastspace, last = ls+1;
         }
       if(str[i] == 10 || i == isize(str)) ls = i, last = i+1;
@@ -441,7 +455,7 @@ EX namespace dialog {
         else y += siz;
         lastspace = last;
         }
-      
+      last_i = i;
       }
     
     y += siz/2;
@@ -523,8 +537,7 @@ EX namespace dialog {
 
     flat_model_enabler fme;
     initquickqueue();
-    ld pix = 1 / (2 * cgi.hcrossf / cgi.crossf);
-    shiftmatrix V = shiftless(atscreenpos(0, 0, pix));
+    shiftmatrix ASP = atscreenpos(0, 0);
 
     color_t col = 0xFFFFFFFF;
 
@@ -533,22 +546,22 @@ EX namespace dialog {
 
     int yb = yt + list_actual_size;
 
-    curvepoint(hyperpoint(x-si, yt, 1, 1));
+    curvepoint(eupoint(x-si, yt));
     for(int i=0; i<=a/2; i++)
-      curvepoint(hyperpoint(x - si * cos(i*TAU/a), yb + si * sin(i*TAU/a), 1, 1));
+      curvepoint(eupoint(x - si * cos(i*TAU/a), yb + si * sin(i*TAU/a)));
     for(int i=(a+1)/2; i<=a; i++)
-      curvepoint(hyperpoint(x - si * cos(i*TAU/a), yt + si * sin(i*TAU/a), 1, 1));
-    queuecurve(V, col, 0x80, PPR::LINE);
+      curvepoint(eupoint(x - si * cos(i*TAU/a), yt + si * sin(i*TAU/a)));
+    queuecurve(ASP, col, 0x80, PPR::LINE);
 
     int yt1 = yt + (list_actual_size * list_skip) / list_full_size;
     int yb1 = yt + (list_actual_size * (list_skip + list_actual_size)) / list_full_size;
 
-    curvepoint(hyperpoint(x-siz, yt1, 1, 1));
+    curvepoint(eupoint(x-siz, yt1));
     for(int i=0; i<=a/2; i++)
-      curvepoint(hyperpoint(x - siz * cos(i*TAU/a), yb1 + siz * sin(i*TAU/a), 1, 1));
+      curvepoint(eupoint(x - siz * cos(i*TAU/a), yb1 + siz * sin(i*TAU/a)));
     for(int i=(a+1)/2; i<=a; i++)
-      curvepoint(hyperpoint(x - siz * cos(i*TAU/a), yt1 + siz * sin(i*TAU/a), 1, 1));
-    queuecurve(V, col, 0x80, PPR::LINE);
+      curvepoint(eupoint(x - siz * cos(i*TAU/a), yt1 + siz * sin(i*TAU/a)));
+    queuecurve(ASP, col, 0x80, PPR::LINE);
 
     quickqueue();
     }
@@ -562,8 +575,7 @@ EX namespace dialog {
 
       flat_model_enabler fme;
       initquickqueue();
-      ld pix = 1 / (2 * cgi.hcrossf / cgi.crossf);
-      shiftmatrix V = shiftless(atscreenpos(0, 0, pix));
+      shiftmatrix ASP = atscreenpos(0, 0);
 
       color_t col = addalpha(I.color);
 
@@ -572,35 +584,35 @@ EX namespace dialog {
       if(I.type == diIntSlider && I.p2 < sw/4) {
         for(int a=0; a<=I.p2; a++) {
           ld x = sl + sw * a * 1. / I.p2;
-          curvepoint(hyperpoint(x, y-si, 1, 1));
-          curvepoint(hyperpoint(x, y+si, 1, 1));
-          queuecurve(V, col, 0, PPR::LINE);
+          curvepoint(eupoint(x, y-si));
+          curvepoint(eupoint(x, y+si));
+          queuecurve(ASP, col, 0, PPR::LINE);
           }
         }
 
-      curvepoint(hyperpoint(sl, y-si, 1, 1));
+      curvepoint(eupoint(sl, y-si));
       for(int i=0; i<=a/2; i++)
-        curvepoint(hyperpoint(sr + si * sin(i*TAU/a), y - si * cos(i*TAU/a), 1, 1));
+        curvepoint(eupoint(sr + si * sin(i*TAU/a), y - si * cos(i*TAU/a)));
       for(int i=(a+1)/2; i<=a; i++)
-        curvepoint(hyperpoint(sl + si * sin(i*TAU/a), y - si * cos(i*TAU/a), 1, 1));
-      queuecurve(V, col, 0x80, PPR::LINE);
+        curvepoint(eupoint(sl + si * sin(i*TAU/a), y - si * cos(i*TAU/a)));
+      queuecurve(ASP, col, 0x80, PPR::LINE);
       quickqueue();
 
       ld x = sl + sw * (I.type == diIntSlider ? I.p1 * 1. / I.p2 : I.param);
       if(x < sl-si) {
-        curvepoint(hyperpoint(sl-si, y, 1, 1));
-        curvepoint(hyperpoint(x, y, 1, 1));
-        queuecurve(V, col, 0x80, PPR::LINE);
+        curvepoint(eupoint(sl-si, y));
+        curvepoint(eupoint(x, y));
+        queuecurve(ASP, col, 0x80, PPR::LINE);
         quickqueue();
         }
       if(x > sr+si) {
-        curvepoint(hyperpoint(sr+si, y, 1, 1));
-        curvepoint(hyperpoint(x, y, 1, 1));
-        queuecurve(V, col, 0x80, PPR::LINE);
+        curvepoint(eupoint(sr+si, y));
+        curvepoint(eupoint(x, y));
+        queuecurve(ASP, col, 0x80, PPR::LINE);
         quickqueue();
         }
-      for(int i=0; i<=a; i++) curvepoint(hyperpoint(x + siz * sin(i*TAU/a), y - siz * cos(i*TAU/a), 1, 1));
-      queuecurve(V, col, col, PPR::LINE);
+      for(int i=0; i<=a; i++) curvepoint(eupoint(x + siz * sin(i*TAU/a), y - siz * cos(i*TAU/a)));
+      queuecurve(ASP, col, col, PPR::LINE);
       quickqueue();
       }
     else if(I.type == diSlider) {
@@ -626,35 +638,81 @@ EX namespace dialog {
 
     flat_model_enabler fme;
     initquickqueue();
-    ld pix = 1 / (2 * cgi.hcrossf / cgi.crossf);
-    shiftmatrix V = shiftless(atscreenpos(x, y, pix));
+    shiftmatrix ASP = atscreenpos(x, y);
 
     for(int i=0; i<=360; i++)
-      curvepoint(hyperpoint(r * sin(i*degree), r*cos(i*degree), 1, 1));
-    queuecurve(V, 0xFFFFFFFF, 0x202020FF, PPR::LINE);
+      curvepoint(eupoint(r * sin(i*degree), r*cos(i*degree)));
+    queuecurve(ASP, 0xFFFFFFFF, 0x202020FF, PPR::LINE);
 
     color_t cols[3] = {0xFF8080FF, 0x80FF80FF, 0x8080FFFF};
     for(int a=0; a<dim; a++) {
       auto pt = pts[a]; pt[2] = 1; pt[3] = 1;
-      curvepoint(hyperpoint(0,0,1,1));
+      curvepoint(eupoint(0,0));
       curvepoint(pt);
       // queueline(V * hyperpoint(0,0,1,1), V * pt, cols[a], 0);
-      queuecurve(V, cols[a], 0, PPR::LINE);
+      queuecurve(ASP, cols[a], 0, PPR::LINE);
       }
     if(dim == 3) for(int a=0; a<dim; a++) {
       auto pt = pts[a]; ld val = -pt[2] * tsize / r / 5;
-      curvepoint(hyperpoint(pt[0], pt[1]+val, 1, 1));
-      curvepoint(hyperpoint(pt[0]-val, pt[1]-val*sqrt(3)/2, 1, 1));
-      curvepoint(hyperpoint(pt[0]+val, pt[1]-val*sqrt(3)/2, 1, 1));
-      curvepoint(hyperpoint(pt[0], pt[1]+val, 1, 1));
-      queuecurve(V, cols[a], cols[a] & 0xFFFFFF80, PPR::LINE);
+      curvepoint(eupoint(pt[0], pt[1]+val));
+      curvepoint(eupoint(pt[0]-val, pt[1]-val*sqrt(3)/2));
+      curvepoint(eupoint(pt[0]+val, pt[1]-val*sqrt(3)/2));
+      curvepoint(eupoint(pt[0], pt[1]+val));
+      queuecurve(ASP, cols[a], cols[a] & 0xFFFFFF80, PPR::LINE);
       }
     quickqueue();
+    }
+
+  EX void draw_side_shade() {
+    int steps = menu_darkening - darken;
+
+    color_t col = (backcolor << 8) | (255 - (255 >> steps));
+
+    if(svg::in || !(auraNOGL || vid.usingGL)) {
+      flat_model_enabler fme;
+      initquickqueue();
+      curvepoint(eupoint(vid.xres-dwidth, -10));
+      curvepoint(eupoint(vid.xres + 10, -10));
+      curvepoint(eupoint(vid.xres + 10, vid.yres + 10));
+      curvepoint(eupoint(vid.xres-dwidth, vid.yres + 10));
+      curvepoint(eupoint(vid.xres-dwidth, -10));
+      queuecurve(atscreenpos(0, 0), 0, col, PPR::LINE);
+      quickqueue();
+      }
+
+    #if CAP_GL
+    else {
+      auto full = part(col, 0);
+      static vector<glhr::colored_vertex> auravertices;
+      auravertices.clear();
+      ld width = vid.xres / 100;
+      for(int i=4; i<steps && i < 8; i++) width /= sqrt(2);
+      for(int x=0; x<16; x++) {
+        for(int c=0; c<6; c++) {
+          int bx = (c == 1 || c == 3 || c == 5) ? x+1 : x;
+          int by = (c == 2 || c == 4 || c == 5) ? vid.yres : 0;
+          int cx = bx == 0 ? 0 : bx == 16 ?vid.xres :
+            vid.xres - dwidth + width * tan((bx-8)/8. * 90._deg);
+          part(col, 0) = lerp(0, full, bx / 16.);
+          auravertices.emplace_back(hyperpoint(cx - current_display->xcenter, by - current_display->ycenter, 0, 1), col);
+          }
+        }
+      glflush();
+      current_display->next_shader_flags = GF_VARCOLOR;
+      dynamicval<eModel> m(pmodel, mdPixel);
+      current_display->set_all(0, 0);
+      glhr::id_modelview();
+      glhr::prepare(auravertices);
+      glhr::set_depthtest(false);
+      glDrawArrays(GL_TRIANGLES, 0, isize(auravertices));
+      }
+    #endif
     }
 
   EX void display() {
 
     callhooks(hooks_display_dialog);
+    if(just_refreshing) return;
     int N = items.size();
     dfsize = vid.fsize;
     #if ISMOBILE || ISPANDORA
@@ -669,6 +727,10 @@ EX namespace dialog {
     if(current_display->sidescreen) {
       dwidth = vid.xres - vid.yres;
       dcenter = vid.xres - dwidth / 2;
+      }
+    else if(cmode & sm::DIALOG_OFFMAP) {
+      dwidth = vid.xres / 3;
+      dcenter = vid.xres * 5 / 6;
       }
     
     measure();
@@ -698,52 +760,7 @@ EX namespace dialog {
       list_skip = 0;
       }
     
-    if(current_display->sidescreen && darken < menu_darkening) {
-      int steps = menu_darkening - darken;
-      color_t col = (backcolor << 8) | (255 - (255 >> steps));
-
-      if(svg::in || !(auraNOGL || vid.usingGL)) {
-        flat_model_enabler fme;
-        initquickqueue();
-        ld pix = 1 / (2 * cgi.hcrossf / cgi.crossf);
-        curvepoint(hyperpoint(vid.xres-dwidth, -10, 1, 1));
-        curvepoint(hyperpoint(vid.xres + 10, -10, 1, 1));
-        curvepoint(hyperpoint(vid.xres + 10, vid.yres + 10, 1, 1));
-        curvepoint(hyperpoint(vid.xres-dwidth, vid.yres + 10, 1, 1));
-        curvepoint(hyperpoint(vid.xres-dwidth, -10, 1, 1));
-        shiftmatrix V = shiftless(atscreenpos(0, 0, pix));
-        queuecurve(V, 0, col, PPR::LINE);
-        quickqueue();
-        }
-
-      #if CAP_GL
-      else {
-        auto full = part(col, 0);
-        static vector<glhr::colored_vertex> auravertices;
-        auravertices.clear();
-        ld width = vid.xres / 100;
-        for(int i=4; i<steps && i < 8; i++) width /= sqrt(2);
-        for(int x=0; x<16; x++) {
-          for(int c=0; c<6; c++) {
-            int bx = (c == 1 || c == 3 || c == 5) ? x+1 : x;
-            int by = (c == 2 || c == 4 || c == 5) ? vid.yres : 0;
-            int cx = bx == 0 ? 0 : bx == 16 ?vid.xres :
-              vid.xres - dwidth + width * tan((bx-8)/8. * 90._deg);
-            part(col, 0) = lerp(0, full, bx / 16.);
-            auravertices.emplace_back(hyperpoint(cx - current_display->xcenter, by - current_display->ycenter, 0, 1), col);
-            }
-          }
-        glflush();
-        current_display->next_shader_flags = GF_VARCOLOR;
-        dynamicval<eModel> m(pmodel, mdPixel);
-        current_display->set_all(0, 0);
-        glhr::id_modelview();
-        glhr::prepare(auravertices);
-        glhr::set_depthtest(false);
-        glDrawArrays(GL_TRIANGLES, 0, isize(auravertices));
-        }
-      #endif
-      }
+    if(current_display->sidescreen && darken < menu_darkening) draw_side_shade();
 
     bool inlist = false;
     int need_to_skip = 0;
@@ -848,13 +865,11 @@ EX namespace dialog {
             int a = uishape();
             flat_model_enabler fme;
             initquickqueue();
-            ld pix = 1 / (2 * cgi.hcrossf / cgi.crossf);
             color_t col = addalpha(I.color);
             ld sizf = dfsize * I.scale / 150;
             ld siz = sizf * sqrt(0.15+0.85*I.param/255.);
             for(int i=0; i<=a; i++) curvepoint(hyperpoint(siz * sin(i*TAU/a), -siz * cos(i*TAU/a), 1, 1));
-            shiftmatrix V = shiftless(atscreenpos(valuex + sizf, mid, pix));
-            queuecurve(V, col, (I.colorv << 8) | 0xFF, PPR::LINE);
+            queuecurve(atscreenpos(valuex + sizf, mid), col, (I.colorv << 8) | 0xFF, PPR::LINE);
             quickqueue();
             }
           else {
@@ -1440,16 +1455,26 @@ EX namespace dialog {
       }
     
     display();
+
+    #if SDLVER >= 2
+    texthandler = [&ne] (const SDL_TextInputEvent& ev) {
+      if(key_actions.count(ev.text[0])) return;
+      ne.s += ev.text;
+      ne.apply_edit();
+      };
+    #endif
     
     keyhandler = [this, &ne] (int sym, int uni) {
       handleNavigation(sym, uni);
       if((uni >= '0' && uni <= '9') || among(uni, '.', '+', '-', '*', '/', '^', '(', ')', ',', '|', 3) || (uni >= 'a' && uni <= 'z')) {
+        #if SDLVER == 1
         if(uni == 3) ne.s += "pi";
         else ne.s += uni;
         apply_edit();
+        #endif
         }
       else if(uni == '\b' || uni == '\t') {
-        ne.s = ne.s. substr(0, isize(ne.s)-1);
+        ne.s = ne.s. substr(0, isize(ne.s)-utfsize_before(ne.s, isize(ne.s)));
         sscanf(ne.s.c_str(), LDF, ne.editwhat);
         apply_edit();
         }
@@ -1588,6 +1613,7 @@ EX namespace dialog {
     }
   
   extdialog::extdialog() {
+    closed = false;
     dialogflags = 0;
     if(cmode & sm::SIDE) dialogflags |= sm::MAYDARK | sm::SIDE;
     reaction = reaction_t();
@@ -1665,12 +1691,11 @@ EX namespace dialog {
   
   bool_reaction_t file_action;
   
-  void handleKeyFile(int sym, int uni);
-
   bool search_mode;
 
   struct file_dialog : extdialog {
     void draw() override;
+    void handleKey(int sym, int uni);
     };
 
   void file_dialog::draw() {
@@ -1720,7 +1745,7 @@ EX namespace dialog {
       dialog::lastItem().color = vv.second;
       string vf = vv.first;
       bool dir = vv.second == CDIR;
-      dialog::add_action([vf, dir] {
+      dialog::add_action([vf, dir, this] {
         string& s(*cfileptr);
         string where = "", what = s, whereparent = "../";
         string last = "";
@@ -1751,7 +1776,7 @@ EX namespace dialog {
           str1 = where + vf;
           if(s == str1) {
             bool ac = file_action();
-            if(ac) popScreen();
+            if(ac) closed = true;
             }
           s = str1;
           }
@@ -1767,10 +1792,17 @@ EX namespace dialog {
     dialog::addItem("cancel", SDLK_ESCAPE);
     dialog::display();
 
-    keyhandler = handleKeyFile;
+    #if SDLVER >= 2
+    texthandler = [this] (const SDL_TextInputEvent& ev) {
+      int i = isize(*cfileptr) - (editext?0:4);
+      cfileptr->insert(i, ev.text);
+      };
+    #endif
+
+    keyhandler = [this] (int sym, int uni) { handleKey(sym, uni); };
     }
   
-  EX void handleKeyFile(int sym, int uni) {
+  void file_dialog::handleKey(int sym, int uni) {
     handleNavigation(sym, uni);
     string& s(*cfileptr);
     int i = isize(s) - (editext?0:4);
@@ -1780,18 +1812,21 @@ EX namespace dialog {
       }
     else if(sym == SDLK_RETURN || sym == SDLK_KP_ENTER) {
       bool ac = file_action();
-      if(ac) popScreen();
+      if(ac) closed = true;
       }
     else if(sym == SDLK_BACKSPACE && i) {
-      s.erase(i-1, 1);
+      int len = utfsize_before(s, i);
+      s.erase(i-len, len);
       highlight_text = "//missing";
       list_skip = 0;
       }
+    #if SDLVER == 1
     else if(uni >= 32 && uni < 127) {
       s.insert(i, s0 + char(uni));
       highlight_text = "//missing";
       list_skip = 0;
       }
+    #endif
     return;
     }
 
@@ -1863,6 +1898,11 @@ EX namespace dialog {
     if(!hasInfix(s)) return;
     dialog::v.push_back(make_pair(s, color));
     }
+
+  EX void vpush2(color_t color, const string& name, const string& extra) {
+    if(!hasInfix(extra)) return;
+    dialog::v.push_back(make_pair(name, color));
+    }
   
   EX string editchecker(int sym, int uni) {
       if(uni >= 32 && uni < 127) return string("") + char(uni);
@@ -1877,6 +1917,7 @@ EX namespace dialog {
     void draw() override;
     void start_editing(string& s);
     bool handle_edit_string(int sym, int uni, function<string(int, int)> checker = editchecker);
+    void handle_textinput();
     };
   #endif
   
@@ -1896,23 +1937,38 @@ EX namespace dialog {
   bool string_dialog::handle_edit_string(int sym, int uni, function<string(int, int)> checker) {
     auto& es = *edited_string;
     string u2;
-    if(DKEY == SDLK_LEFT) editpos--;
-    else if(DKEY == SDLK_RIGHT) editpos++;
+    if(DKEY == SDLK_LEFT) editpos -= utfsize_before(es, editpos);
+    else if(DKEY == SDLK_RIGHT) editpos += utfsize(es[editpos]);
     else if(uni == 8) {
       if(editpos == 0) return true;
-      es.replace(editpos-1, 1, "");
-      editpos--;
+      int len = utfsize_before(es, editpos);
+      es.replace(editpos-len, len, "");
+      editpos -= len;
       if(reaction) reaction();
       }
     else if((u2 = checker(sym, uni)) != "") {
+      #if SDLVER == 1
       for(char c: u2) {
         es.insert(editpos, 1, c);
         editpos ++;
         }
+      #endif
       if(reaction) reaction();
       }
     else return false;
     return true;
+    }
+
+  void string_dialog::handle_textinput() {
+    #if SDLVER >= 2
+    texthandler = [this] (const SDL_TextInputEvent& ev) {
+      auto& es = *edited_string;
+      string txt = ev.text;
+      es.insert(editpos, txt);
+      editpos += isize(txt);
+      if(reaction) reaction();
+      };
+    #endif
     }
 
   void string_dialog::draw() {
@@ -1939,6 +1995,8 @@ EX namespace dialog {
       if(handle_edit_string(sym, uni)) ;
       else if(doexiton(sym, uni)) popfinal();
       };
+
+    handle_textinput();
     }
 
   EX void edit_string(string& s, string title, string help) {
@@ -1972,6 +2030,10 @@ EX namespace dialog {
   EX void addBoolItem_action_neg(const string& s, bool& b, int c) { 
     dialog::addBoolItem(s, !b, c);
     dialog::add_action([&b] { b = !b; });
+    }
+
+  EX void addItem_mouse(const string& s, key_type c) {
+    dialog::addBoolItem(s, mousekey == c, c);
     }
 
   EX bool cheat_forbidden() {

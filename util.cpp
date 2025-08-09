@@ -367,6 +367,12 @@ cld exp_parser::parse(int prio) {
     res = texture::get_txp(real(val), imag(val), int(real(extra_params["p"]) + .5)-1);
     }
   #endif
+  else if(eat("lands_at(")) {
+    int score = iparse(0);
+    force_eat(")");
+    int i1, i2; count_at_level(i1, i2, score);
+    return i1;
+    }
   else if(next() == '(') at++, res = parsepar(); 
   else {
     string number = next_token();
@@ -418,7 +424,15 @@ cld exp_parser::parse(int prio) {
     else if(number[0] >= 'a' && number[0] <= 'z') throw hr_parse_exception("unknown value: " + number);
     else if(number[0] >= 'A' && number[0] <= 'Z') throw hr_parse_exception("unknown value: " + number);
     else if(number[0] == '_') throw hr_parse_exception("unknown value: " + number);
-    else { std::stringstream ss; res = 0; ss << number; ss >> res; }
+    else {
+      if(among(number.back(), 'e', 'E')) {
+        if(eat("-")) number = number + "-" + next_token();
+        else if(eat("+")) number = number + "+" + next_token();
+        }
+      std::stringstream ss; res = 0; ss << number;
+      ss >> res;
+      if(ss.fail() || !ss.eof()) throw hr_parse_exception("unknown value: " + number);
+      }
     }
   while(true) {
     skip_white();
@@ -601,17 +615,17 @@ color_t exp_parser::parsecolor(int prio) {
   string token = next_token();
   if(params.count(token)) return (color_t) real(params[token]->get_cld());
 
-  auto p = find_color_by_name(s);
+  auto p = find_color_by_name(token);
   if(p) return (p->second << 8) | 0xFF;
 
   color_t res;
-  if(s.size() == 6) {
-    int qty = sscanf(s.c_str(), "%x", &res);
+  if(token.size() == 6) {
+    int qty = sscanf(token.c_str(), "%x", &res);
     if(qty == 0) throw hr_parse_exception("color parse error");
     return res * 256 + 0xFF;
     }
-  else if(s.size() == 8) {
-    int qty = sscanf(s.c_str(), "%x", &res);
+  else if(token.size() == 8) {
+    int qty = sscanf(token.c_str(), "%x", &res);
     if(qty == 0) throw hr_parse_exception("color parse error");
     return res;
    }
@@ -967,7 +981,9 @@ EX string find_file(string s) {
   if(file_exists(s)) return s;
   char *p = getenv("HYPERPATH");
   if(p && file_exists(s1 = s0 + p + s)) return s1;
+#ifdef HYPERPATH
   if(file_exists(s1 = HYPERPATH + s)) return s1;
+#endif
 #ifdef FHS
   if(file_exists(s1 = "/usr/share/hyperrogue/" + s)) return s1;
 #endif
@@ -1061,6 +1077,11 @@ EX string eval_programmable_string(const string& fmt) {
   catch(hr_parse_exception& ex) {
     return fmt;
     }
+  }
+
+EX bool starts_with(const char *c, const char *token) {
+  while(*token && *c == *token) c++, token++;
+  return !*token;
   }
 
 EX void floyd_warshall(vector<vector<char>>& v) {

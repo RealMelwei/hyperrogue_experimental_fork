@@ -54,12 +54,15 @@ EX int landMultiplier(eLand l) {
   }
 
 EX bool isCrossroads(eLand l) {
-  return l == laCrossroads || l == laCrossroads2 || l == laCrossroads3 ||
-    l == laCrossroads4 || l == laCrossroads5;
+  return among(l, laCrossroads, laCrossroads2, laCrossroads3, laCrossroads4, laCrossroads5, laCrossroads6, laMasterCrossroads);
+  }
+
+EX bool isCrossroadsNM(eLand l) {
+  return isCrossroads(l) && l != laMasterCrossroads;
   }
 
 EX bool bearsCamelot(eLand l) {
-  return isCrossroads(l) && l != laCrossroads2 && l != laCrossroads5;
+  return isCrossroads(l) && !among(l, laCrossroads2, laCrossroads5, laMasterCrossroads);
   }
 
 EX bool inmirror(const cellwalker& cw) {
@@ -278,6 +281,8 @@ EX bool landUnlockedLegacy(eLand l) {
     #define ACCONLY(x)
     #define ACCONLY2(x,y)
     #define ACCONLY3(x,y,z)
+    #define ACCONLY4(a,b,c,d)
+    #define ACCONLY5(a,b,c,d,e)
     #define ACCONLYF(x)
     #define IFINGAME(land, ok, fallback) if(isLandIngame(land)) { ok } else { fallback }
     #define INMODE(x) if(x) return true;
@@ -300,7 +305,7 @@ EX bool required_for_hyperstones(eItem ttype) {
   return true;
   }
 
-EX void countHyperstoneQuest(int& i1, int& i2) {
+EX void count_at_level(int& i1, int& i2, int level) {
   i1 = 0; i2 = 0;
   generateLandList(isLandIngame);
   for(eLand l: landlist) {
@@ -310,8 +315,12 @@ EX void countHyperstoneQuest(int& i1, int& i2) {
     if(l == laMirrorOld && isLandIngame(laMirror)) continue;
     eItem ttype = treasureType(l);
     if(!required_for_hyperstones(ttype)) continue;
-    i2++; if(items[ttype] >= R10) i1++;
+    i2++; if(items[ttype] >= level) i1++;
     }
+  }
+
+EX void countHyperstoneQuest(int& i1, int& i2) {
+  count_at_level(i1, i2, R10);
   }
 
 EX bool hyperstonesUnlocked() {
@@ -344,7 +353,9 @@ EX bool voronoi_sea_incompatible(eLand l1, eLand l2) {
   }
 
 EX bool incompatible1(eLand l1, eLand l2) {
-  if(isCrossroads(l1) && isCrossroads(l2)) return true;
+  if(l1 == laMasterCrossroads && !isCrossroads(l2)) return true;
+
+  if(isCrossroadsNM(l1) && isCrossroadsNM(l2)) return true;
   if(l1 == laJungle && l2 == laMotion) return true;
   if(l1 == laMirrorOld && l2 == laMotion) return true;
   if(l1 == laPower && l2 == laWineyard) return true;
@@ -364,6 +375,7 @@ EX bool incompatible1(eLand l1, eLand l2) {
   if(l1 == laWarpSea && l2 == laKraken) return true;
   if(l1 == laPrairie && l2 == laCrossroads3) return true;
   if(l1 == laPrairie && l2 == laCrossroads4) return true;
+  if(l1 == laPrairie && l2 == laCrossroads6) return true;
   if(l1 == laWet && l2 == laDesert) return true;
   if(l1 == laFrog && l2 == laMotion) return true;
   if(l1 == laBull && l2 == laTerracotta) return true;
@@ -583,11 +595,11 @@ EX eLand getNewLand(eLand old) {
     laDeadCaves, laRedRock, laVariant, laHell, laCocytus, laPower,
     laBull, laTerracotta, laRose, laGraveyard, laHive, laDragon, laTrollheim,
     laWet, laFrog, laEclectic, laCursed, laDice,
-    laCrossroads5,
+    laCrossroads5, laCrossroads6, laMasterCrossroads,
 
     laMirrorOld, laMirror, laOcean, laLivefjord, laEmerald, laWarpCoast, laDocks,
 
-    laDual, laSnakeNest,
+    laDual, laSnakeNest
     })
     if(landUnlocked(l)) tab[cnt++] = l;    
   struct clos {
@@ -609,6 +621,7 @@ EX eLand getNewLand(eLand old) {
     {laDesert, laRedRock, 5, 5},
     {laFrog, laReptile, 2, 2}, {laFrog, laSwitch, 2, 2}, {laFrog, laZebra, 2, 2},
     {laEclectic, laStorms, 3, 3}, {laEclectic, laIce, 3, 3}, {laEclectic, laPalace, 3, 3}, {laEclectic, laDeadCaves, 3, 3},
+    {laCursed, laCrossroads6, 1, 1},
     
     {laEFire, laDragon, 5, 5}, {laEWater, laLivefjord, 5, 5}, {laEEarth, laDeadCaves, 5, 5}, {laEAir, laWhirlwind, 5, 5},
 
@@ -737,7 +750,7 @@ EX vector<eLand> land_over = {
   laPrairie, laBull, laTerracotta, laRose,
   laElementalWall, laTrollheim,
   laHell, laCrossroads3, laCocytus, laPower, laCrossroads4,
-  laCrossroads5,
+  laCrossroads5, laCrossroads6, laMasterCrossroads,
   // EXTRA
   laWildWest, laHalloween, laDual, laSnakeNest, laMagnetic, laCA, laAsteroids
   };
@@ -787,6 +800,7 @@ EX array<bool, landtypes> custom_land_list;
 EX array<int, landtypes> custom_land_treasure;
 EX array<int, landtypes> custom_land_difficulty;
 EX array<int, landtypes> custom_land_wandering;
+EX array<int, landtypes> custom_land_ptm_runs, custom_land_ptm_mult;
 
 EX bool isLandIngame(eLand l) {
   if(isElemental(l)) l = laElementalWall;
@@ -921,6 +935,20 @@ EX void customize_land_in_list(eLand l) {
     dialog::get_ne().reaction = mark_tamper;
     });
 
+  dialog::addSelItem(XLAT("PTM runs"), its(custom_land_ptm_runs[l]), 'r');
+  dialog::add_action([l] {
+    dialog::editNumber(custom_land_ptm_runs[l], 0, 10, 3, 1, XLAT("%the1: number of PTM runs", linf[l].name), "");
+    dialog::get_ne().reaction = mark_tamper;
+    dialog::bound_up(10);
+    dialog::bound_low(0);
+    });
+
+  dialog::addSelItem(XLAT("PTM multiplier"), its(custom_land_ptm_mult[l]), 'm');
+  dialog::add_action([l] {
+    dialog::editNumber(custom_land_ptm_mult[l], 0, 100, 1, 1, XLAT("%the1: PTM multiplier", linf[l].name), "");
+    dialog::get_ne().reaction = mark_tamper;
+    });
+
   gen_landvisited();
   if(landvisited[l]) {
     dialog::addItem(XLAT("test"), 'T');
@@ -944,6 +972,8 @@ EX void customize_land_list() {
       custom_land_treasure[l] = 100;
       custom_land_difficulty[l] = 100;
       custom_land_wandering[l] = 100;
+      custom_land_ptm_runs[l] = tactic::default_runs(l);
+      custom_land_ptm_mult[l] = tactic::default_mult(l);
       }
     if(dialog::infix != "" && !dialog::hasInfix(linf[l].name)) return false;
     if(l == laCanvas) return true;
@@ -1038,7 +1068,7 @@ EX land_validity_t& land_validity(eLand l) {
     if(l == laDragon) return not_in_full_game;
     }
   
-  if(l == laDice && geometry == gNormal && hr__PURE)
+  if(l == laDice && geometry == gNormal && hr_PURE)
     return dont_work;
 
   if(l == laDice && WDIM == 3)
@@ -1068,7 +1098,7 @@ EX land_validity_t& land_validity(eLand l) {
       return lv::not_implemented;
     if(among(l, laReptile, laDragon, laTortoise))
       return lv::bad_graphics;
-    if((hybrid::actual_geometry == gRotSpace || geometry == gRotSpace) && l == laDryForest)
+    if((hybrid::actual_geometry == gTwistedProduct || geometry == gTwistedProduct) && l == laDryForest)
       return lv::hedgehogs;
     if(mhybrid && hybrid::underlying && hybrid::underlying_cgip) {
       return *PIU(&land_validity(l));
@@ -1165,12 +1195,12 @@ EX land_validity_t& land_validity(eLand l) {
     if(weirdhyperbolic)
       return simplified_walls;
     // works nice on a big non-tetrahedron-based sphere
-    if(sphere && hr__S3 != 3 && GOLDBERG)
+    if(sphere && hr_S3 != 3 && GOLDBERG)
       return special_geo3;
     }
   
   // not enough space
-  if(l == laStorms && (old_daily_id < 35 ? !BITRUNCATED : hr__PURE) && elliptic) 
+  if(l == laStorms && (old_daily_id < 35 ? !BITRUNCATED : hr_PURE) && elliptic) 
     return not_enough_space;
   
   if(l == laStorms && WDIM == 3)
@@ -1240,10 +1270,10 @@ EX land_validity_t& land_validity(eLand l) {
   if(ls::any_chaos() && (l == laTemple || l == laHive || l == laOcean || l == laHaunted))
     return special_chaos;
   
-  if(l == laWhirlpool && hr__a4)
+  if(l == laWhirlpool && hr_a4)
     return dont_work;
 
-  if(isWarpedType(l) && hr__a4 && GOLDBERG)
+  if(isWarpedType(l) && hr_a4 && GOLDBERG)
     return dont_work;
   
   #if CAP_IRR
@@ -1324,8 +1354,8 @@ EX land_validity_t& land_validity(eLand l) {
     if(!closed_or_bounded)
       return not_implemented;
 
-  // does not work in non-bitrunc hr__a4
-  if(l == laOvergrown && hr__a4 && !BITRUNCATED)
+  // does not work in non-bitrunc hr_a4
+  if(l == laOvergrown && hr_a4 && !BITRUNCATED)
     return some0;
 
   // does not work in bounded either
@@ -1401,7 +1431,7 @@ EX land_validity_t& land_validity(eLand l) {
     }
   
   // Warped Coast does not work on non-bitrunc S3s (except standard heptagonal where we have to keep it)
-  if(l == laWarpCoast && (hr__S3==3) && geosupport_football() != 2 && !(old_daily_id >= 33 && geosupport_chessboard())) {
+  if(l == laWarpCoast && (hr_S3==3) && geosupport_football() != 2 && !(old_daily_id >= 33 && geosupport_chessboard())) {
     return ugly_version_infull;
     }
 
@@ -1442,7 +1472,7 @@ EX land_validity_t& land_validity(eLand l) {
 
   if(l == laReptile) {
     if(old_daily_id <= 64) {
-      if(l == laReptile && (a38 || hr__a4 || sphere || !BITRUNCATED || (quotient && !euclid && geometry != gZebraQuotient)))
+      if(l == laReptile && (a38 || hr_a4 || sphere || !BITRUNCATED || (quotient && !euclid && geometry != gZebraQuotient)))
         return bad_graphics;
       }
     else {  
@@ -1465,7 +1495,7 @@ EX land_validity_t& land_validity(eLand l) {
   if(l == laCrossroads3 && !stdeucx && !bigsphere)
     return not_enough_space;
 
-  if(among(l, laCrossroads, laCrossroads2, laCrossroads3, laCrossroads5) && weirdhyperbolic && old_daily_id < walls_when)
+  if(among(l, laCrossroads, laCrossroads2, laCrossroads3, laCrossroads5, laCrossroads6, laMasterCrossroads) && weirdhyperbolic && old_daily_id < walls_when)
     return no_great_walls;
 
   // Crossroads IV is great in weird hyperbolic
@@ -1479,7 +1509,7 @@ EX land_validity_t& land_validity(eLand l) {
   if(among(l, laZebra, laFrog) && quotient && geometry != gZebraQuotient && !randomPatternsMode)
     return pattern_incompatibility;
   
-  if(among(l, laZebra, laFrog) && !(stdeucx || (hr__a4 && !BITRUNCATED) || a46 || (geometry == gZebraQuotient && old_daily_id > 106)) && !randomPatternsMode)
+  if(among(l, laZebra, laFrog) && !(stdeucx || (hr_a4 && !BITRUNCATED) || a46 || (geometry == gZebraQuotient && old_daily_id > 106)) && !randomPatternsMode)
     return pattern_not_implemented_weird;
   
   if(l == laCrossroads3 && euclid)

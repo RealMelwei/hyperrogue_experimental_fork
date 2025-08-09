@@ -13,7 +13,7 @@ namespace hr {
 
 EX namespace inforder {
 
-  EX bool in() { return hr__S3 >= OINF; }
+  EX bool in() { return hr_S3 >= OINF; }
 
   EX bool mixed() { return cgflags & qINFMIXED; }
   

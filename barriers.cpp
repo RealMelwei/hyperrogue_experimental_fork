@@ -16,19 +16,19 @@ EX bool checkBarriersFront(cellwalker bb, int q IS(5), bool cross IS(false)) {
   if(bb.at->mpdist < BARLEV) return false;
   if(bb.at->mpdist == BUGLEV) return false;
   if(bb.at->bardir != NODIR) return false;
-  if(bb.spin == (hr__PURE ? 3 : 0)) {q--; if(!q) return true; }
+  if(bb.spin == (hr_PURE ? 3 : 0)) {q--; if(!q) return true; }
 
   if(!cross) for(int i=0; i<7; i++) {
     cellwalker bb2 = bb + i + wstep;
     if(bb2.at->bardir != NODIR) return false; 
-    if(!hr__PURE) { 
+    if(!hr_PURE) { 
       bb2 = bb2 + 4 + wstep;
       if(bb2.at->bardir != NODIR) return false;
       }
     }
 
   bb += wstep;
-  if(!hr__PURE) { bb = bb + 3 + wstep + 3 + wstep; }
+  if(!hr_PURE) { bb = bb + 3 + wstep + 3 + wstep; }
   return checkBarriersBack(bb, q);
   }
 
@@ -56,13 +56,13 @@ EX bool checkBarriersBack(cellwalker bb, int q IS(5), bool cross IS(false)) {
   if(!cross) for(int i=0; i<7; i++) {
     cellwalker bb2 = bb + i + wstep;
     if(bb2.at->bardir != NODIR) return false;
-    if(!hr__PURE) {
+    if(!hr_PURE) {
       bb2 = bb2 + 4 + wstep;
       if(bb2.at->bardir != NODIR) return false;
       }
     }
 
-  bb = bb + 3 + wstep + (hr__PURE ? 5 : 4) + wstep + 3;
+  bb = bb + 3 + wstep + (hr_PURE ? 5 : 4) + wstep + 3;
   return checkBarriersFront(bb, q);
   }
 
@@ -393,7 +393,7 @@ EX void extendBarrierFront(cell *c) {
   extendBarrier(bb.at);
   
   for(int a=-3; a<=3; a++) if(a) {
-    bb.at = c; bb.spin = c->bardir; bb += (hr__PURE?-a:a); bb += wstep; 
+    bb.at = c; bb.spin = c->bardir; bb += (hr_PURE?-a:a); bb += wstep; 
     setland(bb.at, a > 0 ? c->barright : c->barleft);
     }
   }
@@ -405,8 +405,8 @@ EX void extendBarrierBack(cell *c) {
   extendcheck(c);
 
   cellwalker bb(c, c->bardir); setbarrier(bb.at);
-  bb = bb + 3 + wstep + (hr__PURE?5:4); 
-  setland(bb.at, hr__PURE ? c->barleft : c->barright); 
+  bb = bb + 3 + wstep + (hr_PURE?5:4); 
+  setland(bb.at, hr_PURE ? c->barleft : c->barright); 
   bb = bb + wstep + 3;
   bb.at->bardir = bb.spin;
   bb.at->barleft = c->barright;
@@ -606,9 +606,9 @@ EX void extendBarrier(cell *c) {
       if(buildBarrier6(cw, 1)) return;
     }
     
-  if(firstmirror && (hr__PURE?c->barleft == laMirror : c->barright == laMirror) && hrand(100) < 60) {
+  if(firstmirror && (hr_PURE?c->barleft == laMirror : c->barright == laMirror) && hrand(100) < 60) {
     cellwalker cw(c, c->bardir);
-    if(hr__PURE) {
+    if(hr_PURE) {
       cw = cw - 3 + wstep - 3;
       }
     else {
@@ -616,8 +616,14 @@ EX void extendBarrier(cell *c) {
       }
     if(buildBarrier6(cw, 2)) return;    
     }
-    
+
   if(land_structure == lsCursedWalls && c->barleft != laMirror && c->barright != laMirror && hrand(100) < 80 && !among(laCrossroads2, c->barleft, c->barright)) {
+    cellwalker cw(c, c->bardir);
+    cw = cw + wstep + 3 + wstep - 1;
+    if(buildBarrier6(cw, c->barright, c->barleft)) return;
+    }
+
+  if(among(laCrossroads6, c->barleft, c->barright) && hrand(100) < 80) {
     cellwalker cw(c, c->bardir);
     cw = cw + wstep + 3 + wstep - 1;
     if(buildBarrier6(cw, c->barright, c->barleft)) return;
@@ -626,7 +632,7 @@ EX void extendBarrier(cell *c) {
   if(barrier_cross(c->barleft, c->barright) || (firstmirror && hrand(100) < 60)) {
     
     cellwalker cw(c, c->bardir);
-    if(hr__PURE) {
+    if(hr_PURE) {
       cw += wstep;
       if(isbar4(cw.at)) {
         cw = cw + wstep + 3 + wstep - 1 + wstep;
@@ -726,12 +732,12 @@ EX bool buildBarrier6(cellwalker cw, int type) {
     }
    
   if(type == 1) {  
-    if(!(hr__PURE?checkBarriersFront:checkBarriersBack)(b[1], 6, true)) return false;
-    if(!(hr__PURE?checkBarriersFront:checkBarriersBack)(b[2], 6, true)) return false;
+    if(!(hr_PURE?checkBarriersFront:checkBarriersBack)(b[1], 6, true)) return false;
+    if(!(hr_PURE?checkBarriersFront:checkBarriersBack)(b[2], 6, true)) return false;
     }
   else {
-    if(!(hr__PURE?checkBarriersFront:checkBarriersBack)(b[0], 6, true)) return false;
-    if(!(hr__PURE?checkBarriersFront:checkBarriersBack)(b[3], 6, true)) return false;
+    if(!(hr_PURE?checkBarriersFront:checkBarriersBack)(b[0], 6, true)) return false;
+    if(!(hr_PURE?checkBarriersFront:checkBarriersBack)(b[3], 6, true)) return false;
     }
 
   eLand m0 = laMirror;
@@ -744,7 +750,7 @@ EX bool buildBarrier6(cellwalker cw, int type) {
   for(int d=0; d<4; d++) {
     b[d].at->bardir = b[d].spin;
     
-    if(hr__PURE) {
+    if(hr_PURE) {
       b[0].at->barleft = m1, b[0].at->barright = m2;
       b[1].at->barleft = m0, b[1].at->barright = m1;
       b[2].at->barleft = m2, b[2].at->barright = m1;
@@ -757,10 +763,10 @@ EX bool buildBarrier6(cellwalker cw, int type) {
       b[3].at->barleft = m2, b[3].at->barright = m1;
       }
   
-    (hr__PURE?extendBarrierFront:extendBarrierBack)(b[d].at);
+    (hr_PURE?extendBarrierFront:extendBarrierBack)(b[d].at);
     }  
 
-  if(hr__PURE && false) {
+  if(hr_PURE && false) {
     for(int z=0; z<4; z++)
       b[z].at->item = eItem(1+z+4*type);
     for(int a=0; a<4; a++) 
@@ -820,14 +826,14 @@ EX bool buildBarrier6(cellwalker cw, eLand m0, eLand m1) {
     b[i] = cw + i + wstep + 3 + wstep;
 
   for(int i=0; i<6; i++) if(i != 1) {
-    if(!(hr__PURE?checkBarriersFront:checkBarriersBack)(b[i], 6, true)) return false;
+    if(!(hr_PURE?checkBarriersFront:checkBarriersBack)(b[i], 6, true)) return false;
     }
 
   for(int d=0; d<6; d++) {
     b[d].at->bardir = b[d].spin;
     b[d].at->barleft = (d&1) ? m1 : m0;
     b[d].at->barright = (d&1) ? m0 : m1;
-    (hr__PURE?extendBarrierFront:extendBarrierBack)(b[d].at);
+    (hr_PURE?extendBarrierFront:extendBarrierBack)(b[d].at);
     }
 
   cw.at->land = laBarrier;
@@ -839,7 +845,12 @@ EX bool buildBarrier6(cellwalker cw, eLand m0, eLand m1) {
     setland((b[d+1]-2).cpeek(), m1);
     setland((b[d+1]+2).cpeek(), m0);
     }
-  if(hrand(100) < curse_percentage) {
+  int cp = curse_percentage;
+  if(m0 == laCrossroads6 || m1 == laCrossroads6) {
+    cp = 25;
+    if(m0 == laCursed || m1 == laCursed) cp = 100;
+    }
+  if(hrand(100) < cp) {
     setland(cw.at, laCursed);
     cw.at->wall = waRubble;
     cw.at->monst = moHexer;
@@ -857,9 +868,9 @@ EX bool buildBarrier4(cell *c, int d, int mode, eLand ll, eLand lr) {
   cellwalker cd(c, d);
   
   cellwalker b1 = cd;
-  cellwalker b2 = hr__PURE ? cd + wstep : cd + wstep + 3 + wstep + 3 + wstep;  
-  cellwalker b3 = hr__PURE ? cd - 1 + wstep + 3 : cd + wstep + 4 + wstep + 4;
-  cellwalker b4 = hr__PURE ? cd + 1 + wstep - 3 : cd + wstep - 4 + wstep - 4;
+  cellwalker b2 = hr_PURE ? cd + wstep : cd + wstep + 3 + wstep + 3 + wstep;  
+  cellwalker b3 = hr_PURE ? cd - 1 + wstep + 3 : cd + wstep + 4 + wstep + 4;
+  cellwalker b4 = hr_PURE ? cd + 1 + wstep - 3 : cd + wstep - 4 + wstep - 4;
   
   if(mode == 0) {
     if(!((checkBarriersBack(b1) && checkBarriersBack(b2)))) return false;
@@ -897,7 +908,7 @@ EX bool buildBarrier4(cell *c, int d, int mode, eLand ll, eLand lr) {
     setland((b4+a).cpeek(), a > 0 ? xr : ll);
     }
   
-  if(hr__PURE) setbarrier(b1.at), setbarrier(b2.at), setbarrier(b3.at), setbarrier(b4.at);
+  if(hr_PURE) setbarrier(b1.at), setbarrier(b2.at), setbarrier(b3.at), setbarrier(b4.at);
 
   if(BITRUNCATED) {
     cell *cp;
@@ -1027,7 +1038,7 @@ EX void buildCrossroads2(cell *c) {
   }
 
 #if MAXMDIM >= 4
-EX bool bufferzone() { return hr__PURE && S7 == 6; }
+EX bool bufferzone() { return hr_PURE && S7 == 6; }
 EX int basic_tests() { return 50; }
 
 EX bool valid_dir(const vector<char>& ad, int j, cell *c) {
@@ -1163,7 +1174,7 @@ EX bool buildBarrierNowall(cell *c, eLand l2, int forced_dir IS(NODIR)) {
 
 EX bool general_barrier_build(eLand ws, cell *c, eLand l2, int forced_dir IS(NODIR)) {
 
-  if(hr__S3 >= OINF) { c->land = l2; return true; }
+  if(hr_S3 >= OINF) { c->land = l2; return true; }
 
   #if MAXMDIM >= 4
   // 3D binary tilings create walls using their own methods

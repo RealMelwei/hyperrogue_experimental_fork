@@ -13,7 +13,7 @@ namespace hr {
 EX int spherecells() {
   if(S7 == 5) return (elliptic?6:12);
   if(S7 == 4) return (elliptic?3:6);
-  if(S7 == 3 && hr__S3 == 4) return (elliptic?4:8);
+  if(S7 == 3 && hr_S3 == 4) return (elliptic?4:8);
   if(S7 == 3) return 4;
   if(S7 == 2) return (elliptic?1:2);
   if(S7 == 1) return 1;
@@ -41,7 +41,7 @@ struct hrmap_spherical : hrmap_standard {
     else
       siblings = {1, 0, 3, 2, 5, 4};
     
-    if(S7 == 3 && hr__S3 == 4) {
+    if(S7 == 3 && hr_S3 == 4) {
       for(int i=0; i<8; i++) {
         dodecahedron[i]->move(0) = dodecahedron[i^1];
         dodecahedron[i]->c.setspin(0, 0, false);
@@ -150,7 +150,7 @@ struct hrmap_spherical : hrmap_standard {
     for(int i=0; i<spherecells(); i++) for(int k=0; k<S7; k++) {
       heptspin hs(dodecahedron[i], k, false);
       heptspin hs2 = hs + wstep + (S7-1) + wstep + (S7-1) + wstep + (S7-1);
-      if(hr__S3 == 4) hs2 = hs2 + wstep + (S7-1);
+      if(hr_S3 == 4) hs2 = hs2 + wstep + (S7-1);
       if(hs2.at != hs.at) printf("error %d,%d\n", i, k);
       }
     for(int i=0; i<spherecells(); i++) verifycells(dodecahedron[i]);
@@ -183,6 +183,18 @@ struct hrmap_spherical : hrmap_standard {
     if(elliptic) fixelliptic(T);
     return T;
     }
+
+  int pattern_value(cell *c) override {
+    #if CAP_IRR
+    if(IRREGULAR) return irr::cellindex[c];
+    #endif
+    #if CAP_GP
+    if(GOLDBERG_INV) return (get_code(gp::get_local_info(c)) << 8) | c->master->fieldval;
+    #endif
+    if(ctof(c)) return c->master->fieldval;
+    return createMov(c, 0)->master->fieldval + 256 * createMov(c,2)->master->fieldval + (1<<16) * createMov(c,4)->master->fieldval;
+    }
+
   };
 
 EX heptagon *getDodecahedron(int i) {

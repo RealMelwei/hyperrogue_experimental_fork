@@ -101,7 +101,9 @@ EX bool collectItem(cell *c2, cell *last, bool telekinesis IS(false)) {
 
   bool dopickup = true;
   bool had_choice = false;
-  
+
+  if(shmup::on && !canmove) return false;
+
   if(cannotPickupItem(c2, telekinesis))
     return false;
 
@@ -260,8 +262,10 @@ EX bool collectItem(cell *c2, cell *last, bool telekinesis IS(false)) {
     items[itOrbSpeed] += v;
     items[itHolyGrail]++;
     addMessage(XLAT("Congratulations! You have found the Holy Grail!"));
-    if(!eubinary) changes.value_keep(c2->master->alt->emeraldval);
-    if(!eubinary) c2->master->alt->emeraldval |= GRAIL_FOUND;
+    if(!eubinary && c2->master->alt) {
+      changes.value_keep(c2->master->alt->emeraldval);
+      c2->master->alt->emeraldval |= GRAIL_FOUND;
+      }
     achievement_collection(c2->item);
     }
   else if(c2->item == itKey) {
@@ -513,6 +517,7 @@ EX void updateHi_for_code(eItem it, int v, modecode_t xcode) {
   }
 
 EX void updateHi(eItem it, int v) {
+  LATE ( updateHi(it, v) );
   updateHi_for_code(it, v, modecode());
   }
 

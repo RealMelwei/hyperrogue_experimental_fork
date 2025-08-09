@@ -46,6 +46,9 @@ EX bool game_active;
 /** \brief God mode */
 EX bool autocheat;
 
+/** \brief is the current game loaded from the save file */
+EX bool loaded_from_save;
+
 /** \brief which wall should we fill the Canvas with */
 EX eWall canvas_default_wall = waNone;
 
@@ -59,6 +62,10 @@ EX bool timerstopped;
 EX int savecount;
 EX int save_turns;
 EX bool doCross = false;
+
+EX int loadcount;
+EX int current_loadcount;
+EX int load_branching;
 
 EX bool gamegen_failure;
 
@@ -136,7 +143,7 @@ EX void welcomeMessage() {
     if(hybrid::underlying == gNormal && BITRUNCATED)
       addMessage(XLAT("Hint: this is more playable with pure {7,3} or pure {5,4}"));
     }
-  else if(hr__PURE && geometry == gNormal && !cheater)
+  else if(hr_PURE && geometry == gNormal && !cheater)
     addMessage(XLAT("Welcome to the Heptagonal Mode!"));
   else if(cheater || autocheat)
     addMessage(XLAT("Welcome to HyperRogue! (cheat mode on)"));
@@ -167,6 +174,9 @@ EX hookset<void()> hooks_initgame;
 /** \brief These hooks are called at the end of initgame. */
 EX hookset<void()> hooks_post_initgame;
 
+/** \brief These hooks are called at the end of startgame. */
+EX hookset<void()> hooks_post_startgame;
+
 EX bool ineligible_starting_land;
 
 EX int easy_specialland;
@@ -176,7 +186,7 @@ EX void initgame() {
   DEBBI(DF_INIT, ("initGame"));
   callhooks(hooks_initgame);
 
-  modecode();
+  modecode(1);
 
   if(!safety) fix_land_structure_choice();
 
@@ -369,6 +379,10 @@ EX void initgame() {
     makeEmpty(cwt.at);
     }
 
+  // make the starting point safe in this setting
+  if(specialland == laPalace && geometry == gNormal && hr_PURE)
+    cwt.at->wall = waOpenPlate;
+
   if(specialland == laMinefield && closed_or_bounded) {
     bfs();
     generate_mines();
@@ -392,6 +406,8 @@ EX void initgame() {
     sagephase = 0; hardcoreAt = 0;
     timerstopped = false;
     savecount = 0; savetime = 0;
+    loadcount = 0; current_loadcount = 0; load_branching = 0;
+
     tortoise::last21tort = 0;
     cheater = 0;
     if(autocheat) cheater = 1;
@@ -459,7 +475,7 @@ EX namespace scores {
 /** \brief the amount of boxes reserved for each hr::score item */
 #define MAXBOX 500
 /** \brief currently used boxes in hr::score */
-#define POSSCORE 418
+#define POSSCORE 421
 /** \brief a struct to keep local score from an earlier game */
 struct score {
   /** \brief version used */
@@ -973,6 +989,10 @@ EX void applyBoxes() {
   applyBoxNum(asteroids_generated);
   applyBoxNum(asteroid_orbs_generated);
 
+  applyBoxNum(loadcount, "load count");
+  applyBoxNum(load_branching, "load branching");
+  applyBoxNum(current_loadcount, "current load count");
+
   if(POSSCORE != boxid) printf("ERROR: %d boxes\n", boxid);
   if(isize(invorb)) { println(hlog, "ERROR: Orbs not taken into account"); exit(1); }
   }
@@ -990,12 +1010,15 @@ void loadBox() {
 
 #if HDR
 constexpr int MODECODE_BOX = 387;
+constexpr int CURRENT_LOADCOUNT_BOX = 420;
+constexpr int LOADCOUNT_BOX = 418;
+constexpr ld BRANCH_SCALE = 100000.0;
 #endif
 
 modecode_t fill_modecode() {
   dynamicval<int> sp1(multi::players, save.box[197]);
   dynamicval<eGeometry> sp2(geometry, (eGeometry) save.box[116]);
-  if(among(geometry, gArchimedean, gProduct, gRotSpace, gArbitrary))
+  if(among(geometry, gArchimedean, gProduct, gTwistedProduct, gArbitrary))
     return 6; /* these would not be saved nor loaded correctly */
   dynamicval<bool> sp3(shmup::on, save.box[119]);
   dynamicval<eLandStructure> sp4(land_structure, (eLandStructure) save.box[196]);
@@ -1082,7 +1105,7 @@ EX void saveStats(bool emergency IS(false)) {
   if(peace::on && !save_cheats) return;
   if(experimentalhr) return;
 
-  if(!gold() && !racing::on) return;
+  if(!gold() && !racing::on && !items[itOrbSafety] && !loaded_from_save) return;
 
   remove_emergency_save();
 
@@ -1134,8 +1157,10 @@ EX void saveStats(bool emergency IS(false)) {
         int(xcode),
         buf);
 
-    fclose(f);
-    return;
+    if(!loaded_from_save) {
+      fclose(f);
+      return;
+      }
     }
 
   #if CAP_RACING
@@ -1261,6 +1286,7 @@ EX void loadsave() {
           using namespace scores;
           for(int i=0; i<boxid; i++) save.box[i] = sc.box[i];
           for(int i=boxid; i<MAXBOX; i++) save.box[i] = 0, sc.box[i] = 0;
+          if(boxid <= LOADCOUNT_BOX) save.box[LOADCOUNT_BOX] = -1;
 
           if(boxid <= MODECODE_BOX) save.box[MODECODE_BOX] = sc.box[MODECODE_BOX] = fill_modecode();
 
@@ -1345,7 +1371,11 @@ EX void loadsave() {
     }
   #endif
 
+    if(buf[0] == 'L' && buf[1] == 'O' && buf[2] == 'A' && buf[3] == 'D') {
+      sc.box[scores::CURRENT_LOADCOUNT_BOX]++;
+      }
     }
+
   fclose(f);
   // this is the index of Orb of Safety
   if(ok && sc.box[65 + 4 + itOrbSafety - itOrbLightning])
@@ -1395,6 +1425,13 @@ EX void load_last_save() {
   yendor::on = false;
   tour::on = false;
   save_turns = turncount;
+  loaded_from_save = true;
+
+  if(loadcount >= 0) {
+    loadcount += current_loadcount;
+    load_branching += BRANCH_SCALE * log(1 + current_loadcount);
+    current_loadcount = 0;
+    }
   }
 #endif
 
@@ -1403,10 +1440,7 @@ EX void stop_game() {
   if(dual::split(stop_game)) return;
   DEBBI(DF_INIT, ("stop_game"));
   achievement_final(true);
-#if CAP_SAVE
-  if(!casual)
-    saveStats();
-#endif
+  save_if_needed();
   for(int i=0; i<ittypes; i++) items[i] = 0;
   lastkills = 0; for(int i=0; i<motypes; i++) kills[i] = 0;
   for(int i=0; i<10; i++) explore[i] = 0;
@@ -1429,8 +1463,8 @@ EX void stop_game() {
   camelot::knighted = 0;
   #endif
   // items[itGreenStone] = 100;
-  clearMemory();
   game_active = false;
+  clearMemory();
 #if CAP_DAILY
   if(daily::on)
     daily::turnoff();
@@ -1458,9 +1492,8 @@ EX void set_geometry(eGeometry target) {
   if(geometry != target) {
     stop_game();
     ors::reset();
-    if(among(target, gProduct, gRotSpace)) {
+    if(among(target, gProduct, gTwistedProduct)) {
       if(vid.always3) { vid.always3 = false; geom3::apply_always3(); }
-      if(target == gRotSpace) hybrid::csteps = 0;
       hybrid::configure(target);
       }
     geometry = target;
@@ -1469,7 +1502,7 @@ EX void set_geometry(eGeometry target) {
     if(IRREGULAR) variation = eVariation::bitruncated;
     #endif
     #if CAP_GP
-    if(GOLDBERG && gp::param == gp::loc(1,1) && hr__S3 == 3) {
+    if(GOLDBERG && gp::param == gp::loc(1,1) && hr_S3 == 3) {
       variation = eVariation::bitruncated;
       }
     if(GOLDBERG && nonorientable) {
@@ -1482,7 +1515,7 @@ EX void set_geometry(eGeometry target) {
     #if CAP_BT
     if(bt::in() || WDIM == 3 || aperiodic || arb::in()) if(!mhybrid) variation = eVariation::pure;
     #endif
-    if(hr__S3 >= OINF) variation = eVariation::pure;
+    if(hr_S3 >= OINF) variation = eVariation::pure;
     if(INVERSE && !mhybrid) variation = gp::variation_for(gp::param);
     if(ginf[target].default_variation == eVariation::pure && geometry != gArchimedean && !mhybrid)
       variation = eVariation::pure;
@@ -1491,11 +1524,6 @@ EX void set_geometry(eGeometry target) {
     if(geometry == gArbitrary) {
       arb::convert::base_geometry = geometry;
       arb::convert::base_variation = variation;
-      }
-
-    if(rotspace) {
-      check_cgi(); cgi.require_basics();
-      hybrid::csteps = cgi.psl_steps;
       }
     }
   }
@@ -1526,13 +1554,6 @@ EX void set_variation(eVariation target) {
     }
   }
 
-void stop_tour() {
-  while(gamestack::pushed()) {
-    gamestack::pop();
-    stop_game();
-    }
-  }
-
 EX void switch_game_mode(char switchWhat) {
   DEBBI(DF_INIT, ("switch_game_mode ", switchWhat));
   switch(switchWhat) {
@@ -1545,7 +1566,6 @@ EX void switch_game_mode(char switchWhat) {
       break;
 
     case rg::dualmode:
-      stop_tour(); tour::on = false;
       racing::on = false;
       yendor::on = tactic::on = princess::challenge = false;
       bow::weapon = bow::wBlade;
@@ -1571,7 +1591,6 @@ EX void switch_game_mode(char switchWhat) {
 
 #if CAP_TOUR
     case rg::tour:
-      if(tour::on) stop_tour();
       geometry = gNormal;
       yendor::on = tactic::on = princess::challenge = peace::on = inv::on = false;
       dual::disable();
@@ -1582,7 +1601,6 @@ EX void switch_game_mode(char switchWhat) {
       gp::param = gp::loc(1, 1);
       #endif
       shmup::on = false;
-      tour::on = !tour::on;
       racing::on = false;
       break;
 #endif
@@ -1605,7 +1623,6 @@ EX void switch_game_mode(char switchWhat) {
       racing::on = !racing::on;
       shmup::on = racing::on;
       peace::on = false;
-      tour::on = false;
       inv::on = false;
       yendor::on = false;
       land_structure = racing::on ? lsSingle : lsNiceWalls;
@@ -1676,6 +1693,7 @@ EX void start_game() {
   game_active = true;
   gamegen_failure = false;
   ignored_memory_warning = false;
+  loaded_from_save = false;
 
   ap::init::initRando();
 
@@ -1713,11 +1731,18 @@ EX void start_game() {
   texture::config.remap();
 #endif
   subscreens::prepare();
+  callhooks(hooks_post_startgame);
   }
 
 // popAllScreens + popAllGames + stop_game + switch_game_mode + start_game
 EX void restart_game(char switchWhat IS(rg::nothing)) {
   popScreenAll();
+  stop_game_and_switch_mode(switchWhat);
+  start_game();
+  }
+
+// stop_game + switch_game_mode
+EX void stop_game_and_switch_mode(char switchWhat IS(rg::nothing)) {
   #if CAP_RACING
   if(switchWhat == rg::nothing && racing::on) {
     racing::restore_goals();
@@ -1726,15 +1751,12 @@ EX void restart_game(char switchWhat IS(rg::nothing)) {
     return;
     }
   #endif
+  bool b = (switchWhat == rg::tour && !tour::on);
+  if(tour::on && among(switchWhat, rg::racing, rg::tour, rg::dualmode))
+    tour::stop_tour();
   stop_game();
   switch_game_mode(switchWhat);
-  start_game();
-  }
-
-// stop_game + switch_game_mode
-EX void stop_game_and_switch_mode(char switchWhat IS(rg::nothing)) {
-  stop_game();
-  switch_game_mode(switchWhat);
+  if(b) tour::on = true;
   }
 
 EX purehookset hooks_clearmemory;
@@ -1792,14 +1814,13 @@ EX void initAll() {
   callhooks(hooks_initialize);
   init_floorcolors();
   showstartmenu = true;
+  festive_date = showFestive();
   ca::init();
 #if CAP_COMMANDLINE
   arg::read(1);
 #endif
   srand(time(NULL));
   shrand(fixseed ? startseed : time(NULL));
-
-  achievement_init(); // not in ANDROID
 
   firstland0 = firstland;
 
@@ -1812,7 +1833,9 @@ EX void initAll() {
   loadsave();
   if(IRREGULAR && !irr::base) irr::auto_creator();
 #endif
+  bool b = loaded_from_save;
   start_game();
+  if(b) loaded_from_save = b;
   restore_all_golems();
 
   firstland = firstland0;
@@ -1821,19 +1844,32 @@ EX void initAll() {
 
 EX purehookset hooks_final_cleanup;
 
-EX void finishAll() {
-  achievement_final(!items[itOrbSafety]);
-
+EX void save_if_needed() {
 #if CAP_SAVE
+  if(casual && savecount && !items[itOrbSafety]) {
+    scorebox.box[scores::CURRENT_LOADCOUNT_BOX]++;
+    FILE *f = fopen(scorefile.c_str(), "at");
+    if(f) {
+      string yasc_msg = "quit";
+      if(!canmove && yasc_message != "") yasc_msg = yasc_message;
+      fprintf(f, "LOAD %d %d %s %s\n", int(cwt.at->land), int(turncount - save_turns), formatted_yasc_code().c_str(), yasc_message.c_str());
+      fclose(f);
+      }
+    }
   if(!casual)
     saveStats();
 #endif
+  }
+
+EX void finishAll() {
+  achievement_final(!items[itOrbSafety]);
+
+  save_if_needed();
   clearMemory();
 #if !ISMOBILE
   quit_all();
 #endif
 
-  achievement_close();
   callhooks(hooks_final_cleanup);
   }
 

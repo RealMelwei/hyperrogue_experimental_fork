@@ -34,9 +34,9 @@ EX string getgametime_s(int timespent IS(getgametime())) {
   return hr::format("%d:%02d", timespent/60, timespent % 60);
   }
 
-EX bool display_yasc_codes;
+EX bool display_yasc_codes, display_semicasual;
 
-string formatted_yasc_code() {
+EX string formatted_yasc_code() {
   if(yasc_code < 100000) return its(yasc_code);
   int y = yasc_code;
   string out;
@@ -55,6 +55,10 @@ string timeline() {
     s = XLAT("%1 turns (%2)", its(turncount), getgametime_s());
     if(display_yasc_codes)
       s += XLAT(" YASC code: ") + formatted_yasc_code();
+    }
+  if(casual && loadcount >= 0 && display_semicasual) {
+    ld val = exp(load_branching/scores::BRANCH_SCALE);
+    s += XLAT(" saves: %1 loads: %2 branching: %3", its(savecount), its(loadcount), val < 1e6 ? format("%.0f", val) : format("%.4g", val));
     }
   return s;
   }
@@ -542,11 +546,15 @@ EX void showGameMenu() {
   dialog::add_action_push(showSettings);
   dialog::addItem(XLAT("creative mode"), 'c');
   dialog::add_action_push(showCreative);
-  dialog::addItem(XLAT("special modes"), 'm');
-  dialog::add_action_push(showChangeMode);
+  if(!intour) {
+    dialog::addItem(XLAT("special modes"), 'm');
+    dialog::add_action_push(showChangeMode);
+    }
 #if CAP_SAVE
-  dialog::addItem(XLAT("local highscores"), 't');
-  dialog::add_action([] { scores::load(); });
+  if(!intour) {
+    dialog::addItem(XLAT("local highscores"), 't');
+    dialog::add_action([] { scores::load(); });
+    }
 #endif
   #if ISMOBILE
   dialog::addItem(XLAT("visit the website"), 'q');
@@ -557,25 +565,29 @@ EX void showGameMenu() {
   #endif
 #if ISMOBILE
 #if CAP_ACHIEVE
-  dialog::addItem(XLAT("leaderboards/achievements"), '3'); 
-  dialog::add_action([] {
-    achievement_final(false);
-    pushScreen(leader::showMenu);
-    });
+  if(!intour) {
+    dialog::addItem(XLAT("leaderboards/achievements"), '3');
+    dialog::add_action([] {
+      achievement_final(false);
+      pushScreen(leader::showMenu);
+      });
+    }
 #endif
 #endif
   dialog::addHelp();
   dialog::add_action([] { buildHelpText(); gotoHelp(help); });
-  dialog::addItem(XLAT("restart"), SDLK_F5);
-  dialog::addItem(inSpecialMode() ? XLAT("reset special modes") : XLAT("back to the start menu"), 'R');
-  dialog::add_action([] {
-    dialog::do_if_confirmed([] {
-      #if CAP_STARTANIM
-      startanims::pick();
-      #endif
-      popScreenAll(), pushScreen(showStartMenu);
+  if(!intour) {
+    dialog::addItem(XLAT("restart"), SDLK_F5);
+    dialog::addItem(inSpecialMode() ? XLAT("reset special modes") : XLAT("back to the start menu"), 'R');
+    dialog::add_action([] {
+      dialog::do_if_confirmed([] {
+        #if CAP_STARTANIM
+        startanims::pick();
+        #endif
+        popScreenAll(), pushScreen(showStartMenu);
+        });
       });
-    });
+    }
 #if !ISMOBILE
   dialog::addItem(quitsaves() ? XLAT("save") : XLAT("quit"), SDLK_F10);
 #endif

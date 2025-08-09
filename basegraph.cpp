@@ -36,7 +36,7 @@ struct display_data {
   /** The view relative to the player character. */
   shiftmatrix player_matrix;
   /** On-screen coordinates for all the visible cells. */
-  map<cell*, shiftmatrix> cellmatrices, old_cellmatrices;
+  map<cell*, shiftmatrix_or_null> cellmatrices, old_cellmatrices;
   /** Position of the current map view, relative to the screen (0 to 1). */
   ld xmin, ymin, xmax, ymax;
   /** Position of the current map view, in pixels. */
@@ -89,12 +89,19 @@ EX unsigned backcolor = 0;
 EX unsigned bordcolor = 0;
 EX unsigned forecolor = 0xFFFFFF;
 
-int utfsize(char c) {
+EX int utfsize(char c) {
   unsigned char cu = c;
   if(cu < 128) return 1;
   if(cu < 224) return 2;
   if(cu < 0xF0) return 3;
   return 4;
+  }
+
+EX int utfsize_before(const string& s, int pos) {
+  if(!pos) return 0;
+  int npos = pos - 1;
+  while(npos && ((unsigned char)s[npos]) >= 128 && ((unsigned char)s[npos]) < 192) npos--;
+  return pos - npos;
   }
 
 EX int get_sightrange() { return getDistLimit() + sightrange_bonus; }
@@ -148,9 +155,6 @@ EX int getnext(const char* s, int& i) {
   }
 
 #if CAP_SDLTTF
-const int max_font_size = 288;
-TTF_Font* font[max_font_size+1];
-
 void fix_font_size(int& size) {
   if(size < 1) size = 1;
   if(size > max_font_size) size = max_font_size;
@@ -161,7 +165,7 @@ void fix_font_size(int& size) {
 
 #if CAP_SDL
 
-#if !CAP_SDL2
+#if SDLVER == 1
 #if HDR
 typedef SDL_Surface SDL_Renderer;
 #define srend s
@@ -170,7 +174,7 @@ typedef SDL_Surface SDL_Renderer;
 
 EX SDL_Surface *s;
 EX SDL_Surface *s_screen;
-#if CAP_SDL2
+#if SDLVER >= 2
 EX SDL_Renderer *s_renderer, *s_software_renderer;
 #if HDR
 #define srend s_software_renderer
@@ -192,10 +196,14 @@ EX color_t& qpixel(SDL_Surface *surf, int x, int y) {
   }
 
 EX void present_surface() {
-  #if CAP_SDL2
+  #if SDLVER >= 2
   SDL_UpdateTexture(s_texture, nullptr, s->pixels, s->w * sizeof (Uint32));
   SDL_RenderClear(s_renderer);
+  #if SDLVER >= 3
+  SDL_RenderTexture(s_renderer, s_texture, nullptr, nullptr);
+  #else
   SDL_RenderCopy(s_renderer, s_texture, nullptr, nullptr);
+  #endif
   SDL_RenderPresent(s_renderer);
   #else
   SDL_UpdateRect(s, 0, 0, 0, 0);  
@@ -205,7 +213,7 @@ EX void present_surface() {
 EX void present_screen() {
 #if CAP_GL
   if(vid.usingGL) {
-    #if CAP_SDL2
+    #if SDLVER >= 2
     SDL_GL_SwapWindow(s_window);
     #else
     SDL_GL_SwapBuffers();
@@ -220,25 +228,52 @@ EX void present_screen() {
 
 #if CAP_SDLTTF
 
-#define DEFAULT_FONT "DejaVuSans-Bold.ttf"
+EX vector<string> font_filenames = {
+  "DejaVuSans-Bold.ttf",
+  "DejaVuSans.ttf",
+  "cmunss.ttf",
+  "NotoSans-Regular.ttf",
+  "OpenDyslexic3-Regular.ttf",
+  "font.ttf",
+  "font.otf"
+  };
+
+EX vector<pair<string, string>> font_names = {
+  {"DejaVu Sans Bold", ""},
+  {"DejaVu Sans", ""},
+  {"Computer Modern Sans", ""},
+  {"Noto Sans", "note: if using the Chinese translation, Noto Sans will override the options above it"},
+  {"OpenDyslexic3-Regular", ""},
+  {"TTF font", ""},
+  {"OTF font", ""}
+  };
+
+EX int last_font_id = 0;
+EX int font_id = 0;
 
 #ifdef FONTCONFIG
-/** if this is non-empty, find the font using fontconfig */
-EX string font_to_find = DEFAULT_FONT;
-#endif
+TTF_Font* findfont(int siz) {
 
-/** actual font path */
-EX string fontpath = ISWEB ? "sans-serif" : string(HYPERFONTPATH) + DEFAULT_FONT;
+  auto orig = cfont->filename;
 
-const string& findfont() {
-  #ifdef FONTCONFIG
-  if(font_to_find == "") return fontpath;
   FcPattern   *pat;
   FcResult	result;
-  if (!FcInit()) {
-    return fontpath;
-  }
-  pat = FcNameParse((FcChar8 *)font_to_find.c_str());
+  if (!FcInit()) return nullptr;
+
+  string s =cfont->filename;
+  auto rep = [&] (string what, string by) {
+    int pos = s.size() - what.size();
+    if(pos < 0) return;
+    if(s.substr(pos) == what) s = s.substr(0, pos) + by;
+    };
+  rep(".ttf", "");
+  rep(".otf", "");
+  rep(".TTF", "");
+  rep(".OTF", "");
+  rep("-Bold", ":weight=bold");
+  rep("-Regular", ":weight=regular");
+
+  pat = FcNameParse((FcChar8 *)s.c_str());
   FcConfigSubstitute(0, pat, FcMatchPattern);
   FcDefaultSubstitute(pat);
 
@@ -247,31 +282,33 @@ const string& findfont() {
   if (match) {
     FcChar8 *file;
     if (FcPatternGetString(match, FC_FILE, 0, &file) == FcResultMatch) {
-      fontpath = (const char *)file;
+      cfont->filename = (const char *)file;
     }
     FcPatternDestroy(match);
   }
   FcPatternDestroy(pat);
   FcFini();
-  font_to_find = "";
-  if(debugflags & DF_INIT) println(hlog, "fontpath is: ", fontpath);
-  #endif
-  return fontpath;
+  cfont->use_fontconfig = false;
+  if(debugflags & DF_INIT) println(hlog, "fontpath is: ", cfont->filename);
+  return TTF_OpenFont(cfont->filename.c_str(), siz);
   }
+#endif
 
 void loadfont(int siz) {
   fix_font_size(siz);
-  if(!font[siz]) {
-    font[siz] = TTF_OpenFont(findfont().c_str(), siz);
-    // Destination set by ./configure (in the GitHub repository)
-    #ifdef FONTDESTDIR
-    if (font[siz] == NULL) {
-      font[siz] = TTF_OpenFont(FONTDESTDIR, siz);
-      }
+  auto& cf = cfont->font[siz];
+  if(!cf) {
+    if(cf == NULL) cf = TTF_OpenFont(find_file(cfont->filename).c_str(), siz);
+
+    #ifdef FONTCONFIG
+    if(cf == NULL && cfont->use_fontconfig)
+      cf = findfont(siz);
     #endif
-    if (font[siz] == NULL) {
-      printf("error: Font file not found: %s\n", fontpath.c_str());
-      exit(1);
+
+    if(cf == NULL) {
+      printf("error: Font file not found: %s\n", cfont->filename.c_str());
+      if(font_id == 0) throw hr_exception("font file not found");
+      font_id = 0; set_cfont(); loadfont(siz);
       }
     }
   }
@@ -286,7 +323,7 @@ int textwidth(int siz, const string &str) {
   loadfont(siz);
   
   int w, h;
-  TTF_SizeUTF8(font[siz], str.c_str(), &w, &h);
+  TTF_SizeUTF8(cfont->font[siz], str.c_str(), &w, &h);
   // printf("width = %d [%d]\n", w, isize(str));
   return w;
 
@@ -428,6 +465,46 @@ EX  int next_p2 (int a ) {
     return rval;
 }
 
+#if HDR
+constexpr int max_glfont_size = 72;
+constexpr int max_font_size = 288;
+
+struct fontdata {
+  string filename;
+  #if FONTCONFIG
+  bool use_fontconfig;
+  #endif
+  struct glfont_t* glfont[max_glfont_size+1];
+  #if CAP_SDLTTF
+  TTF_Font* font[max_font_size+1];
+  #endif
+  struct basic_textureinfo *finf;
+  ~fontdata();
+  };
+#endif
+
+EX map<string, fontdata> fontdatas;
+EX fontdata *cfont, *cfont_chinese;
+
+EX fontdata* font_by_name(string fname) {
+  #if CAP_TABFONT
+  return &(fontdatas[""]);
+  #endif
+  auto& fd = fontdatas[fname];
+  if(fd.filename == "") {
+    fd.filename = fname;
+    #if FONTCONFIG
+    fd.use_fontconfig = true;
+    #endif
+    for(int i=0; i<=max_glfont_size; i++) fd.glfont[i] = nullptr;
+    #if CAP_SDLTTF
+    for(int i=0; i<=max_font_size; i++) fd.font[i] = nullptr;
+    #endif
+    fd.finf = nullptr;
+    }
+  return &fd;
+  }
+
 #if CAP_GLFONT
 
 #define CHARS (128+NUMEXTRA)
@@ -443,18 +520,14 @@ struct glfont_t {
 //GLuint list_base;                                   // Holds The First Display List ID  
   vector<charinfo_t> chars; 
   };
-
-const int max_glfont_size = 72;
 #endif
-
-EX glfont_t *glfont[max_glfont_size+1];
 
 typedef Uint16 texturepixel;
 
-#define FONTTEXTURESIZE 2048
+#define FONTTEXTURESIZE 4096
 
 int curx = 0, cury = 0, theight = 0;
-texturepixel fontdata[FONTTEXTURESIZE][FONTTEXTURESIZE];
+texturepixel fontpixels[FONTTEXTURESIZE][FONTTEXTURESIZE];
 
 void sdltogl(SDL_Surface *txt, glfont_t& f, int ch) {
 #if CAP_TABFONT
@@ -473,7 +546,7 @@ void sdltogl(SDL_Surface *txt, glfont_t& f, int ch) {
   theight = max(theight, otheight);
   
   for(int j=0; j<otheight;j++) for(int i=0; i<otwidth; i++) {
-    fontdata[j+cury][i+curx] = 
+    fontpixels[j+cury][i+curx] =
 #if CAP_TABFONT
     (i>=otwidth || j>=otheight) ? 0 : (tpix[tpixindex++] * 0x100) | 0xFF;
 #else
@@ -494,17 +567,17 @@ void sdltogl(SDL_Surface *txt, glfont_t& f, int ch) {
   }
   
 EX void init_glfont(int size) {
-  if(glfont[size]) return;
+  if(cfont->glfont[size]) return;
   DEBBI(DF_GRAPH, ("init GL font: ", size));
   
 #if !CAP_TABFONT
   loadfont(size);
-  if(!font[size]) return;
+  if(!cfont->font[size]) return;
 #endif
   
-  glfont[size] = new glfont_t;
+  cfont->glfont[size] = new glfont_t;
   
-  glfont_t& f(*(glfont[size]));
+  glfont_t& f(*(cfont->glfont[size]));
   
   f.chars.resize(CHARS);
 
@@ -520,7 +593,7 @@ EX void init_glfont(int size) {
 
   for(int y=0; y<FONTTEXTURESIZE; y++)
   for(int x=0; x<FONTTEXTURESIZE; x++)
-    fontdata[y][x] = 0;
+    fontpixels[y][x] = 0;
 
 #if CAP_TABFONT
   resetTabFont();
@@ -543,17 +616,17 @@ EX void init_glfont(int size) {
     fix_font_size(siz);
     if(ch < 128) {
       str[0] = ch;
-      txt = TTF_RenderText_Blended(font[siz], str, white);
+      txt = TTF_RenderUTF8_Blended(cfont->font[siz], str, white);
       }
     else {
-      txt = TTF_RenderUTF8_Blended(font[siz], natchars[ch-128], white);
+      txt = TTF_RenderUTF8_Blended(cfont->font[siz], natchars[ch-128], white);
       }
     if(txt == NULL) continue;
 #if CAP_CREATEFONT
     generateFont(ch, txt);
 #endif
     sdltogl(txt, f, ch);
-    SDL_FreeSurface(txt);    
+    SDL_DestroySurface(txt);
 #endif
     }
 
@@ -565,7 +638,7 @@ EX void init_glfont(int size) {
   
   glTexImage2D( GL_TEXTURE_2D, 0, GL_LUMINANCE_ALPHA, FONTTEXTURESIZE, theight, 0,
     GL_LUMINANCE_ALPHA, GL_UNSIGNED_BYTE, 
-    fontdata);
+    fontpixels);
 
   for(int ch=0; ch<CHARS; ch++) f.chars[ch].ty0 /= theight, f.chars[ch].ty1 /= theight;
  
@@ -588,9 +661,9 @@ int gl_width(int size, const char *s) {
 #endif
 
   init_glfont(gsiz);
-  if(!glfont[gsiz]) return 0;
+  if(!cfont->glfont[gsiz]) return 0;
 
-  glfont_t& f(*glfont[gsiz]);
+  glfont_t& f(*cfont->glfont[gsiz]);
 
   int x = 0;
   for(int i=0; s[i];) {
@@ -621,9 +694,9 @@ bool gl_print(int x, int y, int shift, int size, const char *s, color_t color, i
 #endif
   
   init_glfont(gsiz);
-  if(!glfont[gsiz]) return false;
+  if(!cfont->glfont[gsiz]) return false;
 
-  glfont_t& f(*glfont[gsiz]);
+  glfont_t& f(*cfont->glfont[gsiz]);
   
   int tsize = 0;
   
@@ -685,9 +758,10 @@ EX void resetGL() {
   DEBBI(DF_INIT | DF_GRAPH, ("reset GL"))
   callhooks(hooks_resetGL);
 #if CAP_GLFONT
-  for(int i=0; i<=max_glfont_size; i++) if(glfont[i]) {
-    delete glfont[i];
-    glfont[i] = NULL;
+  for(auto& cf: fontdatas)
+  for(int i=0; i<=max_glfont_size; i++) if(cf.second.glfont[i]) {
+    delete cf.second.glfont[i];
+    cf.second.glfont[i] = NULL;
     }
 #endif
 #if MAXMDIM >= 4
@@ -702,15 +776,15 @@ EX void resetGL() {
     airbuf = nullptr;
     }
   #endif
-  check_cgi();
-  if(currentmap) cgi.require_shapes();
-  #if MAXMDIM >= 4
-  if(GDIM == 3 && !floor_textures) make_floor_textures();
-  #endif
-  cgi.initPolyForGL();
   compiled_programs.clear();
   matched_programs.clear();
   glhr::current_glprogram = nullptr;
+  check_cgi();
+  if(currentmap) cgi.require_shapes();
+  cgi.initPolyForGL();
+  #if MAXMDIM >= 4
+  if(GDIM == 3 && !floor_textures) make_floor_textures();
+  #endif
   ray::reset_raycaster();
   #if CAP_RUG
   if(rug::glbuf) rug::close_glbuf();
@@ -812,7 +886,7 @@ EX bool displaystr(int x, int y, int shift, int size, const char *str, color_t c
   fix_font_size(size);
   loadfont(size);
 
-  SDL_Surface *txt = ((vid.antialias & AA_FONT)?TTF_RenderUTF8_Blended:TTF_RenderUTF8_Solid)(font[size], str, col);
+  SDL_Surface *txt = ((vid.antialias & AA_FONT)?TTF_RenderUTF8_Blended:TTF_RenderUTF8_Solid)(cfont->font[size], str, col);
   
   if(txt == NULL) return false;
 
@@ -827,7 +901,9 @@ EX bool displaystr(int x, int y, int shift, int size, const char *str, color_t c
   bool clicked = (mousex >= rect.x && mousey >= rect.y && mousex <= rect.x+rect.w && mousey <= rect.y+rect.h);
   
   if(shift) {
-    #if CAP_SDL2
+    #if SDLVER == 3
+    SDL_Surface* txt2 = SDL_ConvertSurface(txt, SDL_PIXELFORMAT_RGBA8888);
+    #elif SDLVER == 2
     SDL_Surface* txt2 = SDL_ConvertSurfaceFormat(txt, SDL_PIXELFORMAT_RGBA8888, 0);
     #else
     SDL_Surface* txt2 = SDL_DisplayFormat(txt);
@@ -841,12 +917,12 @@ EX bool displaystr(int x, int y, int shift, int size, const char *str, color_t c
       qpixel(s, rect.x+xx+shift, rect.y+yy) |= color & 0x00FFFF;
     SDL_UnlockSurface(s);
     SDL_UnlockSurface(txt2);
-    SDL_FreeSurface(txt2);
+    SDL_DestroySurface(txt2);
     }
   else {
     SDL_BlitSurface(txt, NULL, s,&rect); 
     }
-  SDL_FreeSurface(txt);
+  SDL_DestroySurface(txt);
   
   return clicked;
 #endif
@@ -1188,19 +1264,19 @@ EX bool need_to_apply_screen_settings() {
   }
 
 EX void close_renderer() {
-  #if CAP_SDL2
+  #if SDLVER >= 2
   if(s_renderer) SDL_DestroyRenderer(s_renderer), s_renderer = nullptr;
   if(s_texture) SDL_DestroyTexture(s_texture), s_texture = nullptr;
-  if(s) SDL_FreeSurface(s), s = nullptr;
+  if(s) SDL_DestroySurface(s), s = nullptr;
   if(s_software_renderer) SDL_DestroyRenderer(s_software_renderer), s_software_renderer = nullptr;
   #endif
   }
 
 EX void close_window() {
-  #if CAP_SDL2
+  #if SDLVER >= 2
   close_renderer();
   if(s_have_context) {
-    SDL_GL_DeleteContext(s_context), s_have_context = false;
+    SDL_GL_DestroyContext(s_context), s_have_context = false;
     }
   if(s_window) SDL_DestroyWindow(s_window), s_window = nullptr;
   #endif
@@ -1221,7 +1297,7 @@ EX void apply_screen_settings() {
   #endif
 
   #if CAP_SDL
-  #if !CAP_SDL2
+  #if SDLVER == 1
   if(need_to_reopen_window())
     SDL_QuitSubSystem(SDL_INIT_VIDEO);
   #endif
@@ -1284,16 +1360,20 @@ EX void setvideomode() {
 #if CAP_GL
   vid.usingGL = vid.wantGL;
   if(vid.usingGL) {
-    flags = SDL12(SDL_OPENGL | SDL_HWSURFACE, SDL_WINDOW_OPENGL | SDL_WINDOW_ALLOW_HIGHDPI);
+    flags = SDL12(SDL_OPENGL | SDL_HWSURFACE, SDL_WINDOW_OPENGL | SDL_WINDOW_HIGH_PIXEL_DENSITY);
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
     SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 1);
+    SDL_GL_SetAttribute(SDL_GL_ACCELERATED_VISUAL, 1);
 
     vid.current_vsync = want_vsync();
-    #if !ISMOBWEB && !CAP_SDL2
+    #if !ISMOBWEB && SDLVER == 1
     if(vid.current_vsync) 
       SDL_GL_SetAttribute( SDL_GL_SWAP_CONTROL, 1 );
     else
       SDL_GL_SetAttribute( SDL_GL_SWAP_CONTROL, 0 ); 
+    #endif
+    #if SDLVER > 1
+    SDL_GL_SetSwapInterval(vid.current_vsync ? 1 : 0);
     #endif
     if(vid.antialias & AA_MULTI) {
       SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 1);
@@ -1325,15 +1405,15 @@ EX void setvideomode() {
   #endif
   #endif
   
-  #if CAP_SDL2
+  #if SDLVER >= 2
   if(s_renderer) SDL_DestroyRenderer(s_renderer), s_renderer = nullptr;
   #endif
 
   auto create_win = [&] {
-    #if CAP_SDL2
+    #if SDLVER >= 2
     if(s_window && current_window_flags != (flags | sizeflag)) {
       if(s_have_context) {
-        SDL_GL_DeleteContext(s_context), s_have_context = false;
+        SDL_GL_DestroyContext(s_context), s_have_context = false;
         glhr::glew = false;
         }
       SDL_DestroyWindow(s_window), s_window = nullptr;
@@ -1341,10 +1421,7 @@ EX void setvideomode() {
     if(s_window)
       SDL_SetWindowSize(s_window, vid.xres, vid.yres);
     else
-      s_window = SDL_CreateWindow(CUSTOM_CAPTION, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 
-      vid.xres, vid.yres,
-      flags | sizeflag
-      );
+      s_window = SDL_CreateWindow(CUSTOM_CAPTION, vid.xres, vid.yres, flags | sizeflag);
     current_window_flags = (flags | sizeflag);
     #else
     s = SDL_SetVideoMode(vid.xres, vid.yres, 32, flags | sizeflag);
@@ -1373,15 +1450,22 @@ EX void setvideomode() {
     create_win();
     }
   
-  #if CAP_SDL2
+  #if SDLVER >= 2
   if(s_renderer) SDL_DestroyRenderer(s_renderer), s_renderer = nullptr;
-  s_renderer = SDL_CreateRenderer(s_window, -1, vid.current_vsync ? SDL_RENDERER_PRESENTVSYNC : 0);
-  SDL_GetRendererOutputSize(s_renderer, &vid.xres, &vid.yres);
+
+  #if SDLVER >= 3
+  s_renderer = SDL_CreateRenderer(s_window, nullptr);
+  SDL_SetRenderVSync(s_renderer, vid.current_vsync ? 1 : SDL_RENDERER_VSYNC_DISABLED);
+  #else
+  s_renderer = SDL_CreateRenderer(s_window, -1, SDL_RENDERER_ACCELERATED | (vid.current_vsync ? SDL_RENDERER_PRESENTVSYNC : 0));
+  #endif
+
+  SDL_GetCurrentRenderOutputSize(s_renderer, &vid.xres, &vid.yres);
   
   if(s_texture) SDL_DestroyTexture(s_texture), s_texture = nullptr;
   s_texture = SDL_CreateTexture(s_renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, vid.xres, vid.yres);
   
-  if(s) SDL_FreeSurface(s), s = nullptr;
+  if(s) SDL_DestroySurface(s), s = nullptr;
   s = shot::empty_surface(vid.xres, vid.yres, false);
   
   if(s_software_renderer) SDL_DestroyRenderer(s_software_renderer), s_software_renderer = nullptr;
@@ -1401,8 +1485,8 @@ EX void setvideomode() {
       glDisable(GL_MULTISAMPLE_ARB);
       }
   
-    #if CAP_SDL2
-    if(s_have_context) SDL_GL_DeleteContext(s_context), s_have_context = false;
+    #if SDLVER >= 2
+    if(s_have_context) SDL_GL_DestroyContext(s_context), s_have_context = false;
     if(!s_have_context) s_context = SDL_GL_CreateContext(s_window);
     s_have_context = true; glhr::glew = false;
     #endif
@@ -1419,32 +1503,47 @@ EX bool noGUI = false;
 
 #if CAP_SDL
 EX bool sdl_on = false;
-EX int SDL_Init1(Uint32 flags) {
+EX bool SDL_Init1(Uint32 flags) {
   if(!sdl_on) {
     sdl_on = true;
-    return SDL_Init(flags);
+    return !SDL_error_in(SDL_Init(flags));
     }
-  else  
-    return SDL_InitSubSystem(flags);
+  else {
+    return !SDL_error_in(SDL_InitSubSystem(flags));
+    }
+  }
+#endif
+
+#if CAP_SDLTTF
+EX void set_cfont() {
+  int f = font_id;
+  int fch = f;
+  if(among(f, 0, 1, 2)) fch = 3;
+  if(lang() == 8) f = fch;
+  cfont = font_by_name(font_filenames[last_font_id = f]);
+  cfont_chinese = font_by_name(font_filenames[fch]);
   }
 #endif
 
 EX void init_font() {
 #if CAP_SDLTTF
-  if(TTF_Init() != 0) {
+  if(SDL_error_in(TTF_Init())) {
     printf("Failed to initialize TTF.\n");
     exit(2);
     }
+  set_cfont();
+#endif
+#if CAP_TABFONT
+  cfont = cfont_chinese = font_by_name("");
 #endif
   }
 
-EX void close_font() {
+fontdata::~fontdata() {
 #if CAP_SDLTTF
   for(int i=0; i<=max_font_size; i++) if(font[i]) {
     TTF_CloseFont(font[i]);
     font[i] = nullptr;
     }
-  TTF_Quit();
 #endif
 #if CAL_GLFONT
   for(int i=0; i<=max_glfont_size; i++) if(glfont[i]) {
@@ -1454,9 +1553,16 @@ EX void close_font() {
 #endif
   }
 
+EX void close_font() {
+  fontdatas.clear();
+#if CAP_SDLTTF
+  TTF_Quit();
+#endif
+  }
+
 EX void init_graph() {
 #if CAP_SDL
-  if (SDL_Init1(SDL_INIT_VIDEO) == -1)
+  if (!SDL_Init1(SDL_INIT_VIDEO))
   {
     printf("Failed to initialize video.\n");
     exit(2);
@@ -1466,7 +1572,15 @@ EX void init_graph() {
   get_canvas_size();
 #else
   if(!vid.xscr) {
-    #if CAP_SDL2
+    #if SDLVER >= 3
+    int count;
+    auto displays = SDL_GetDisplays(&count);
+    if(!count) { println(hlog, "error: no displays"); return; }
+    const SDL_DisplayMode* dm = SDL_GetCurrentDisplayMode(displays[0]);
+    if(!dm) println(hlog, "SDL_GetCurrentDisplayMode error: ", SDL_GetError());
+    if(dm) vid.xscr = vid.xres = dm->w;
+    if(dm) vid.yscr = vid.yres = dm->h;
+    #elif SDLVER >= 2
     SDL_DisplayMode dm;
     SDL_GetCurrentDisplayMode(0, &dm);
     vid.xscr = vid.xres = dm.w;
@@ -1479,7 +1593,7 @@ EX void init_graph() {
     }
 #endif
 
-#if !CAP_SDL2
+#if SDLVER == 1
   SDL_WM_SetCaption(CUSTOM_CAPTION, CUSTOM_CAPTION);
 #endif
 #endif
@@ -1501,7 +1615,7 @@ EX void init_graph() {
     exit(2);
     }
     
-  #if !CAP_SDL2
+  #if SDLVER == 1
   SDL_EnableKeyRepeat(SDL_DEFAULT_REPEAT_DELAY, SDL_DEFAULT_REPEAT_INTERVAL);
   SDL_EnableUNICODE(1);
   #endif
@@ -1643,6 +1757,6 @@ EX namespace subscreens {
     return false;
     }
 
-  }
+EX }
 
 }

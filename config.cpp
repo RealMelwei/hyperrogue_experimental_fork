@@ -22,12 +22,56 @@ EX bool return_false() { return false; }
 
 EX bool use_bool_dialog;
 
+EX bool unlock_all;
+
+/** set to true if a parameter was changed as a consequence of changing linked parameters */
+EX bool linked_consequence;
+
+EX bool hr_hud_enabled = true;
+
+EX bool higher_contrast = false;
+
+EX void adjust_linked() {
+  indenter ind(2);
+  geom3::invalid = "";
+  dynamicval<bool> d(linked_consequence, true);
+  if(vid.tc_alpha < vid.tc_depth && vid.tc_alpha < vid.tc_camera) {
+    find_edit(&pconf.alpha)->set_cld(tan_auto(vid.depth) / tan_auto(vid.camera));
+    }
+  else if(vid.tc_depth < vid.tc_alpha && vid.tc_depth < vid.tc_camera) {
+    ld v = pconf.alpha * tan_auto(vid.camera);
+    if(hyperbolic && (v<1e-6-12 || v>1-1e-12)) {
+      geom3::invalid = XLAT("cannot adjust depth");
+      v = vid.camera;
+      }
+    else v = atan_auto(v);
+    find_edit(&vid.depth)->set_cld(v);
+    }
+  else {
+    ld v = tan_auto(vid.depth) / pconf.alpha;
+    if(hyperbolic && (v<1e-12-1 || v>1-1e-12)) {
+      geom3::invalid = XLAT("cannot adjust camera");
+      v = vid.depth;
+      }
+    else v = atan_auto(v);
+    find_edit(&vid.camera)->set_cld(v);
+    }
+  }
+
+EX void update_linked(int& t) {
+  if(linked_consequence) return;
+  t = ticks;
+  adjust_linked();
+  }
+
 EX string param_esc(string s);
 
 EX void non_editable_pre() { if(game_active) stop_game(); };
 EX void non_editable_post() { if(!delayed_start) start_game(); };
 
 #if HDR
+
+using key_type = int;
 
 struct param_exception : hr_exception {
   struct parameter *which;
@@ -57,7 +101,7 @@ struct parameter : public std::enable_shared_from_this<parameter> {
   virtual bool available() { if(restrict) return restrict(); return true; }
   virtual bool affects(void *v) { return false; }
   void show_edit_option() { show_edit_option(default_key); }
-  virtual void show_edit_option(int key) {
+  virtual void show_edit_option(key_type key) {
     println(hlog, "warning: no edit option defined for ", name);
     }
   virtual string search_key() { 
@@ -131,9 +175,11 @@ EX void show_edit_option_enum(char* value, const string& name, const vector<pair
 
 #if HDR
 struct list_parameter : parameter {
+  reaction_t manual_reaction;
   virtual int get_value() = 0;
   virtual void set_value(int i) = 0;
   vector<pair<string, string> > options;
+  reaction_t extras;
   list_parameter* editable(const vector<pair<string, string> >& o, string menu_item_name, char key) {
     is_editable = true;
     options = o;
@@ -142,7 +188,12 @@ struct list_parameter : parameter {
     default_key = key;
     return this;
     }
-  void show_edit_option(int key) override;
+  void show_edit_option(key_type key) override;
+  list_parameter* add_extra(reaction_t r) {
+    if(extras) { auto e = extras; extras = [e, r] { e(); r(); }; }
+    else extras = r;
+    return this;
+    }
   };
 
 namespace anims {
@@ -179,8 +230,9 @@ template<class T> struct enum_parameter : list_parameter {
   bool load_from_animation(const string& s) override {
     if(anim_value != *value) return false;
     load(s);
+    bool changed = anim_value != *value;
     anim_value = *value;
-    return true;
+    return changed;
     }
   void load_as_animation(const string& s) override {
     load(s);
@@ -235,8 +287,9 @@ template<class T> struct val_parameter : public parameter {
   bool load_from_animation(const string& s) override {
     if(anim_value != *value) return false;
     load(s);
+    bool changed = anim_value != *value;
     anim_value = *value;
-    return true;
+    return changed;
     }
   void load_as_animation(const string& s) override {
     load(s);
@@ -262,7 +315,7 @@ struct float_parameter : public val_parameter<ld> {
     }
   function<void(float_parameter*)> modify_me;
   float_parameter *modif(const function<void(float_parameter*)>& r) { modify_me = r; return this; }
-  void show_edit_option(int key) override;
+  void show_edit_option(key_type key) override;
   void load_from_raw(const string& s) override { *value = parseld(s); }
   cld get_cld() override { return *value; }
   void set_cld_raw(cld x) override { *value = real(x); }
@@ -271,7 +324,7 @@ struct float_parameter : public val_parameter<ld> {
   };
 
 struct float_parameter_dft : public float_parameter {
-  void show_edit_option(int key) override;
+  void show_edit_option(key_type key) override;
   function<ld()> get_hint;
   float_parameter_dft* set_hint(const function<ld()>& f) { get_hint = f; return this; }
   };
@@ -281,7 +334,7 @@ struct int_parameter : public val_parameter<int> {
   ld step;
   function<void(int_parameter*)> modify_me;
   int_parameter *modif(const function<void(int_parameter*)>& r) { modify_me = r; return this; }
-  void show_edit_option(int key) override;
+  void show_edit_option(key_type key) override;
   int_parameter *editable(int min_value, int max_value, ld step, string menu_item_name, string help_text, char key) {
     this->is_editable = true;
     this->min_value = min_value;
@@ -314,7 +367,7 @@ struct string_parameter: public val_parameter<string> {
   reaction_t editor;
   string save() override { return *value; }
   void load_from_raw(const string& s) override { *value = s; }
-  void show_edit_option(int key) override;
+  void show_edit_option(key_type key) override;
   string_parameter* set_standard_editor(bool direct);
   string_parameter* set_file_editor(string ext);
   string_parameter* editable(string cap, string help, char key ) {
@@ -329,7 +382,7 @@ struct string_parameter: public val_parameter<string> {
 
 struct char_parameter : public val_parameter<char> {
   string save() override { return "\\" + its(*value); }
-  void show_edit_option(int key) override;
+  void show_edit_option(key_type key) override;
   void load_from_raw(const string& s) override {
     if(s[0] == '\\' && s.size() > 1) *value = parseint(s.substr(1));
     else sscanf(s.c_str(), "%c", value);
@@ -349,7 +402,7 @@ struct bool_parameter : public val_parameter<bool> {
     help_text = help;
     return this;
     }
-  void show_edit_option(int key) override;
+  void show_edit_option(key_type key) override;
 
   void load_from_raw(const string& s) override {
     if(s == "yes") *value = true;
@@ -363,7 +416,7 @@ struct bool_parameter : public val_parameter<bool> {
 
 struct color_parameter : public val_parameter<color_t> {
   bool has_alpha;
-  void show_edit_option(int key) override;
+  void show_edit_option(key_type key) override;
   color_parameter *editable(string menu_item_name, string help_text, char key) {
     this->is_editable = true;
     this->menu_item_name = menu_item_name;
@@ -402,7 +455,7 @@ struct matrix_parameter : public val_parameter<matrix_eq> {
   bool dosave() override { return !eqmatrix(*value, dft); }
 
   int dim;
-  void show_edit_option(int key) override;
+  void show_edit_option(key_type key) override;
   matrix_parameter *editable(string menu_item_name, string help_text, char key) {
     this->is_editable = true;
     this->menu_item_name = menu_item_name;
@@ -432,8 +485,9 @@ struct matrix_parameter : public val_parameter<matrix_eq> {
 
 struct custom_parameter : public parameter {
   cld last_value, anim_value;
-  function<void(char)> custom_viewer;
+  function<void(key_type)> custom_viewer;
   function<cld()> custom_value;
+  function<void(cld)> custom_set_value;
   function<bool(void*)> custom_affect;
   function<void(const string&)> custom_load;
   function<string()> custom_save;
@@ -446,7 +500,7 @@ struct custom_parameter : public parameter {
     return parameter::clone(lps, value);
     }
 
-  void show_edit_option(int key) override { custom_viewer(key); }
+  void show_edit_option(key_type key) override { custom_viewer(key); }
   bool affects(void *v) override { return custom_affect(v); }
   void check_change() override {
     if(custom_value() != last_value) {
@@ -468,8 +522,9 @@ struct custom_parameter : public parameter {
   bool load_from_animation(const string& s) override {
     if(anim_value != get_cld()) return false;
     load(s);
+    auto bak = anim_value;
     anim_value = get_cld();
-    return true;
+    return anim_value != bak;
     }
   void load_as_animation(const string& s) override {
     load(s);
@@ -478,6 +533,7 @@ struct custom_parameter : public parameter {
     }
 
   virtual cld get_cld() override { return custom_value(); }
+  virtual void set_cld_raw(cld x) override { if(custom_set_value) return custom_set_value(x); }
   virtual string save() override { if(custom_save) return custom_save(); else return "not saveable"; }
   virtual bool dosave() override { if(custom_do_save) return custom_do_save(); else return false; }
   virtual void reset() override { if(custom_reset) custom_reset(); }
@@ -489,7 +545,7 @@ void non_editable() {
   dialog::addHelp("Warning: editing this value through this menu may not work correctly");
   }
 
-void float_parameter::show_edit_option(int key) {
+void float_parameter::show_edit_option(key_type key) {
   if(modify_me) modify_me(this);
   dialog::addSelItem(XLAT(menu_item_name), fts(*value) + unit, key);
   if(*value == use_the_default_value) dialog::lastItem().value = XLAT("default");
@@ -502,7 +558,7 @@ void float_parameter::show_edit_option(int key) {
     });
   }
 
-void float_parameter_dft::show_edit_option(int key) {
+void float_parameter_dft::show_edit_option(key_type key) {
   if(modify_me) modify_me(this);
   dialog::addSelItem(XLAT(menu_item_name), fts(*value) + unit, key);
   if(*value == use_the_default_value) dialog::lastItem().value = XLAT("default: ") + fts(get_hint());
@@ -522,7 +578,7 @@ void float_parameter_dft::show_edit_option(int key) {
     });
   }
 
-void int_parameter::show_edit_option(int key) {
+void int_parameter::show_edit_option(key_type key) {
   if(modify_me) modify_me(this);
   dialog::addSelItem(XLAT(menu_item_name), its(*value), key);
   dialog::add_action([this] () {
@@ -534,7 +590,7 @@ void int_parameter::show_edit_option(int key) {
     });
   }
 
-void bool_parameter::show_edit_option(int key) {
+void bool_parameter::show_edit_option(key_type key) {
   dialog::addBoolItem(XLAT(menu_item_name), *value, key);
   if(is_highlight(dialog::items.back()) && help_text != menu_item_name) mouseovers = XLAT(help_text);
   dialog::add_action([this] () {
@@ -552,7 +608,7 @@ void bool_parameter::show_edit_option(int key) {
     });
   }
 
-void color_parameter::show_edit_option(int key) {
+void color_parameter::show_edit_option(key_type key) {
   dialog::addColorItem(XLAT(menu_item_name), has_alpha ? *value : addalpha(*value), key);
   dialog::add_action([this] () {
     dialog::openColorDialog(*value);
@@ -561,7 +617,7 @@ void color_parameter::show_edit_option(int key) {
     });
   }
 
-void matrix_parameter::show_edit_option(int key) {
+void matrix_parameter::show_edit_option(key_type key) {
   dialog::addMatrixItem(XLAT(menu_item_name), *value, key, dim);
   dialog::add_action([this] () {
     dialog::editMatrix(*value, XLAT(menu_item_name), help_text, dim);
@@ -570,12 +626,12 @@ void matrix_parameter::show_edit_option(int key) {
     });
   }
 
-void char_parameter::show_edit_option(int key) {
+void char_parameter::show_edit_option(key_type key) {
   string s = s0; s += *(value);
   dialog::addSelItem(XLAT(menu_item_name), s, key);
   }
 
-void string_parameter::show_edit_option(int key) {
+void string_parameter::show_edit_option(key_type key) {
   dialog::addSelItem(XLAT(menu_item_name), *value, key);
   if(!editor) {
     if(is_highlight(dialog::items.back())) mouseovers = XLAT("not editable");
@@ -790,7 +846,7 @@ shared_ptr<parameter> float_parameter::clone(struct local_parameter_set& lps, vo
 
 #if HDR
 template<class T>
-shared_ptr<custom_parameter> param_custom_int(T& val, const parameter_names& n, function<void(char)> menuitem, char key) {
+shared_ptr<custom_parameter> param_custom_int(T& val, const parameter_names& n, function<void(key_type)> menuitem, char key) {
   shared_ptr<custom_parameter> u ( new custom_parameter );
   u->setup(n);
   int dft = (int) val;
@@ -809,13 +865,14 @@ shared_ptr<custom_parameter> param_custom_int(T& val, const parameter_names& n, 
   }
 #endif
 
-EX shared_ptr<custom_parameter> param_custom_ld(ld& val, const parameter_names& n, function<void(char)> menuitem, char key) {
+EX shared_ptr<custom_parameter> param_custom_ld(ld& val, const parameter_names& n, function<void(key_type)> menuitem, char key) {
   shared_ptr<custom_parameter> u ( new custom_parameter );
   u->setup(n);
   ld dft = val;
   u->last_value = dft;
   u->custom_viewer = menuitem;
   u->custom_value = [&val] () { return val; };
+  u->custom_set_value = [&val] (cld x) { val = real(x); };
   u->custom_affect = [&val] (void *v) { return &val == v; };
   u->custom_load = [&val] (const string& s) { val = parseld(s); };
   u->custom_save = [&val] { return fts(val, 10); };
@@ -943,6 +1000,7 @@ EX string csnameid(int id) {
   if(id == 4 || id == 5) return XLAT("cat");
   if(id == 6 || id == 7) return XLAT("dog");
   if(id == 8 || id == 9) return XLATN("Familiar");
+  if(id == 10 || id == 11) return XLATN("spaceship");
   return XLAT("none");
   }
 
@@ -1010,6 +1068,18 @@ EX purehookset hooks_configfile;
 
 EX ld mapfontscale = 100;
 
+#if CAP_SDLTTF
+EX void font_reaction() {
+  if(among(font_id, 5, 6)) {
+    int fid = font_id;
+    font_id = last_font_id;
+    dialog::openFileDialog(font_filenames[fid], XLAT("font to use:"), fid == 5 ? ".ttf" : ".otf", [fid] () {
+      font_id = fid; return true;
+      });
+    }
+  }
+#endif
+
 EX void initConfig() {
   
   // basic config
@@ -1043,27 +1113,37 @@ EX void initConfig() {
      "This lets you see an explanation of what the setting does. "
      "You can also press ALT while changing such settings.");
 
+  param_b(higher_contrast, "higher_contrast")
+  ->editable("use higher contrast", 'h')
+  ->help("Use higher contrast for some terrain elements.");
+
   param_b(vid.grid, "grid");
   param_b(models::desitter_projections, "desitter_projections", false);
   param_b(nonisotropic_weird_transforms, "nonisotropic_weird_transforms", false);
 
   param_b(arb::apeirogon_consistent_coloring, "apeirogon_consistent_coloring", true)
-  -> editable("apeirogon_consistent_coloring", 'c')
+  -> editable("apeirogon: consistent coloring", 'c')
   -> help("In arbitrary tilings, apeirogons are internally represented as multiple tiles. This option ensures that all subtiles have the same color.");
   param_b(arb::apeirogon_hide_grid_edges, "apeirogon_hide_grid_edges", true)
-  -> editable("apeirogon_hide_grid_edges", 'h')
+  -> editable("apeirogon: hide grid edges", 'h')
   -> help("In arbitrary tilings, apeirogons are internally represented as multiple tiles. This option hides the subtile edges.");
   param_b(arb::apeirogon_simplified_display, "apeirogon_simplified_display", false)
   -> editable("simplified display of apeirogons", 'f')
   -> help("Connect the ends of the apeirogon segment with the boundary point using straight lines. This should be faster and, in most cases, actually more correct.");
   param_b(arb::convert::minimize_on_convert, "tes_minimize_on_convert", false)
-  -> editable("consider all symmetries when converting", 'm');
+  -> editable("consider all symmetries when converting", 'm')
+  -> set_reaction(rulegen::change_minimize_on_convert);
   param_b(arb::convert::reverse_order, "tes_reverse_order", false)
-  -> editable("tes reverse order on convert", 'r');
+  -> editable("tes reverse order on convert", 'r')
+  -> set_reaction(rulegen::change_rulegen_params);
 
   param_b(display_yasc_codes, "yasc", false)
   -> editable("YASC codes", 'Y')
   -> help("YASC codes: Sides-Entity-Restrict-Threat-Wall");
+
+  param_b(display_semicasual, "semicasual", false)
+  -> editable("semicasual", 'S')
+  -> help("display save/load counts in exit screen");
 
   param_b(vid.relative_font, "relative_font", true)
   -> editable("set relative font size", 'r')
@@ -1096,6 +1176,13 @@ EX void initConfig() {
   initcs(vid.cs); paramset(vid.cs, "single");
   param_b(vid.samegender, "princess choice", false);
   param_i(vid.language, "language", -1);  
+  #if CAP_SDLTTF
+  param_enum(font_id, "font_id", 0)
+  ->editable(font_names, "select font", 'f')
+  ->manual_reaction = font_reaction;
+  param_str(font_filenames[5], "ttf_font");
+  param_str(font_filenames[6], "otf_font");
+  #endif
   param_b(vid.drawmousecircle, "mouse circle", ISMOBILE || ISPANDORA);
   param_b(vid.revcontrol, "reverse control", false);
   #if CAP_AUDIO
@@ -1117,6 +1204,8 @@ EX void initConfig() {
 
   param_i(vid.faraway_highlight_color, "faraway_highlight_color", 50)
   -> editable(0, 100, 10, "faraway highlight color", "0 = monster color, 100 = red-light oscillation", 'c');
+
+  param_b(keybd_subdir_enabled, "keybd_subdir_enabled", 0)->editable("control the pushing direction with TAB", 'P')->help("If set, you control the off-heptagon pushing direction with TAB. Otherwise, you control it by rotating the screen.");
 
   param_enum(glyphsortorder, parameter_names("glyph_sort", "glyph sort order"), glyphsortorder)
     ->editable({
@@ -1194,7 +1283,7 @@ EX void initConfig() {
   -> editable("flashing effects", 'h')
   -> help("Disable if you are photosensitive. Replaces flashing effects such as Orb of Storms lightning with slow, adjustable animations.");
 
-  param_f(vid.binary_width, parameter_names("bwidth", "binary-tiling-width"), 1);
+  vid.binary_width = 1;
   param_custom_ld(vid.binary_width, "binary tiling width", menuitem_binary_width, 'v');
 
   param_b(fake::multiple_special_draw, "fake_multiple", true);
@@ -1232,6 +1321,10 @@ EX void initConfig() {
   -> help("Disable if you do not want particle effects and similar.");
   param_i(vid.framelimit, "frame limit", 999);
 
+  param_b(festive_option, "festive", 1)
+  -> editable("holiday options", 'h')
+  -> help("Special graphical effects on holidays.");
+
   #if !ISMOBWEB
   param_b(vid.want_vsync, "vsync", true)
   -> help("Disable if you want to see the actual framerate rendered by the engine.")
@@ -1245,8 +1338,8 @@ EX void initConfig() {
   param_b(vid.relative_window_size, "window_relative", true)
   ->editable("specify relative window size", 'g');
 
-  param_custom_int(vid.xres, "xres", [] (char ch) {}, 0)->restrict = return_false;
-  param_custom_int(vid.yres, "yres", [] (char ch) {}, 0)->restrict = return_false;
+  param_custom_int(vid.xres, "xres", [] (key_type ch) {}, 0)->restrict = return_false;
+  param_custom_int(vid.yres, "yres", [] (key_type ch) {}, 0)->restrict = return_false;
   
   param_i(vid.fullscreen_x, "fullscreen_x", 1280)
   -> editable(640, 3840, 640, "fullscreen resolution to use (X)", "", 'x')
@@ -1285,6 +1378,7 @@ EX void initConfig() {
 
   param_i(vid.monmode, "monster display mode", DEFAULT_MONMODE);
   param_i(vid.wallmode, "wall display mode", DEFAULT_WALLMODE);
+  param_b(zh_ascii, "chinese_ascii", false)->editable("Chinese ASCII", 'Z');
   param_i(vid.highlightmode, "highlightmode");
 
   param_b(vid.always3, "3D always", false)->switcher = geom3::switch_fpp;
@@ -1340,6 +1434,7 @@ EX void initConfig() {
   -> help("Background particle effects, e.g., in the Blizzard.");
   // control
   
+  #if CAP_SDL
   param_enum(joy_init, "joyinit", jiFast)
     ->editable({{"off", "do not use joysticks"}, {"fast", "do not wait until the joysticks are initialized"}, {"wait", "wait until the joysticks are initialized"}}, "joystick initialization", 'j');
   param_i(vid.joyvalue, "vid.joyvalue", 4800);
@@ -1348,6 +1443,7 @@ EX void initConfig() {
   param_i(vid.joypanthreshold, "vid.joypanthreshold", 2500);
   param_f(vid.joypanspeed, "vid.joypanspeed", ISPANDORA ? 0.0001 : 0);
   param_b(autojoy, "autojoy");
+  #endif
     
   vid.killreduction = 0;
   
@@ -1381,7 +1477,15 @@ EX void initConfig() {
   #if CAP_COMPLEX2
   param_colortable(brownian::colors, "color:brown");
   #endif
-  
+
+  param_colortable(prairie_colors, "color:prairie");
+  param_colortable(mountain_colors, "color:mountain");
+  param_colortable(tower_colors, "color:tower");
+  param_colortable(westwall_colors, "color:freefall");
+  param_colortable(endorian_colors, "color:endorian");
+  param_colortable(canopy_colors, "color:canopy");
+  param_colortable(camelot_cheat_colors, "color:camelotcheat");
+
   for(int i=0; i<motypes; i++)
     param_color(minf[i].color, "color:monster:" + its(i), false);
   for(int i=0; i<ittypes; i++)
@@ -1457,6 +1561,10 @@ EX void initConfig() {
   
 #if CAP_TEXTURE  
   param_b(texture::texture_aura, "texture-aura", false);
+
+  param_i(texture::raw_texture_opacity, "raw_texture_opacity", 32)
+  ->editable(0, 255, 16, "raw texture opacity", "", 'R')
+  ->set_sets([] { dialog::bound_low(0); dialog::bound_up(255); });
 #endif
 
   param_f(vid.smart_range_detail, "smart-range-detail", 8)
@@ -1533,6 +1641,7 @@ EX void initConfig() {
   param_f(sightranges[gECell120], "sight-120cell-elliptic", M_PI);
   param_f(sightranges[gRhombic3], "sight-rhombic", 10.5 * emul);
   param_f(sightranges[gBitrunc3], "sight-bitrunc", 12 * emul);
+  param_f(sightranges[gOctTet3], "sight-octtet", 12 * emul);
   param_f(sightranges[gSpace534], "sight-534", 4 + bonus);
   param_f(sightranges[gSpace435], "sight-435", 3.8 + bonus);
 
@@ -1567,6 +1676,7 @@ EX void initConfig() {
   ->help("Do not draw if their distance is greater than the sight range (although some points might be closer). This is faster.");
 
   param_i(vid.texture_step, "wall-quality", 4);
+  add_texture_params();
   
   param_b(smooth_scrolling, "smooth-scrolling", false)
   ->editable("smooth scrolling", 'c');
@@ -1598,7 +1708,9 @@ EX void initConfig() {
     });
 
   param_i(s2xe::qrings, "s2xe-rings");
-  param_f(rots::underlying_scale, "rots-underlying-scale");
+  param_f(hybrid::underlying_scale, "rots-underlying-scale");
+  param_b(hybrid::underlying_as_pc, "underlying_as_pc")
+  -> editable("draw PC on the underlying map", 'P');
   
   param_b(vid.bubbles_special, "bubbles-special", 1);
   param_b(vid.bubbles_threshold, "bubbles-threshold", 1);
@@ -1689,6 +1801,9 @@ EX void initConfig() {
   param_i(stamplen, "stamplen");
   param_f(anims::period, "animperiod");
 
+  param_b(unlock_all, "unlock_all")
+  -> editable("allow access to all unlockable content", 'U');
+
   param_b(use_custom_land_list, "customland_use")->be_non_editable();
   for(int i=0; i<landtypes; i++) {
     custom_land_list[i] = true;
@@ -1699,6 +1814,8 @@ EX void initConfig() {
     param_i(custom_land_treasure[i], "customland" + its(i) + "t", 100)->be_non_editable();
     param_i(custom_land_difficulty[i], "customland" + its(i) + "d", 100)->be_non_editable();
     param_i(custom_land_wandering[i], "customland" + its(i) + "w", 100)->be_non_editable();
+    param_i(custom_land_ptm_runs[i], "customland" + its(i) + "r", 100)->be_non_editable();
+    param_i(custom_land_ptm_mult[i], "customland" + its(i) + "m", 100)->be_non_editable();
     }
   }
 
@@ -1819,7 +1936,7 @@ EX void saveConfig() {
   if(vid.tc_depth > vid.tc_camera) pt_depth++;
   if(vid.tc_depth < vid.tc_camera) pt_camera++;
   if(vid.tc_depth > vid.tc_alpha ) pt_depth++;
-  if(vid.tc_depth < vid.tc_alpha ) pt_alpha ++;
+  if(vid.tc_depth < vid.tc_alpha ) pt_alpha++;
   if(vid.tc_alpha > vid.tc_camera) pt_alpha++;
   if(vid.tc_alpha < vid.tc_camera) pt_camera++;
   vid.tc_alpha = pt_alpha;
@@ -1937,7 +2054,7 @@ string solhelp() {
 #endif
   }
 
-EX void menuitem_sightrange_bonus(char c) {
+EX void menuitem_sightrange_bonus(key_type c) {
   dialog::addSelItem(XLAT("sight range bonus"), its(sightrange_bonus), c);
   dialog::add_action([]{
     dialog::editNumber(sightrange_bonus, -5, allowIncreasedSight() ? 3 : 0, 1, 0, XLAT("sight range"), 
@@ -2039,7 +2156,7 @@ EX void edit_sightrange() {
   dialog::display();
   }
 
-EX void menuitem_sightrange_style(char c IS('c')) {
+EX void menuitem_sightrange_style(key_type c IS('c')) {
   dialog::addSelItem(XLAT("draw range based on"), 
     vid.use_smart_range == 0 ? XLAT("distance") :
     vid.use_smart_range == 1 ? XLAT("size (no gen)") :
@@ -2066,7 +2183,7 @@ EX void menuitem_sightrange_style(char c IS('c')) {
     });
   }
 
-EX void menuitem_sightrange(char c IS('c')) {
+EX void menuitem_sightrange(key_type c IS('c')) {
   #if CAP_SOLV
   if(pmodel == mdGeodesic && sol)
     dialog::addSelItem(XLAT("sight range settings"), fts(sn::solrange_xy) + "x" + fts(sn::solrange_z), c);
@@ -2125,6 +2242,8 @@ EX void showSpecialEffects() {
   dialog::addBoolItem_action(XLAT("floating bubbles: treasure thresholds"), vid.bubbles_threshold, 't');
   dialog::addBoolItem_action(XLAT("floating bubbles: all treasures"), vid.bubbles_all, 'a');
   dialog::addBoolItem_action(XLAT("background particle effects"), (vid.backeffects), 'b');
+
+  add_edit(festive_option);
 
   dialog::addBreak(50);
   dialog::addBack();
@@ -2411,6 +2530,10 @@ EX void configureInterface() {
   dialog::add_action_push(selectLanguageScreen);
 #endif
 
+  #if CAP_SDLTTF
+  add_edit(font_id);
+  #endif
+
   dialog::addSelItem(XLAT("player character"), numplayers() > 1 ? "" : csname(vid.cs), 'g');
   dialog::add_action_push(showCustomizeChar);
   if(getcstat == 'g') mouseovers = XLAT("Affects looks and grammar");
@@ -2433,13 +2556,17 @@ EX void configureInterface() {
   
   add_edit(vid.msgleft);
   
-  add_edit(glyphsortorder);
-  add_edit(vid.graphglyph);
-  add_edit(less_in_landscape);
-  add_edit(less_in_portrait);
+  if(hr_hud_enabled) {
+    add_edit(glyphsortorder);
+    add_edit(vid.graphglyph);
+    add_edit(less_in_landscape);
+    add_edit(less_in_portrait);
+    add_edit(display_yasc_codes);
+    if(casual) add_edit(display_semicasual);
+    add_edit(vid.orbmode);
+    }
 
-  add_edit(display_yasc_codes);
-  add_edit(vid.orbmode);
+  add_edit(zh_ascii);
 
   dialog::addSelItem(XLAT("draw crosshair"), crosshair_size > 0 ? fts(crosshair_size) : ONOFF(false), 'x');
   dialog::add_action([] () { 
@@ -2494,8 +2621,6 @@ EX void showJoyConfig() {
   dialog::addSelItem(XLAT("second joystick: panning speed"), fts(vid.joypanspeed * 1000), 'd');
   dialog::addSelItem(XLAT("smoothen"), its(vid.joysmooth) + " ms", 'e');
 
-  add_edit(joy_init);
-
   dialog::addBreak(50);
   dialog::addBack();
   dialog::display();
@@ -2526,7 +2651,6 @@ EX void showJoyConfig() {
 #endif
 
 EX void projectionDialog() {
-  vid.tc_alpha = ticks;
   dialog::editNumber(vpconf.alpha, -5, 5, .1, 1,
     XLAT("projection distance"),
     XLAT("HyperRogue uses the Minkowski hyperboloid model internally. "
@@ -2555,9 +2679,10 @@ EX void projectionDialog() {
     dialog::addItem(sphere ? "towards orthographic" : "towards Gans model", 'T');
     dialog::add_action([] () { double d = 1.1; vpconf.alpha *= d; vpconf.scale *= d; dialog::get_ne().reset_str(); });
     };
+  dialog::get_di().reaction = [] { update_linked(vid.tc_alpha); };
   }
 
-EX void menuitem_projection_distance(char key) {
+EX void menuitem_projection_distance(key_type key) {
   dialog::addSelItem(XLAT("projection distance"), fts(vpconf.alpha) + " (" + current_proj_name() + ")", key);
   dialog::add_action(projectionDialog);
   }
@@ -2737,10 +2862,10 @@ EX void edit_levellines(char c) {
     });
   }
 
-EX geom3::eSpatialEmbedding shown_spatial_embedding() {
+geom3::eSpatialEmbedding shown_spatial_embedding() {
   if(GDIM == 2) return geom3::seNone;
   return geom3::spatial_embedding;
-  }
+}
 
 EX bool in_tpp() { return pmodel == mdDisk && !models::camera_straight; }
 
@@ -2750,8 +2875,8 @@ EX void display_embedded_errors() {
     dialog::addItem(XLAT("set square tiling"), 'A'); dialog::add_action([] { dialog::do_if_confirmed( [] { stop_game(); set_geometry(gEuclidSquare); set_variation(eVariation::pure); start_game(); });});
     dialog::addItem(XLAT("set hex tiling"), 'B'); dialog::add_action([] { dialog::do_if_confirmed( [] { stop_game(); set_geometry(gEuclid); set_variation(eVariation::pure); start_game(); });});
     };
-  if(among(spatial_embedding, seNil, seProductH, seProductS, seCliffordTorus, seSL2) && (!among(geometry, gEuclid, gEuclidSquare) || !hr__PURE)) {
-    dialog::addInfo(XLAT("error: currently works only in hr__PURE Euclidean regular square or hex tiling"), 0xC00000);
+  if(among(spatial_embedding, seNil, seProductH, seProductS, seCliffordTorus, seSL2) && (!among(geometry, gEuclid, gEuclidSquare) || !hr_PURE)) {
+    dialog::addInfo(XLAT("error: currently works only in hr_PURE Euclidean regular square or hex tiling"), 0xC00000);
     eucs();
     return;
     }
@@ -2910,7 +3035,7 @@ EX void show3D_height_details() {
     dialog::addBreak(100);
     dialog::addHelp(lalign(0, "absolute altitudes:\n\n"
       "depth ", cgi.INFDEEP,
-      " water ", tie(cgi.BOTTOM, cgi.SHALLOW, cgi.LAKE),
+      " water ", tie(cgi.DEEP, cgi.SHALLOW, cgi.WATERLEVEL),
       " floor ", cgi.FLOOR,
       " eye ", vid.eye,
       " walls ", tie(cgi.WALL, cgi.HIGH, cgi.HIGH2),
@@ -3001,7 +3126,7 @@ EX void show3D() {
       });
     }
 
-  if(mproduct || embedded_plane)
+  if(has_fixed_yz())
     dialog::addBoolItem_action(XLAT("fixed Y/Z rotation"), vid.fixed_yz, 'Z');
 
   if(WDIM == 2 && GDIM == 3) {
@@ -3057,7 +3182,11 @@ EX void show3D() {
       dialog::get_di().extra_options = [] () { draw_radar(true); };
       });
     }
-  if(GDIM == 3) add_edit_wall_quality('W');
+  if(GDIM == 3) {
+    add_edit_wall_quality('W');
+    dialog::addItem(XLAT("wall/floor texture settings"), 'X');
+    dialog::add_action_push(edit_texture_params);
+    }
   #endif
   
   #if CAP_RUG
@@ -3114,7 +3243,6 @@ EX int config3 = addHook(hooks_configfile, 100, [] {
     ->editable(-5, 5, .1, "eye level", "", 'E')
     ->set_extra([] {
       dialog::get_di().dialogflags |= sm::CENTER;
-      vid.tc_camera = ticks;
     
       dialog::addHelp(XLAT("In the FPP mode, the camera will be set at this altitude (before applying shifts)."));
 
@@ -3124,7 +3252,8 @@ EX int config3 = addHook(hooks_configfile, 100, [] {
         vid.auto_eye = !vid.auto_eye;
         geom3::do_auto_eye();
         });
-      });
+      })
+    ->set_reaction([] { update_linked(vid.tc_camera); });
   
   param_b(vid.auto_eye, "auto-eyelevel", false);
 
@@ -3142,7 +3271,7 @@ EX int config3 = addHook(hooks_configfile, 100, [] {
   param_f(vid.creature_scale, parameter_names("creature_scale", "3d-creaturescale"), 1)
     ->editable(0, 1, .1, "Creature scale", "", 'C')
     ->set_extra([] { dialog::addInfo(XLAT("changing this during shmup is counted as cheating")); })
-    ->set_reaction([] { if(shmup::on) cheater++; });
+    ->set_reaction([] { propagate_scale_change(); if(shmup::on) cheater++; });
   param_f(vid.height_width, parameter_names("heiwi", "3d-heightwidth"), 1.5)
     ->editable(0, 1, .1, "Height to width", "", 'h');
   param_f(vid.yshift, parameter_names("yshift", "Y shift"), 0)
@@ -3210,7 +3339,6 @@ EX int config3 = addHook(hooks_configfile, 100, [] {
   param_f(vid.depth, parameter_names("depth", "3D depth"), 1)
     ->editable(0, 5, .1, "Ground level below the plane", "", 'd')
     ->set_extra([] {
-        vid.tc_depth = ticks;
         help = XLAT(
           "Ground level is actually an equidistant surface, "
           "%1 absolute units below the plane P. "
@@ -3242,17 +3370,13 @@ EX int config3 = addHook(hooks_configfile, 100, [] {
         dialog::addHelp(help);
         })
     ->set_reaction([] {
-        bool b = vid.tc_alpha < vid.tc_camera;
-        if(vid.tc_alpha >= vid.tc_depth) vid.tc_alpha = vid.depth - 1;
-        if(vid.tc_camera >= vid.tc_depth) vid.tc_camera = vid.depth - 1;
-        if(vid.tc_alpha == vid.tc_camera) (b ? vid.tc_alpha : vid.tc_camera)--;
+        update_linked(vid.tc_depth);
         geom3::apply_settings_light();
         });
   param_f(vid.camera, parameter_names("camera", "3D camera level"), 1)
     ->editable(0, 5, .1, "", "", 'c')
     ->modif([] (float_parameter* x) { x->menu_item_name = (GDIM == 2 ? "Camera level above the plane" : "Z shift"); })
     ->set_extra([] {    
-       vid.tc_camera = ticks;
        if(GDIM == 2)
        dialog::addHelp(XLAT(
          "Camera is placed %1 absolute units above a plane P in a three-dimensional "
@@ -3269,7 +3393,10 @@ EX int config3 = addHook(hooks_configfile, 100, [] {
          dialog::addHelp(XLAT("Look from behind."));
        if(GDIM == 3 && pmodel == mdPerspective) 
          dialog::addBoolItem_action(XLAT("reduce if walls on the way"), vid.use_wall_radar, 'R');
-       });
+       })
+    ->set_reaction([] {
+      update_linked(vid.tc_camera);
+      });
   param_f(vid.wall_height, parameter_names("wall_height", "3D wall height"), .3)
     ->editable(0, 1, .1, "Height of walls", "", 'w')
     ->set_extra([] () {
@@ -3406,11 +3533,29 @@ EX int config3 = addHook(hooks_configfile, 100, [] {
       addMessage(XLAT("Save the config to always use %1.", scorefile));
     });
 
+  param_i(tour::tour_value, "tval");
+
   param_ccolor(ccolor::which, "pattern");
   param_b(ccolor::live_canvas, "live_canvas")
   -> editable("apply color/pattern changes to canvas automatically", 'l');
   param_str(ccolor::color_formula, "color_formula")
   -> editor = [] { ccolor::config_formula(false); };
+
+  param_i(count_max_cells, "count_max_cells", 100000)->editable(100, 1000000, log(10), "max cells to count",
+    "Counting stops if that many cells are reached.", 'c')
+  ->set_sets([] { dialog::scaleLog(); });
+
+  param_i(count_max_dist, "count_max_dist", 999)->editable(5, 1000, 1, "max distance to check",
+    "Counting stops if this distance is reached.", 'd');
+
+  param_b(use_analyzer, "count_use_analyzer", true)->editable("use analyzer if possible", 'a');
+  param_b(use_sight_range_instead, "count_use_sight", true)->editable("use sight range instead", 's');
+
+/*    dialog::editNumber(vid.cells_drawn_limit, 100, 1000000, log(10), 10000, XLAT("limit on cells drawn"),
+      XLAT("This limit exists to protect the engine from freezing when too many cells would be drawn according to the current options.")
+      );
+    dialog::scaleLog(); */
+
   });
 
 EX void switchcolor(unsigned int& c, unsigned int* cs) {
@@ -3466,11 +3611,10 @@ EX void showCustomizeChar() {
   flat_model_enabler fme;
 
   initquickqueue();
-  transmatrix V = atscreenpos(vid.xres/2, firsty, scale);
-  
+  shiftmatrix V = atscreenpos(vid.xres/2, firsty, scale);
   double alpha = atan2(mousex - vid.xres/2, mousey - firsty) - 90._deg;
   V = V * spin(alpha);
-  drawMonsterType(moPlayer, NULL, shiftless(V), 0, cc_footphase / scale, NOCOLOR);
+  drawMonsterType(moPlayer, NULL, V, 0, cc_footphase / scale, NOCOLOR);
   quickqueue();
   
   keyhandler = [] (int sym, int uni) {
@@ -3483,7 +3627,7 @@ EX void showCustomizeChar() {
     else if(uni == 'g') {
       cs.charid++;
       if(cs.charid == 2 && !princess::everSaved && !autocheat) cs.charid = 4;
-      cs.charid %= 10;
+      cs.charid %= 12;
       }
     else if(uni == 'p') vid.samegender = !vid.samegender;
     else if(uni == 's') switchcolor(cs.skincolor, cat ? haircolors : skincolors);
@@ -3584,6 +3728,7 @@ EX void show_color_dialog() {
 
   dialog::addColorItem(XLAT("dialogs"), addalpha(dialog::dialogcolor), 'd');
   dialog::add_action([] () { dialog::openColorDialog(dialog::dialogcolor); dialog::colorAlpha = false; dialog::get_di().dialogflags |= sm::SIDE; });
+  dialog::addBoolItem_action(XLAT("higher contrast"), higher_contrast, 'h');
 
   dialog::addBreak(50);
   if(specialland == laCanvas && ccolor::which->ctab.size()) {
@@ -3645,6 +3790,7 @@ EX void show_color_dialog() {
         dialog::openColorDialog(minf[c->monst].color);
       else if(c->item) 
         dialog::openColorDialog(iinf[c->item].color);
+      else if(auto tab = special_colortable_for(c)) { pushScreen([tab] { edit_color_table(*tab); }); return; }
       else if(c->wall) 
         dialog::openColorDialog(winf[c->wall == waMineMine ? waMineUnknown : c->wall].color);
       #if CAP_COMPLEX2
@@ -3903,7 +4049,7 @@ EX void edit_all_parameters() {
   dialog::display();
   }
 
-void list_parameter::show_edit_option(int key) {
+void list_parameter::show_edit_option(key_type key) {
   string opt;
   if(get_value() < 0 || get_value() >= isize(options)) opt = its(get_value());
   else opt = options[get_value()].first;
@@ -3921,7 +4067,7 @@ void list_parameter::show_edit_option(int key) {
     if(need_list >= 2) dialog::start_list(1500, 1500, 'a');
     for(int i=0; i<q; i++) {
       dialog::addBoolItem(XLAT(options[i].first), get_value() == i, need_list >= 2 ? dialog::list_fake_key++ : 'a' + i);
-      auto action = [this, i, need_list] { set_value(i); if(reaction) reaction(); if(need_list == 0) popScreen(); };
+      auto action = [this, i, need_list] { set_value(i); if(need_list == 0) popScreen(); if(manual_reaction) manual_reaction(); if(reaction) reaction(); };
       if(needs_confirm)
         dialog::add_action_confirmed(action);
       else
@@ -3940,6 +4086,8 @@ void list_parameter::show_edit_option(int key) {
       dialog::addHelp(XLAT(text));
       dialog::addBreak(100);
       }
+
+    if(extras) extras();
     dialog::addBack();
     dialog::display();
     };
@@ -4276,6 +4424,7 @@ EX int read_config_args() {
   else return 1;
   return 0;
   }
+#endif
 
 EX void set_char_by_name(charstyle& cs, const string& s) {
   if(s == "dodek") {
@@ -4329,6 +4478,7 @@ EX void set_char_by_name(charstyle& cs, const string& s) {
     }
   }
 
+#if CAP_COMMANDLINE
 EX int read_param_args() {
   const string& s = arg::args();
   auto pos = s.find("=");
@@ -4407,6 +4557,11 @@ template<class T, class U> void lps_add(local_parameter_set& lps, T&val, U nvalu
     }
   if(found != 1) println(hlog, lps.label, " saver not found");
   }
+
+template<class T> void lps_add(local_parameter_set& lps, T&val) {
+  lps_add(lps, val, val);
+  }
+
 #endif
 
 vector<void*> lps_of_type;

@@ -126,11 +126,11 @@ EX multimap<cell*, monster*> monstersAt;
 typedef multimap<cell*, monster*>::iterator mit;
 #endif
 
-vector<monster*> active, nonvirtual, additional;
+EX vector<monster*> active, nonvirtual, additional;
 
 cell *findbaseAround(shiftpoint p, cell *around, int maxsteps) {
 
-  if(fake::split()) {
+  if(quotient || fake::split()) {
     auto p0 = inverse_shift(ggmatrix(around), p);
     virtualRebase(around, p0);
     return around;
@@ -257,6 +257,25 @@ bool isMonster(monster *m) { return m->type != moPlayer && m->type != moBullet; 
 
 EX hookset<bool(shmup::monster*)> hooks_kill;
 
+struct collision_info {
+  shiftpoint p1, p2;
+  color_t col;
+  };
+
+vector<collision_info> collisions;
+int collision_debug_level = 0;
+
+ld collision_radius(monster *m) {
+  if(m->type == moAsteroid)
+    return cgi.asteroid_size[m->hitpoints & 7];
+  else
+    return SCALE * 0.15;
+  }
+
+ld collision_distance(monster *bullet, monster *target) {
+  return collision_radius(bullet) + collision_radius(target);
+  }
+
 void killMonster(monster* m, eMonster who_kills, flagtype flags = 0) {
   int tk = tkills();
   if(callhandlers(false, hooks_kill, m)) return;
@@ -283,7 +302,11 @@ void killMonster(monster* m, eMonster who_kills, flagtype flags = 0) {
     m->inBoat = false;
     }
   m->base->monst = m->type;
+  int pos = isize(flashes);
   killMonster(m->base, who_kills, flags);
+  for(int i=pos; i<isize(flashes); i++)
+    if(flashes[i].where == m->base)
+      flashes[i].angle_matrix = m->at * flashes[i].angle_matrix;
   m->base->monst = m->stk;
   if(multi::cpid >= 0)
     multi::kills[multi::cpid] += tkills() - tk;
@@ -452,6 +475,7 @@ monster *playerCrash(monster *who, shiftpoint where) {
     if(pc[j]->isVirtual) continue;
     if(!gmatrix.count(pc[j]->base)) continue;
     double d = sqdist(pc[j]->pat*C0, where);
+    if(collision_debug_level >= 2) collisions.emplace_back(collision_info{pc[j]->pat*C0, where, 0x0000FFFF});
     /* crash into another player -- not taken into account in racing */
     if(d < 0.1 * SCALE2 && !racing::on) return pc[j];
     /* too far away -- irrelevant in split_screen */
@@ -744,22 +768,21 @@ void movePlayer(monster *m, int delta) {
     // silence warning that facemouse unused
     }
   
-  int b = 16*tableid[cpid];
+  auto& act = action_states[tableid[cpid]];
+  auto& axes = axes_for(cpid);
 
-    for(int i=(WDIM == 3 ? 4 : 0); i<8; i++) if(actionspressed[b+i]) playermoved = true;
-  
-  int jb = 4*tableid[cpid];
-  for(int i=0; i<4; i++) if(axespressed[jb+i]) playermoved = true;
+  for(int i=(WDIM == 3 ? 4 : 0); i<8; i++) if(act[i]) playermoved = true;
+  for(int i=0; i<4; i++) if(axes[i]) playermoved = true;
   
 #if !ISMOBILE
-  mgo = actionspressed[b+pcForward] - actionspressed[b+pcBackward] + axespressed[jb+2]/30000.;
-  mturn = actionspressed[b+pcTurnLeft] - actionspressed[b+pcTurnRight] + axespressed[jb+3]/30000.;
-  mdx = actionspressed[b+pcMoveRight] - actionspressed[b+pcMoveLeft] + axespressed[jb]/30000.;
-  mdy = actionspressed[b+pcMoveDown] - actionspressed[b+pcMoveUp] + axespressed[jb+1]/30000.;
+  mgo = act[pcForward].held - act[pcBackward].held + axes[2]/30000.;
+  mturn = act[pcTurnLeft].held - act[pcTurnRight].held + axes[3]/30000.;
+  mdx = act[pcMoveRight].held - act[pcMoveLeft].held + axes[0]/30000.;
+  mdy = act[pcMoveDown].held - act[pcMoveUp].held + axes[1]/30000.;
   
-  shotkey = actionspressed[b+pcFire] || actionspressed[b+pcFaceFire];
-  facemouse = actionspressed[b+pcFace] || actionspressed[b+pcFaceFire];
-  dropgreen = actionspressed[b+pcDrop];
+  shotkey = act[pcFire] || act[pcFaceFire];
+  facemouse = act[pcFace] || act[pcFaceFire];
+  dropgreen = act[pcDrop];
   
 #else
   mdx = mdy = mgo = mturn = 0;
@@ -794,7 +817,7 @@ void movePlayer(monster *m, int delta) {
     }
   #endif
   
-  if(actionspressed[b+pcOrbPower] && !lactionpressed[b+pcOrbPower] && mouseover && !m->dead) {
+  if(act[pcOrbPower].pressed() && mouseover && !m->dead) {
     cwt.at = m->base;
     targetRangedOrb(mouseover, roKeyboard);
     }
@@ -802,7 +825,7 @@ void movePlayer(monster *m, int delta) {
 #if !ISMOBILE
   if(haveRangedOrb() && !m->dead) {
     cwt.at = m->base;
-    if(actionspressed[b+pcOrbKey] && !lactionpressed[b+pcOrbKey])
+    if(act[pcOrbKey].pressed())
       keyresult[cpid] = targetRangedOrbKey(roKeyboard);
     else
       keyresult[cpid] = targetRangedOrbKey(roCheck);
@@ -813,7 +836,7 @@ void movePlayer(monster *m, int delta) {
 
   bool stdracing = racing::on && !inertia_based;
 
-  if(actionspressed[b+pcCenter]) {
+  if(act[pcCenter]) {
     if(!racing::on) {
       centerplayer = cpid; centerpc(100); playermoved = true; 
       }
@@ -874,12 +897,8 @@ void movePlayer(monster *m, int delta) {
     }
 
 #if CAP_SDL
-  const Uint8 *keystate = SDL12_GetKeyState(NULL);
-  #if CAP_SDL2
-  bool forcetarget = (keystate[SDL_SCANCODE_RSHIFT] | keystate[SDL_SCANCODE_LSHIFT]);
-  #else
-  bool forcetarget = (keystate[SDLK_RSHIFT] | keystate[SDLK_LSHIFT]);
-  #endif
+  const sdl_keystate_type *keystate = SDL12_GetKeyState(NULL);
+  bool forcetarget = (keystate[SDL12(SDLK_RSHIFT, SDL_SCANCODE_RSHIFT)] | keystate[SDL12(SDLK_LSHIFT, SDL_SCANCODE_LSHIFT)]);
   if(((mousepressed && !forcetarget) || facemouse) && delta > 0 && !mouseout() && !stdracing && GDIM == 2) {
     // playermoved = true;
     hyperpoint h = inverse_shift(m->pat, mouseh);
@@ -1005,6 +1024,13 @@ void movePlayer(monster *m, int delta) {
       m->inertia[1] -= sin(godir[cpid]) * coef * playergo[cpid];
       avg_inertia[1] -= sin(godir[cpid]) * coef * playergo[cpid] / 2;
       }
+
+    if(playergo[cpid] > 0 && m->base->land == laAsteroids) {
+      auto fd = flashdata(ticks, rand() % 16, m->base, getcs().haircolor >> 8, 100);
+      fd.angle_matrix = m->at * pispin * xpush(cgi.scalefactor/4) * ypush((rand() % 2 ? 1 : -1) * cgi.scalefactor/10) * spin(randd() * 15._deg);
+      flashes.push_back(fd);
+      }
+
     if(falling) {
       vector<cell*> below;
       manual_celllister mcl;
@@ -1089,6 +1115,7 @@ void movePlayer(monster *m, int delta) {
       crashintomon = playerCrash(m, nat*C0);
       for(monster *m2: nonvirtual) if(m2!=m && m2->type == passive_switch) {
         double d = sqdist(m2->pat*C0, nat*C0);
+        if(collision_debug_level >= 2) collisions.emplace_back(collision_info{m->pat*C0, m2->pat*C0, 0x00FF00FF});
         if(d < SCALE2 * 0.2) crashintomon = m2;
         }
       }
@@ -1635,12 +1662,6 @@ hyperpoint fronttangent(ld x) {
   else return ztangent(x);
   }
 
-ld collision_distance(monster *bullet, monster *target) {
-  if(target->type == moAsteroid)
-    return SCALE * 0.15 + cgi.asteroid_size[target->hitpoints & 7];
-  return SCALE * 0.3;
-  }
-
 void spawn_asteroids(monster *bullet, monster *target) {
   if(target->hitpoints <= 1) return;
   hyperpoint rnd = random_spin() * point2(SCALE/3000., 0);
@@ -1802,6 +1823,7 @@ void moveBullet(monster *m, int delta) {
     if(m->type == moFireball && m2->type == moFireball) continue;
     if(m->type == moAirball && m2->type == moAirball) continue;
     double d = hdist(m2->pat*C0, m->pat*C0);
+    if(collision_debug_level >= 2) collisions.emplace_back(collision_info{m2->pat*C0, m->pat*C0, 0xFF0000FF});
     
     if(d < collision_distance(m, m2)) {
 
@@ -2021,6 +2043,8 @@ void moveMonster(monster *m, int delta) {
     step *= 1.5;
   else if(m->type == moAltDemon || m->type == moHexDemon || m->type == moCrusher || m->type == moMonk)
     step *= 1.4;
+
+  if(collision_debug_level >= 2) collisions.emplace_back(collision_info{goal*C0, m->pat*C0, 0xC04040FF});
 
   if(m->type == passive_switch) step = 0;
   
@@ -2260,8 +2284,12 @@ void moveMonster(monster *m, int delta) {
     if(d < SCALE2 * 0.1) crashintomon = m2;
     }
   
-  if(inertia_based) for(int i=0; i<players; i++) if(pc[i] && hdist(tC0(pc[i]->pat), tC0(m->pat)) < collision_distance(pc[i], m))
-    crashintomon = pc[i];
+  if(inertia_based) for(int i=0; i<players; i++) {
+    if(!pc[i]) return;
+    if(collision_debug_level >= 2) collisions.emplace_back(collision_info{pc[i]->pat*C0, m->pat*C0, 0x00FFFFFF});
+    if(hdist(tC0(pc[i]->pat), tC0(m->pat)) < collision_distance(pc[i], m))
+      crashintomon = pc[i];
+    }
   
   if(!peace::on) 
   for(int i=0; i<players; i++) 
@@ -2614,6 +2642,8 @@ EX void turn(int delta) {
   
   if(delta > 200) { turn(200); delta -= 200; if(!delta) return; }
 
+  collisions.clear();
+
   curtime += delta;
 
   handleInput(delta);
@@ -2624,8 +2654,8 @@ EX void turn(int delta) {
   if(doallhr)
     for(cell *c: currentmap->allcells()) activateMonstersAt(c);
   else
-    for(map<cell*, shiftmatrix>::iterator it = gmatrix.begin(); it != gmatrix.end(); it++) 
-      activateMonstersAt(it->first);
+    for(auto& p: gmatrix)
+      activateMonstersAt(p.first);
   
   /* printf("size: gmatrix = %ld, active = %ld, monstersAt = %ld, delta = %d\n", 
     gmatrix.size(), active.size(), monstersAt.size(),
@@ -2918,6 +2948,7 @@ EX void clearMemory() {
   nextdragon = 0;
   visibleAt = 0;
   for(int i=0; i<MAXPLAYER; i++) pc[i] = NULL;
+  collisions.clear();
   }
 
 void gamedata(hr::gamedata* gd) { 
@@ -3003,6 +3034,11 @@ EX shiftmatrix at_missile_level(const shiftmatrix& T) {
   return at_smart_lof(T, 1.15);
   }
 
+EX void draw_collision_debug() {
+  for(auto& c: collisions)
+    queueline(c.p1, c.p2, c.col, 2);
+  }
+
 EX }
 
 bool celldrawer::draw_shmup_monster() {
@@ -3022,6 +3058,12 @@ bool celldrawer::draw_shmup_monster() {
     if(c != m->base) continue; // may happen in RogueViz Collatz
     m->pat = ggmatrix(m->base) * m->at;
     shiftmatrix view = V * m->at;
+
+    if(collision_debug_level) {
+      ld r = collision_radius(m);
+      for(int i=0; i<=10; i++) curvepoint(xspinpush0(i * 36._deg, r));
+      queuecurve(view, 0xFFFFFFFF, 0, PPR::SUPERLINE);
+      }
 
     bool half_elliptic = elliptic && GDIM == 3 && WDIM == 2;
     bool mirrored = det(view.T) > 0;
@@ -3121,7 +3163,11 @@ bool celldrawer::draw_shmup_monster() {
           col = (mirrorcolor(det(view.T) < 0) << 8) | 0xFF;
         else
           col = (minf[m->get_parenttype()].color << 8) | 0xFF;
-        if(getcs().charid >= 4) {
+        if(getcs().charid >= 10) {
+          queuepoly(at_missile_level(view), cgi.shMissile, col);
+          ShadowV(view, cgi.shMissile);
+          }
+        else if(getcs().charid >= 4) {
           queuepoly(at_missile_level(view), cgi.shPHead, col);
           ShadowV(view, cgi.shPHead);
           }

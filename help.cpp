@@ -85,7 +85,10 @@ vector<string> extra_keys_3d = {
   "move mouse = rotate camera (in rug, only with lctrl)",
   };
 
+EX hookset<bool()> hooks_build_help;
+
 EX void buildHelpText() {
+  if(callhandlers(0, hooks_build_help)) return;
   DEBBI(DF_GRAPH, ("buildHelpText"));
 
   help = XLAT("Welcome to HyperRogue");
@@ -241,7 +244,7 @@ EX void buildCredits() {
     "Triple_Agent_AAA, bluetailedgnat, Allalinor, Shitford, KittyTac, Christopher King, KosGD, TravelDemon, Bubbles, rdococ, frozenlake, MagmaMcFry, "
     "Snakebird Priestess, roaringdragon2, Stopping Dog, bengineer8, Sir Light IJIJ, ShadeBlade, Saplou, shnourok, Ralith, madasa, 6% remaining, Chimera245, Remik Pi, alien foxcat thing, "
     "Piotr Grochowski, Ann, still-flow, tyzone, Paradoxica, LottieRatWorld, aismallard, albatross, EncodedSpirit, Jacob Mandelson, CrashTuvai, cvoight, jennlbw, Kali Ranya, spiritbackup, Dylan, L_Lord, AntiRogue, "
-    "masonlgreen, A human, Pasu4"
+    "masonlgreen, A human, Pasu4, inbetween selves, CodeParade, Existentialistic, blejanre, Esme"
     );
 #ifdef EXTRALICENSE
   help += EXTRALICENSE;
@@ -259,7 +262,7 @@ string pushtext(stringpar p) {
     "\n\nNote: when pushing %the1 off a heptagonal cell, you can control the pushing direction "
     "by clicking left or right half of the heptagon.", p);
 #if !ISMOBILE
-  s += XLAT(" With the keyboard, you can rotate the view for a similar effect (Page Up/Down).");
+  s += XLAT(" With the keyboard, you can press Tab to invert the way the pushing direction leans, or Shift+Tab to decide based on how the view is rotated.");
 #endif
   return s;
   }
@@ -551,6 +554,8 @@ EX string generateHelpForItem(eItem it) {
   if(ac) {
     if(items[itOrbEnergy])
       help += XLAT("\n\nActivation cost: %1 charges (reduced to %2 by %the3)\n", its(ac), its((1+ac)/2), itOrbEnergy);
+    else if(ac == 1)
+      help += XLAT("\n\nActivation cost: 1 charge\n", its(ac));
     else
       help += XLAT("\n\nActivation cost: %1 charges\n", its(ac));
     }
@@ -620,7 +625,7 @@ EX string generateHelpForWall(eWall w) {
   if(w == waMineMine || w == waMineUnknown || w == waMineOpen)
     addMinefieldExplanation(s);
   if(isThumper(w)) s += pushtext(w);
-  if((w == waClosePlate || w == waOpenPlate) && hr__PURE) 
+  if((w == waClosePlate || w == waOpenPlate) && hr_PURE) 
     s += "\n\n(For the heptagonal mode, the radius has been reduced to 2 for closing plates.)";
   return s;
   }
@@ -676,7 +681,7 @@ EX string generateHelpForMonster(eMonster m) {
     }
 
   s += XLAT(minf[m].help);      
-  if(m == moPalace || m == moSkeleton)
+  if(isStunnable(m))
     s += pushtext(m);  
   if(m == moTroll) s += XLAT(trollhelp2);  
 
@@ -703,8 +708,11 @@ EX string generateHelpForMonster(eMonster m) {
     }
   
   eItem it = frog_power(m);
-  if(it)
+  if(it) {
     s += XLAT("\n\nThis Frog uses the power of %the1. You get 5 charges yourself for killing it.", it);
+
+    s += XLAT("\n\nFrogs move first, and after they use their jumping power, they stun adjacent non-frog monsters which are not friendly to the player for 2 turns.");
+    }
     
   if(m == moBat || m == moEagle)
     s += XLAT("\n\nFast flying creatures may attack or go against gravity only in their first move.", m);
@@ -745,6 +753,8 @@ void add_reqs(eLand l, string& s) {
     #define ACCONLY(z) s += XLAT("Accessible only from %the1.\n", z);
     #define ACCONLY2(z,x) s += XLAT("Accessible only from %the1 or %the2.\n", z, x);
     #define ACCONLY3(z,y,x) s += XLAT("Accessible only from %the1, %2, or %3.\n", z, y, x);
+    #define ACCONLY4(z1,z2,z3,z4) s += XLAT("Accessible only from %the1, %2, %3, or %4.\n", z1, z2, z3, z4);
+    #define ACCONLY5(z1,z2,z3,z4,z5) s += XLAT("Accessible only from %the1, %2, %3, %4, or %5.\n", z1, z2, z3, z4, z5);
     #define ACCONLYF(z) s += XLAT("Accessible only from %the1 (until finished).\n", z);
     #define IFINGAME(land, ok, fallback) if(isLandIngame(land)) { ok } else { s += XLAT("Alternative rule when %the1 is not in the game:\n", land); fallback }
     #include "content.cpp"
@@ -888,6 +898,8 @@ int windtotal;
 
 EX hookset<void(cell*)> hooks_mouseover;
 
+EX hookset<bool()> hooks_global_mouseover;
+
 template<class T> void set_help_to(T t) { 
   help = bygen([t] {
     gotoHelpFor(t);
@@ -897,6 +909,8 @@ template<class T> void set_help_to(T t) {
 
 EX void describeMouseover() {
   DEBBI(DF_GRAPH, ("describeMouseover"));
+
+  if(callhandlers(0, hooks_global_mouseover)) return;
 
   cell *c = mousing ? mouseover : playermoved ? NULL : centerover;
   string& out = mouseovers;

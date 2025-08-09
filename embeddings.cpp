@@ -55,7 +55,7 @@ EX namespace geom3 {
     {"Sol",              "Embed Euclidean or hyperbolic plane into Sol."},
     {"stretched hyperbolic",              "Embed Euclidean or hyperbolic plane into stretched hyperbolic geometry."},
     {"stretched Sol",              "Embed Euclidean or hyperbolic plane into stretched Sol geometry."},
-    {"Clifford Torus",              "Embed Euclidean rectangular torus into hr__S3."},
+    {"Clifford Torus",              "Embed Euclidean rectangular torus into hr_S3."},
     {"hyperbolic product", "Embed Euclidean or hyperbolic plane in the H2xR product space."},
     {"spherical product", "Embed Euclidean cylinder or spherical plane in the H2xR product space."},
     {"SL(2,R)",           "Embed Euclidean plane in twisted product geometry."},
@@ -80,7 +80,7 @@ EX namespace geom3 {
   EX string why_wrong(eSpatialEmbedding sp) {
     string ans = "";
     if(among(sp, seNil, seCliffordTorus, seProductH, seProductS, seSL2) || any_cylinder(sp)) {
-      if(!hr__PURE)
+      if(!hr_PURE)
         ans += " pure";
       if(!meuclid)
         ans += " E";
@@ -90,7 +90,7 @@ EX namespace geom3 {
         ans += " torus";
       }
     if(among(sp, seSol, seNIH, seSolN)) {
-      if((meuclid && !hr__PURE) || !bt::in()) ans += " pure or bin";
+      if((meuclid && !hr_PURE) || !bt::in()) ans += " pure or bin";
       }
     return ans;
     }

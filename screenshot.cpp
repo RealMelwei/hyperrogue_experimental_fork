@@ -502,7 +502,7 @@ EX always_false in;
   EX void render() {
     #if MAXMDIM >= 4
     for(auto& p: ptds) {
-      auto p2 = dynamic_cast<dqi_poly*>(&*p);
+      auto p2 = p->as_poly();
       if(p2)
         prepare(*p2);
       }
@@ -524,7 +524,7 @@ EX always_false in;
     #endif
     
     for(auto& p: ptds) {
-      auto p2 = dynamic_cast<dqi_poly*>(&*p);
+      auto p2 = p->as_poly();
       if(p2)
         polygon(*p2);
       }
@@ -626,7 +626,7 @@ EX always_false in;
           }
         }
       IMAGESAVE(s, (filename + "-floors.png").c_str());
-      SDL_FreeSurface(s);
+      SDL_DestroySurface(s);
       }
     #endif
     #endif
@@ -641,7 +641,7 @@ EX }
 void IMAGESAVE(SDL_Surface *s, const char *fname) {
   SDL_Surface *s2 = SDL_PNGFormatAlpha(s);
   SDL_SavePNG(s2, fname);
-  if(s != s2) SDL_FreeSurface(s2);
+  if(s != s2) SDL_DestroySurface(s2);
   }
 #endif
 
@@ -741,7 +741,7 @@ EX void postprocess(string fname, SDL_Surface *sdark, SDL_Surface *sbright) {
       }
     }
   output(sout, fname);
-  SDL_FreeSurface(sout);
+  SDL_DestroySurface(sout);
   }
 #endif
 
@@ -1220,7 +1220,7 @@ EX void animate_parameter(parameter *par, string f) {
   aps.emplace_back(animated_parameter{par, f});
   }
 
-int ap_changes;
+EX int ap_changes;
 
 void apply_animated_parameters() {
   ap_changes = 0;
@@ -1392,10 +1392,13 @@ EX hookset<void(int, int)> hooks_record_anim;
 
 EX int record_frame_id = -1;
 
+EX bool recording_video;
+
 EX bool record_animation_of(reaction_t content) {
   lastticks = 0;
   ticks = 0;
   int oldturn = -1;
+  dynamicval<bool> rv(recording_video, true);
   for(int i=0; i<noframes; i++) {
     record_frame_id = i;
     if(i < min_frame || i > max_frame) continue;
@@ -1760,7 +1763,6 @@ auto animhook = addHook(hooks_frame, 100, display_animation)
   #endif
   + addHook(hooks_configfile, 100, [] {
     #if CAP_CONFIG
-    param_f(anims::period, parameter_names("aperiod", "animation period"));
     param_i(anims::noframes, "animation frames");
     param_f(anims::cycle_length, parameter_names("acycle", "animation cycle length"));
     param_f(anims::parabolic_length, parameter_names("aparabolic", "animation parabolic length"))
@@ -1776,11 +1778,11 @@ auto animhook = addHook(hooks_frame, 100, display_animation)
     param_f(rug_rotation1, "rug_rotation1");
     param_f(rug_rotation2, "rug_rotation2");
     param_f(rotation_distance, "rotation_distance");
-    param_f(cycle_length, "cycle_length");
     param_f(env_ocean, "env_ocean");
     param_f(env_volcano, "env_volcano");
     param_b(wallopt, "wallopt");
     param_b(clearup, "anim_clearup");
+    param_b(env_shmup, "anim_shmup");
     param_color(circle_display_color, "circle_display_color", true);
     param_enum(anims::ma, parameter_names("ma", "movement_animation"), maNone)
     -> editable({{"none", ""}, {"translation", ""}, {"rotation", ""}, {"circle", ""}, {"parabolic", ""}, {"translation+rotation", ""}}, "movement animation", 'a')
@@ -1802,7 +1804,7 @@ EX bool any_animation() {
   }
 
 EX bool any_on() {
-  return any_animation() || history::includeHistory;
+  return any_animation() || history::includeHistory || currently_scrolling;
   }
 
 EX bool center_music() {

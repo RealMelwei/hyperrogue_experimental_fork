@@ -64,8 +64,8 @@ void normalize(cellwalker& cw) {
       else println(hlog, tie(d, d1));
       }
     }
-  else if(S3 == OINF) return;
-  else if(S3 == 4) for(int s: {1, -1}) {
+  else if(hr_S3 == OINF) return;
+  else if(hr_S3 == 4) for(int s: {1, -1}) {
     cellwalker str = (cw + s) + wstep + s;
     int d1 = celldist(str.at);
     if(d1 < d) { d = d1; cw = str; goto back; }
@@ -122,7 +122,7 @@ kohvec& get_landscape_at(cell *h) {
       cellwalker cw(h, i);
       auto& res = landscape_at[h];
       res = get_landscape_at(h1);
-      if(S3 == 3) {
+      if(hr_S3 == 3) {
         apply_delta(cw, res);
         apply_delta(cw+1, res);
         }
@@ -221,7 +221,7 @@ void get_coordinates(kohvec& v, cell *c, cell *c0) {
         for(int i=0; i<MDIM; i++)
           v[i] = h[i];
         }
-      else if(euclid && closed_manifold && S3 == 3 && WDIM == 2 && T0[0][1] == 0 && T0[1][0] == 0 && T0[0][0] == T0[1][1]) {
+      else if(euclid && closed_manifold && hr_S3 == 3 && WDIM == 2 && T0[0][1] == 0 && T0[1][0] == 0 && T0[0][0] == T0[1][1]) {
         columns = 6;
         alloc(v);
         int s = T0[0][0];
